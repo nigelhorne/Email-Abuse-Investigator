@@ -3,130 +3,134 @@ package Mail::Message::Abuse;
 use strict;
 use warnings;
 
-our $VERSION = '1.00';
+our $VERSION = '2.00';
 
 =head1 NAME
 
-Mail::Message::Abuse - Analyse spam email to identify originating hosts and
-hosted URLs, similar to SpamCop
+Mail::Message::Abuse - Analyse spam email to identify originating hosts,
+hosted URLs, and suspicious domains, similar to SpamCop
 
 =head1 SYNOPSIS
 
     use Mail::Message::Abuse;
 
-    my $analyser = Mail::Message::Abuse->new();
-
-    # Feed it a raw email (string or file handle)
+    my $analyser = Mail::Message::Abuse->new( verbose => 1 );
     $analyser->parse_email($raw_email_text);
 
-    # Find the most-likely true originating IP
+    # Originating IP and its network owner
     my $origin = $analyser->originating_ip();
-    print "Originating IP : ", $origin->{ip},        "\n";
-    print "Reverse DNS    : ", $origin->{rdns},       "\n";
-    print "Abuse contact  : ", $origin->{abuse},      "\n";
-    print "Confidence     : ", $origin->{confidence}, "\n";
 
-    # Find every URL embedded in the message body
-    my @urls = $analyser->embedded_urls();
-    for my $u (@urls) {
-        print "URL     : $u->{url}\n";
-        print "Host    : $u->{host}\n";
-        print "IP      : $u->{ip}\n";
-        print "Hoster  : $u->{abuse}\n\n";
-    }
+    # All HTTP/HTTPS URLs found in the body
+    my @urls  = $analyser->embedded_urls();
 
-    # Convenience: full report as a text string
+    # All domains extracted from mailto: links and bare addresses in the body
+    my @mdoms = $analyser->mailto_domains();
+
+    # All domains mentioned anywhere (union of the above)
+    my @adoms = $analyser->all_domains();
+
+    # Full printable report
     print $analyser->report();
 
 =head1 DESCRIPTION
 
-C<Mail::Message::Abuse> examines the raw source of a spam e-mail and attempts
-to answer the two questions that SpamCop answers:
+C<Mail::Message::Abuse> examines the raw source of a spam/phishing e-mail
+and answers the questions SpamCop and manual abuse investigators ask:
 
 =over 4
 
-=item 1. Where did the message I<really> come from?
+=item 1. Where did the message really come from?
 
-The module walks the C<Received:> header chain from the I<innermost> trusted
-hop outward, skipping forged or internal headers, until it finds the first
-I<external> IP address.  It then performs a reverse-DNS lookup and a WHOIS
-query (or Team-Cymru / ARIN lookup) to find the abuse contact for that
-network block.
+Walks the C<Received:> chain, skips private/trusted IPs, and identifies the
+first external hop.  Enriches with rDNS, WHOIS/RDAP org name and abuse
+contact.
 
-=item 2. Who hosts the advertised websites?
+=item 2. Who hosts the advertised web sites?
 
-Every hyperlink and bare URL found in the message body (plain-text and HTML)
-is extracted, the hostname is resolved to an IP, and a WHOIS / RDAP query
-identifies the hosting organisation and its abuse contact.
+Extracts every C<http://> and C<https://> URL from both plain-text and HTML
+parts, resolves each hostname to an IP, and looks up the network owner.
+
+=item 3. Who owns the reply-to / contact domains?
+
+Extracts domains from C<mailto:> links, bare e-mail addresses in the body,
+the C<From:>/C<Reply-To:> headers, and the C<Return-Path:>.  For each
+unique domain it gathers:
+
+=over 8
+
+=item * Domain registrar and registrant (WHOIS)
+
+=item * Web-hosting IP and network owner (A record -> RDAP)
+
+=item * Mail-hosting IP and network owner (MX record -> RDAP)
+
+=item * DNS nameserver operator (NS record -> RDAP)
+
+=item * Whether the domain was recently registered (potential flag)
+
+=back
 
 =back
 
 =head1 REQUIRED MODULES
 
     Net::DNS
-    Net::Whois::IP   (or Net::Whois::IANA)
     LWP::UserAgent
     HTML::LinkExtor
     Socket
     IO::Socket::INET
+    MIME::QuotedPrint  (core since Perl 5.8)
+    MIME::Base64       (core since Perl 5.8)
 
 All are available from CPAN.
 
 =cut
 
 # -----------------------------------------------------------------------
-# Core dependencies
+# Core dependencies (always available)
 # -----------------------------------------------------------------------
 use Socket          qw( inet_aton inet_ntoa );
 use IO::Socket::INET;
+use MIME::QuotedPrint qw( decode_qp );
+use MIME::Base64      qw( decode_base64 );
 
-# Optional / gracefully degraded
+# Optional - gracefully degraded
 my $HAS_NET_DNS;
-BEGIN {
-    $HAS_NET_DNS = eval { require Net::DNS; 1 };
-}
+BEGIN { $HAS_NET_DNS = eval { require Net::DNS; 1 } }
 
 my $HAS_LWP;
-BEGIN {
-    $HAS_LWP = eval { require LWP::UserAgent; 1 };
-}
+BEGIN { $HAS_LWP = eval { require LWP::UserAgent; 1 } }
 
 my $HAS_HTML_LINKEXTOR;
-BEGIN {
-    $HAS_HTML_LINKEXTOR = eval { require HTML::LinkExtor; 1 };
-}
+BEGIN { $HAS_HTML_LINKEXTOR = eval { require HTML::LinkExtor; 1 } }
 
 # -----------------------------------------------------------------------
 # Constants
 # -----------------------------------------------------------------------
 
-# Private/reserved IPv4 ranges that should never appear as the true origin
 my @PRIVATE_RANGES = (
-    qr/^127\./,                    # loopback
-    qr/^10\./,                     # RFC 1918
-    qr/^192\.168\./,               # RFC 1918
-    qr/^172\.(?:1[6-9]|2\d|3[01])\./,  # RFC 1918
-    qr/^169\.254\./,               # link-local
-    qr/^::1$/,                     # IPv6 loopback
-    qr/^fc/i,                      # IPv6 ULA
-    qr/^fd/i,                      # IPv6 ULA
+    qr/^127\./,
+    qr/^10\./,
+    qr/^192\.168\./,
+    qr/^172\.(?:1[6-9]|2\d|3[01])\./,
+    qr/^169\.254\./,
+    qr/^::1$/,
+    qr/^fc/i,
+    qr/^fd/i,
 );
 
-# Received header patterns
-# We parse the most common forms produced by Sendmail, Postfix, Exim, qmail
 my @RECEIVED_IP_RE = (
-    qr/\[\s*([\d.]+)\s*\]/,                          # [1.2.3.4]
-    qr/\(\s*[\w.-]*\s*\[?\s*([\d.]+)\s*\]?\s*\)/,   # (hostname [1.2.3.4])
-    qr/from\s+[\w.-]+\s+([\d.]+)/,                   # from hostname 1.2.3.4
-    qr/([\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3})/,  # bare dotted-quad fallback
+    qr/\[\s*([\d.]+)\s*\]/,
+    qr/\(\s*[\w.-]*\s*\[?\s*([\d.]+)\s*\]?\s*\)/,
+    qr/from\s+[\w.-]+\s+([\d.]+)/,
+    qr/([\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3})/,
 );
 
-# Well-known internal / relay hostnames to skip
-my @SKIP_HOSTNAMES = (
-    qr/localhost/i,
-    qr/127\.0\.0\.1/,
-    qr/\binternal\b/i,
-    qr/\blocal\b/i,
+# Domains we never bother reporting on - they are the infrastructure,
+# not the criminal.
+my %TRUSTED_DOMAINS = map { $_ => 1 } qw(
+    gmail.com googlemail.com yahoo.com outlook.com hotmail.com
+    google.com microsoft.com apple.com amazon.com
 );
 
 # -----------------------------------------------------------------------
@@ -137,14 +141,10 @@ my @SKIP_HOSTNAMES = (
 
 =head2 new( %options )
 
-Create a new analyser object.
-
     my $a = Mail::Message::Abuse->new(
-        timeout      => 15,      # DNS/HTTP timeout in seconds (default 10)
-        trusted_relays => [      # IPs/CIDRs you operate yourself
-            '203.0.113.0/24',
-        ],
-        verbose      => 0,       # Set to 1 for progress messages on STDERR
+        timeout        => 15,
+        trusted_relays => ['203.0.113.0/24'],
+        verbose        => 0,
     );
 
 =cut
@@ -157,87 +157,168 @@ sub new {
         verbose        => $opts{verbose}        || 0,
         _raw           => '',
         _headers       => [],
-        _body          => '',
+        _body_plain    => '',
+        _body_html     => '',
         _received      => [],
         _origin        => undef,
-        _urls          => [],
+        _urls          => undef,    # lazy
+        _mailto_domains=> undef,    # lazy
+        _domain_info   => {},       # cache: domain -> hashref
     }, $class;
 }
 
 # -----------------------------------------------------------------------
-# Public API
+# Public: parse
 # -----------------------------------------------------------------------
 
 =head2 parse_email( $text )
 
-Feed the raw RFC 2822 email source (headers + body) to the analyser.
-C<$text> may be a scalar string or a reference to one.
+Feed the raw RFC 2822 source to the analyser.  Accepts a scalar or
+scalar-ref.  Handles C<multipart>, C<quoted-printable>, and C<base64>
+bodies automatically.
 
 =cut
 
 sub parse_email {
     my ($self, $text) = @_;
     $text = $$text if ref $text;
-
-    $self->{_raw}     = $text;
-    $self->{_origin}  = undef;
-    $self->{_urls}    = [];
+    $self->{_raw}            = $text;
+    $self->{_origin}         = undef;
+    $self->{_urls}           = undef;
+    $self->{_mailto_domains} = undef;
+    $self->{_domain_info}    = {};
 
     $self->_split_message($text);
-    $self->_parse_received_headers();
     return $self;
 }
 
+# -----------------------------------------------------------------------
+# Public: originating host
+# -----------------------------------------------------------------------
+
 =head2 originating_ip()
 
-Returns a hash-reference describing the most-likely true sending host:
+Returns a hashref:
 
     {
-        ip         => '198.51.100.42',
-        rdns       => 'mail.spammer.example',
-        abuse      => 'abuse@isp.example',
-        org        => 'Dodgy Hosting Ltd',
-        confidence => 'high',   # high | medium | low
-        note       => 'First external hop in Received chain',
+        ip         => '209.85.218.67',
+        rdns       => 'mail-ej1-f67.google.com',
+        org        => 'Google LLC',
+        abuse      => 'network-abuse@google.com',
+        confidence => 'high',
+        note       => 'First external hop in Received: chain',
     }
-
-Returns C<undef> if no usable IP could be found.
 
 =cut
 
 sub originating_ip {
     my ($self) = @_;
-    unless (defined $self->{_origin}) {
-        $self->{_origin} = $self->_find_origin();
-    }
+    $self->{_origin} //= $self->_find_origin();
     return $self->{_origin};
 }
 
+# -----------------------------------------------------------------------
+# Public: HTTP/HTTPS URLs
+# -----------------------------------------------------------------------
+
 =head2 embedded_urls()
 
-Returns a list of hash-references, one per unique URL found in the body:
+Returns a list of hashrefs for every HTTP/HTTPS URL in the body:
 
     {
-        url   => 'http://www.spamsite.example/buy-now',
-        host  => 'www.spamsite.example',
-        ip    => '203.0.113.99',
-        org   => 'Rogue Hosting Corp',
-        abuse => 'abuse@rogue-host.example',
+        url   => 'https://spamsite.example/offer',
+        host  => 'spamsite.example',
+        ip    => '198.51.100.7',
+        org   => 'Dodgy Hosting Ltd',
+        abuse => 'abuse@dodgy.example',
     }
 
 =cut
 
 sub embedded_urls {
     my ($self) = @_;
-    unless (@{ $self->{_urls} }) {
-        $self->{_urls} = $self->_extract_and_resolve_urls();
-    }
+    $self->{_urls} //= $self->_extract_and_resolve_urls();
     return @{ $self->{_urls} };
 }
 
+# -----------------------------------------------------------------------
+# Public: mailto / reply-to / from domains
+# -----------------------------------------------------------------------
+
+=head2 mailto_domains()
+
+Returns a list of hashrefs, one per unique non-infrastructure domain found
+in C<mailto:> links, bare e-mail addresses in the body, and the envelope /
+header fields C<From:>, C<Reply-To:>, C<Return-Path:>.
+
+Each hashref contains:
+
+    {
+        domain      => 'sminvestmentsupplychain.com',
+        source      => 'mailto in body',
+
+        # Web hosting
+        web_ip      => '104.21.30.10',
+        web_org     => 'Cloudflare Inc',
+        web_abuse   => 'abuse@cloudflare.com',
+
+        # Mail hosting (MX)
+        mx_host     => 'mail.example.com',
+        mx_ip       => '198.51.100.5',
+        mx_org      => 'Hosting Corp',
+        mx_abuse    => 'abuse@hostingcorp.example',
+
+        # DNS authority (NS)
+        ns_host     => 'ns1.example.com',
+        ns_ip       => '198.51.100.1',
+        ns_org      => 'DNS Provider Inc',
+        ns_abuse    => 'abuse@dnsprovider.example',
+
+        # Domain registration (WHOIS)
+        registrar   => 'GoDaddy.com LLC',
+        registered  => '2024-11-01',
+        expires     => '2025-11-01',
+        recently_registered => 1,   # flag: < 180 days old
+
+        # Raw domain WHOIS text (first 2 KB)
+        whois_raw   => '...',
+    }
+
+=cut
+
+sub mailto_domains {
+    my ($self) = @_;
+    $self->{_mailto_domains} //= $self->_extract_and_analyse_domains();
+    return @{ $self->{_mailto_domains} };
+}
+
+=head2 all_domains()
+
+Union of every domain seen across HTTP URLs and mailto/reply domains.
+
+=cut
+
+sub all_domains {
+    my ($self) = @_;
+    my %seen;
+    my @out;
+    for my $u ($self->embedded_urls()) {
+        my ($dom) = $u->{host} =~ /([^.]+\.[^.]+)$/;
+        push @out, $dom if $dom && !$seen{$dom}++;
+    }
+    for my $d ($self->mailto_domains()) {
+        push @out, $d->{domain} if !$seen{ $d->{domain} }++;
+    }
+    return @out;
+}
+
+# -----------------------------------------------------------------------
+# Public: report
+# -----------------------------------------------------------------------
+
 =head2 report()
 
-Returns a human-readable plain-text abuse report string.
+Returns a formatted plain-text abuse report.
 
 =cut
 
@@ -245,59 +326,112 @@ sub report {
     my ($self) = @_;
     my @out;
 
-    push @out, "=" x 70;
-    push @out, "  Mail::Message::Abuse Report";
-    push @out, "=" x 70;
+    push @out, "=" x 72;
+    push @out, "  Mail::Message::Abuse Report  (v$VERSION)";
+    push @out, "=" x 72;
     push @out, "";
 
-    # --- Origin ---
+    # ---- envelope summary ----
+    for my $f (qw(from reply-to return-path subject date message-id)) {
+        my $v = $self->_header_value($f);
+        push @out, sprintf("  %-14s : %s", ucfirst($f), $v)
+            if defined $v;
+    }
+    push @out, "";
+
+    # ---- originating host ----
     push @out, "[ ORIGINATING HOST ]";
     my $orig = $self->originating_ip();
     if ($orig) {
-        push @out, "  IP         : $orig->{ip}";
-        push @out, "  rDNS       : $orig->{rdns}"       if $orig->{rdns};
-        push @out, "  Org        : $orig->{org}"         if $orig->{org};
-        push @out, "  Abuse addr : $orig->{abuse}"       if $orig->{abuse};
-        push @out, "  Confidence : $orig->{confidence}";
-        push @out, "  Note       : $orig->{note}"        if $orig->{note};
+        push @out, "  IP           : $orig->{ip}";
+        push @out, "  Reverse DNS  : $orig->{rdns}"       if $orig->{rdns};
+        push @out, "  Organisation : $orig->{org}"         if $orig->{org};
+        push @out, "  Abuse addr   : $orig->{abuse}"       if $orig->{abuse};
+        push @out, "  Confidence   : $orig->{confidence}";
+        push @out, "  Note         : $orig->{note}"        if $orig->{note};
     } else {
         push @out, "  (could not determine originating IP)";
     }
     push @out, "";
 
-    # --- URLs ---
-    push @out, "[ EMBEDDED URLs ]";
+    # ---- HTTP/HTTPS URLs ----
+    push @out, "[ EMBEDDED HTTP/HTTPS URLs ]";
     my @urls = $self->embedded_urls();
     if (@urls) {
         for my $u (@urls) {
-            push @out, "  URL   : $u->{url}";
-            push @out, "  Host  : $u->{host}";
-            push @out, "  IP    : $u->{ip}"    if $u->{ip};
-            push @out, "  Org   : $u->{org}"   if $u->{org};
-            push @out, "  Abuse : $u->{abuse}" if $u->{abuse};
+            push @out, "  URL          : $u->{url}";
+            push @out, "  Host         : $u->{host}";
+            push @out, "  IP           : $u->{ip}"    if $u->{ip};
+            push @out, "  Organisation : $u->{org}"   if $u->{org};
+            push @out, "  Abuse addr   : $u->{abuse}" if $u->{abuse};
             push @out, "";
         }
     } else {
-        push @out, "  (no URLs found in message body)";
+        push @out, "  (none found)";
         push @out, "";
     }
 
-    push @out, "=" x 70;
+    # ---- contact / reply domains ----
+    push @out, "[ CONTACT / REPLY-TO DOMAINS ]";
+    my @mdoms = $self->mailto_domains();
+    if (@mdoms) {
+        for my $d (@mdoms) {
+            push @out, "  Domain       : $d->{domain}";
+            push @out, "  Found in     : $d->{source}";
+
+            if ($d->{recently_registered}) {
+                push @out, "  *** WARNING: RECENTLY REGISTERED - possible phishing domain ***";
+            }
+            push @out, "  Registered   : $d->{registered}" if $d->{registered};
+            push @out, "  Expires      : $d->{expires}"     if $d->{expires};
+            push @out, "  Registrar    : $d->{registrar}"   if $d->{registrar};
+
+            if ($d->{web_ip}) {
+                push @out, "  Web host IP  : $d->{web_ip}";
+                push @out, "  Web host org : $d->{web_org}"   if $d->{web_org};
+                push @out, "  Web abuse    : $d->{web_abuse}" if $d->{web_abuse};
+            } else {
+                push @out, "  Web host     : (no A record / unreachable)";
+            }
+
+            if ($d->{mx_host}) {
+                push @out, "  MX host      : $d->{mx_host}";
+                push @out, "  MX IP        : $d->{mx_ip}"    if $d->{mx_ip};
+                push @out, "  MX org       : $d->{mx_org}"   if $d->{mx_org};
+                push @out, "  MX abuse     : $d->{mx_abuse}" if $d->{mx_abuse};
+            } else {
+                push @out, "  MX host      : (none found)";
+            }
+
+            if ($d->{ns_host}) {
+                push @out, "  NS host      : $d->{ns_host}";
+                push @out, "  NS IP        : $d->{ns_ip}"    if $d->{ns_ip};
+                push @out, "  NS org       : $d->{ns_org}"   if $d->{ns_org};
+                push @out, "  NS abuse     : $d->{ns_abuse}" if $d->{ns_abuse};
+            }
+
+            push @out, "";
+        }
+    } else {
+        push @out, "  (none found)";
+        push @out, "";
+    }
+
+    push @out, "=" x 72;
     return join("\n", @out) . "\n";
 }
 
 # -----------------------------------------------------------------------
-# Private: message splitting
+# Private: message parsing
 # -----------------------------------------------------------------------
 
 sub _split_message {
     my ($self, $text) = @_;
 
-    # Split on the first blank line separating headers from body
-    my ($header_block, $body) = split /\r?\n\r?\n/, $text, 2;
-    $body //= '';
+    my ($header_block, $body_raw) = split /\r?\n\r?\n/, $text, 2;
+    $body_raw //= '';
 
-    # Unfold continuation lines (RFC 2822 §2.2.3)
+    # Unfold continuation lines (RFC 2822 s2.2.3)
     $header_block =~ s/\r?\n([ \t]+)/ $1/g;
 
     my @headers;
@@ -306,82 +440,102 @@ sub _split_message {
             push @headers, { name => lc($1), value => $2 };
         }
     }
+    $self->{_headers}  = \@headers;
+    $self->{_received} = [ map  { $_->{value} }
+                           grep { $_->{name} eq 'received' } @headers ];
 
-    $self->{_headers} = \@headers;
-    $self->{_body}    = $body;
+    my ($ct_h)  = grep { $_->{name} eq 'content-type' }              @headers;
+    my ($cte_h) = grep { $_->{name} eq 'content-transfer-encoding' } @headers;
+    my $ct  = defined $ct_h  ? $ct_h->{value}  : '';
+    my $cte = defined $cte_h ? $cte_h->{value} : '';
 
-    # Collect Received: headers in the order they appear in the raw source
-    # (topmost = added by your MTA = most recent; bottommost = oldest/closest to sender)
-    $self->{_received} = [
-        map  { $_->{value} }
-        grep { $_->{name} eq 'received' }
-        @headers
-    ];
+    if ($ct =~ /multipart/i) {
+        my ($boundary) = $ct =~ /boundary="?([^";]+)"?/i;
+        $self->_decode_multipart($body_raw, $boundary) if $boundary;
+    } else {
+        my $decoded = $self->_decode_body($body_raw, $cte);
+        if ($ct =~ /html/i) { $self->{_body_html}  = $decoded }
+        else                 { $self->{_body_plain} = $decoded }
+    }
 
-    $self->_debug(sprintf "Parsed %d headers, %d Received lines, body %d bytes",
-        scalar @headers, scalar @{ $self->{_received} }, length $body);
+    $self->_debug(sprintf "Parsed %d headers, %d Received lines",
+        scalar @headers, scalar @{ $self->{_received} });
+}
+
+sub _decode_multipart {
+    my ($self, $body, $boundary) = @_;
+
+    my @parts = split /--\Q$boundary\E(?:--)?/, $body;
+    for my $part (@parts) {
+        next unless $part =~ /\S/;
+        $part =~ s/^\r?\n//;
+
+        my ($phdr_block, $pbody) = split /\r?\n\r?\n/, $part, 2;
+        next unless defined $pbody;
+
+        $phdr_block =~ s/\r?\n([ \t]+)/ $1/g;
+        my %phdr;
+        for my $line (split /\r?\n/, $phdr_block) {
+            $phdr{ lc($1) } = $2 if $line =~ /^([\w-]+)\s*:\s*(.*)/;
+        }
+
+        my $pct  = $phdr{'content-type'}              // '';
+        my $pcte = $phdr{'content-transfer-encoding'} // '';
+        my $decoded = $self->_decode_body($pbody, $pcte);
+
+        if    ($pct =~ /text\/html/i)  { $self->{_body_html}  .= $decoded }
+        elsif ($pct =~ /text/i || !$pct) { $self->{_body_plain} .= $decoded }
+    }
+}
+
+sub _decode_body {
+    my ($self, $body, $cte) = @_;
+    $cte //= '';
+    return decode_qp($body)     if $cte =~ /quoted-printable/i;
+    return decode_base64($body) if $cte =~ /base64/i;
+    return $body;
 }
 
 # -----------------------------------------------------------------------
-# Private: Received-chain analysis
+# Private: Received-chain -> originating IP
 # -----------------------------------------------------------------------
-
-sub _parse_received_headers {
-    my ($self) = @_;
-    # Nothing to do here yet — lazy evaluation via originating_ip()
-}
 
 sub _find_origin {
     my ($self) = @_;
-
-    my @received = @{ $self->{_received} };
-
-    # RFC 2822: Received headers are prepended, so the LAST one in the list
-    # is the one added by the first MTA that touched the message (closest to
-    # the sender).  We walk from last to first, skipping private/trusted IPs.
-
     my @candidates;
-    for my $hdr (reverse @received) {
-        my $ip = $self->_extract_ip_from_received($hdr);
-        next unless defined $ip;
+
+    for my $hdr (reverse @{ $self->{_received} }) {
+        my $ip = $self->_extract_ip_from_received($hdr) // next;
         next if $self->_is_private($ip);
         next if $self->_is_trusted($ip);
-        push @candidates, { ip => $ip, header => $hdr };
+        push @candidates, $ip;
     }
 
-    # The first candidate after stripping private/trusted is the origin
     unless (@candidates) {
-        # Fallback: try the X-Originating-IP header (webmail clients)
-        my ($xoip) = map { $_->{value} }
-                     grep { $_->{name} eq 'x-originating-ip' }
-                     @{ $self->{_headers} };
+        my $xoip = $self->_header_value('x-originating-ip');
         if ($xoip) {
             $xoip =~ s/[\[\]\s]//g;
-            unless ($self->_is_private($xoip)) {
-                return $self->_enrich_ip($xoip, 'low',
-                    'Taken from X-Originating-IP (unverified)');
-            }
+            return $self->_enrich_ip($xoip, 'low',
+                'Taken from X-Originating-IP (webmail, unverified)')
+                unless $self->_is_private($xoip);
         }
         return undef;
     }
 
-    my $best = $candidates[0];
-    my $confidence = @candidates > 1 ? 'high' : 'medium';
-    return $self->_enrich_ip($best->{ip}, $confidence,
-        'First external hop in Received: chain');
+    return $self->_enrich_ip(
+        $candidates[0],
+        @candidates > 1 ? 'high' : 'medium',
+        'First external hop in Received: chain',
+    );
 }
 
 sub _extract_ip_from_received {
     my ($self, $hdr) = @_;
-
-    # Try each pattern in order of reliability
     for my $re (@RECEIVED_IP_RE) {
         if ($hdr =~ $re) {
             my $ip = $1;
-            # Very basic sanity check
             next unless $ip =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
-            my @oct = split /\./, $ip;
-            next if grep { $_ > 255 } @oct;
+            next if grep { $_ > 255 } split /\./, $ip;
             return $ip;
         }
     }
@@ -390,9 +544,8 @@ sub _extract_ip_from_received {
 
 sub _is_private {
     my ($self, $ip) = @_;
-    for my $re (@PRIVATE_RANGES) {
-        return 1 if $ip =~ $re;
-    }
+    return 1 unless defined $ip && $ip ne '';
+    for my $re (@PRIVATE_RANGES) { return 1 if $ip =~ $re }
     return 0;
 }
 
@@ -405,27 +558,21 @@ sub _is_trusted {
 }
 
 # -----------------------------------------------------------------------
-# Private: URL extraction and resolution
+# Private: HTTP/HTTPS URL extraction
 # -----------------------------------------------------------------------
 
 sub _extract_and_resolve_urls {
     my ($self) = @_;
-
     my %seen;
     my @results;
+    my $combined = $self->{_body_plain} . "\n" . $self->{_body_html};
 
-    my @raw_urls = $self->_extract_urls_from_body($self->{_body});
-
-    for my $url (@raw_urls) {
+    for my $url ($self->_extract_http_urls($combined)) {
         next if $seen{$url}++;
-
         my ($host) = $url =~ m{https?://([^/:?\s#]+)}i;
         next unless $host;
-
-        $self->_debug("Resolving URL host: $host");
         my $ip    = $self->_resolve_host($host) // '(unresolved)';
         my $whois = $ip ne '(unresolved)' ? $self->_whois_ip($ip) : {};
-
         push @results, {
             url   => $url,
             host  => $host,
@@ -437,36 +584,196 @@ sub _extract_and_resolve_urls {
     return \@results;
 }
 
-sub _extract_urls_from_body {
+sub _extract_http_urls {
     my ($self, $body) = @_;
     my @urls;
 
-    # 1. Extract from HTML <a href>, <img src> etc. if HTML::LinkExtor is available
     if ($HAS_HTML_LINKEXTOR) {
         my $p = HTML::LinkExtor->new(sub {
             my ($tag, %attrs) = @_;
             for my $attr (qw(href src action)) {
                 push @urls, $attrs{$attr}
-                    if $attrs{$attr} && $attrs{$attr} =~ m{^https?://}i;
+                    if ($attrs{$attr} // '') =~ m{^https?://}i;
             }
         });
         $p->parse($body);
     }
 
-    # 2. Bare URL regex (catches plain-text and any HTML::LinkExtor misses)
-    my @bare;
     while ($body =~ m{(https?://[^\s<>"'\)\]]+)}gi) {
-        push @bare, $1;
+        push @urls, $1;
     }
 
-    # 3. Combine, deduplicate
     my %seen;
-    my @all = grep { !$seen{$_}++ } (@urls, @bare);
-
-    # Tidy trailing punctuation that is unlikely to be part of the URL
+    my @all = grep { !$seen{$_}++ } @urls;
     s/[.,;:!?\)>\]]+$// for @all;
-
     return @all;
+}
+
+# -----------------------------------------------------------------------
+# Private: domain extraction and full analysis
+# -----------------------------------------------------------------------
+
+sub _extract_and_analyse_domains {
+    my ($self) = @_;
+    my %seen;
+    my @domains_with_source;
+
+    my $record = sub {
+        my ($dom, $source) = @_;
+        $dom = lc $dom;
+        $dom =~ s/\.$//;
+        return if $TRUSTED_DOMAINS{$dom};
+        return if $seen{$dom}++;
+        push @domains_with_source, { domain => $dom, source => $source };
+    };
+
+    # Header fields that may carry contact domains
+    my %header_sources = (
+        'from'         => 'From: header',
+        'reply-to'     => 'Reply-To: header',
+        'return-path'  => 'Return-Path: header',
+    );
+    for my $hname (sort keys %header_sources) {
+        my $val = $self->_header_value($hname) // next;
+        $record->($_, $header_sources{$hname})
+            for $self->_domains_from_text($val);
+    }
+
+    # Body (plain + HTML)
+    my $combined = $self->{_body_plain} . "\n" . $self->{_body_html};
+    $record->($_, 'email address / mailto in body')
+        for $self->_domains_from_text($combined);
+
+    # Analyse each domain
+    my @results;
+    for my $entry (@domains_with_source) {
+        my $info = $self->_analyse_domain($entry->{domain});
+        push @results, { %$entry, %$info };
+    }
+    return \@results;
+}
+
+# Extract unique domains from mailto: links and bare user@domain addresses
+sub _domains_from_text {
+    my ($self, $text) = @_;
+    my %seen;
+    my @out;
+
+    # mailto:user@domain  (handles HTML-entity = from quoted-printable)
+    while ($text =~ /mailto:(?:[^@\s<>"]+)@([\w.-]+)/gi) {
+        my $dom = lc $1;  $dom =~ s/\.$//;
+        push @out, $dom unless $seen{$dom}++;
+    }
+
+    # bare user@domain
+    while ($text =~ /\b[\w.+%-]+@([\w.-]+\.[a-zA-Z]{2,})\b/g) {
+        my $dom = lc $1;  $dom =~ s/\.$//;
+        push @out, $dom unless $seen{$dom}++;
+    }
+
+    return @out;
+}
+
+# Full domain intelligence gathering
+sub _analyse_domain {
+    my ($self, $domain) = @_;
+    return $self->{_domain_info}{$domain}
+        if $self->{_domain_info}{$domain};
+
+    $self->_debug("Analysing domain: $domain");
+    my %info;
+
+    # --- A record -> web hosting ---
+    my $web_ip = $self->_resolve_host($domain);
+    if ($web_ip) {
+        $info{web_ip} = $web_ip;
+        my $w = $self->_whois_ip($web_ip);
+        $info{web_org}   = $w->{org}   if $w->{org};
+        $info{web_abuse} = $w->{abuse} if $w->{abuse};
+    }
+
+    if ($HAS_NET_DNS) {
+        my $res = Net::DNS::Resolver->new(
+            tcp_timeout => $self->{timeout},
+            udp_timeout => $self->{timeout},
+        );
+
+        # --- MX record -> mail hosting ---
+        my $mxq = $res->search($domain, 'MX');
+        if ($mxq) {
+            my ($best) = sort { $a->preference <=> $b->preference }
+                         grep { $_->type eq 'MX' } $mxq->answer;
+            if ($best) {
+                (my $mx_host = lc $best->exchange) =~ s/\.$//;
+                $info{mx_host} = $mx_host;
+                my $mx_ip = $self->_resolve_host($mx_host);
+                if ($mx_ip) {
+                    $info{mx_ip} = $mx_ip;
+                    my $mw = $self->_whois_ip($mx_ip);
+                    $info{mx_org}   = $mw->{org}   if $mw->{org};
+                    $info{mx_abuse} = $mw->{abuse} if $mw->{abuse};
+                }
+            }
+        }
+
+        # --- NS record -> DNS hosting ---
+        my $nsq = $res->search($domain, 'NS');
+        if ($nsq) {
+            my ($first) = grep { $_->type eq 'NS' } $nsq->answer;
+            if ($first) {
+                (my $ns_host = lc $first->nsdname) =~ s/\.$//;
+                $info{ns_host} = $ns_host;
+                my $ns_ip = $self->_resolve_host($ns_host);
+                if ($ns_ip) {
+                    $info{ns_ip} = $ns_ip;
+                    my $nw = $self->_whois_ip($ns_ip);
+                    $info{ns_org}   = $nw->{org}   if $nw->{org};
+                    $info{ns_abuse} = $nw->{abuse} if $nw->{abuse};
+                }
+            }
+        }
+    }
+
+    # --- Domain WHOIS -> registrar + dates ---
+    my $domain_whois = $self->_domain_whois($domain);
+    if ($domain_whois) {
+        $info{whois_raw} = substr($domain_whois, 0, 2048);
+
+        if ($domain_whois =~ /Registrar:\s*(.+)/i) {
+            ($info{registrar} = $1) =~ s/\s+$//;
+        }
+
+        for my $pat (
+            qr/Creation Date:\s*(\S+)/i,
+            qr/Created(?:\s+On)?:\s*(\S+)/i,
+            qr/Registration Time:\s*(\S+)/i,
+            qr/registered:\s*(\S+)/i,
+        ) {
+            if (!$info{registered} && $domain_whois =~ $pat) {
+                ($info{registered} = $1) =~ s/[TZ].*//;
+            }
+        }
+
+        for my $pat (
+            qr/Registry Expiry Date:\s*(\S+)/i,
+            qr/Expir(?:y|ation)(?: Date)?:\s*(\S+)/i,
+            qr/paid-till:\s*(\S+)/i,
+        ) {
+            if (!$info{expires} && $domain_whois =~ $pat) {
+                ($info{expires} = $1) =~ s/[TZ].*//;
+            }
+        }
+
+        # Flag recently registered domains (common phishing indicator)
+        if ($info{registered}) {
+            my $epoch = $self->_parse_date_to_epoch($info{registered});
+            $info{recently_registered} = 1
+                if $epoch && (time() - $epoch) < 180 * 86400;
+        }
+    }
+
+    $self->{_domain_info}{$domain} = \%info;
+    return \%info;
 }
 
 # -----------------------------------------------------------------------
@@ -475,14 +782,14 @@ sub _extract_urls_from_body {
 
 sub _resolve_host {
     my ($self, $host) = @_;
-
-    # If it already looks like an IP, return it directly
     return $host if $host =~ /^\d{1,3}(?:\.\d{1,3}){3}$/;
 
     if ($HAS_NET_DNS) {
-        my $res     = Net::DNS::Resolver->new(tcp_timeout => $self->{timeout},
-                                              udp_timeout => $self->{timeout});
-        my $query   = $res->search($host, 'A');
+        my $res   = Net::DNS::Resolver->new(
+            tcp_timeout => $self->{timeout},
+            udp_timeout => $self->{timeout},
+        );
+        my $query = $res->search($host, 'A');
         if ($query) {
             for my $rr ($query->answer) {
                 return $rr->address if $rr->type eq 'A';
@@ -491,8 +798,7 @@ sub _resolve_host {
         return undef;
     }
 
-    # Fallback: gethostbyname via Socket
-    my $packed = inet_aton($host);
+    my $packed = eval { inet_aton($host) };
     return $packed ? inet_ntoa($packed) : undef;
 }
 
@@ -511,102 +817,60 @@ sub _reverse_dns {
         return undef;
     }
 
-    # Fallback via gethostbyaddr
     return scalar gethostbyaddr(inet_aton($ip), Socket::AF_INET());
 }
 
 # -----------------------------------------------------------------------
-# Private: WHOIS/RDAP
+# Private: WHOIS / RDAP
 # -----------------------------------------------------------------------
 
-=begin comment
-
-_whois_ip() is the heart of the "who is the hosting company" logic.
-
-We use a layered strategy:
-
-  1. Query the ARIN RDAP REST endpoint (works for all RIRs via referral).
-     RDAP returns structured JSON, which is far easier to parse reliably
-     than legacy WHOIS plain text.
-
-  2. If RDAP fails (no LWP, timeout, etc.) fall back to a raw TCP WHOIS
-     query against whois.iana.org to find the correct RIR, then query
-     that RIR's whois server.
-
-  3. Parse the abuse-c / OrgAbuseEmail fields from the WHOIS text.
-
-=end comment
-
-=cut
-
+# IP WHOIS: RDAP preferred, raw WHOIS TCP fallback
 sub _whois_ip {
     my ($self, $ip) = @_;
-    my $result = {};
-
-    # Try RDAP first (structured JSON)
-    $result = $self->_rdap_lookup($ip) if $HAS_LWP;
-
-    # Fallback to plain WHOIS
+    my $result = $HAS_LWP ? $self->_rdap_lookup($ip) : {};
     unless ($result->{org}) {
         my $raw = $self->_raw_whois($ip, 'whois.iana.org');
         if ($raw) {
-            # Find referral whois server
-            my ($ref_server) = $raw =~ /whois:\s*([\w.-]+)/i;
-            if ($ref_server) {
-                my $detail = $self->_raw_whois($ip, $ref_server);
-                $result    = $self->_parse_whois_text($detail) if $detail;
-            } else {
-                $result = $self->_parse_whois_text($raw);
-            }
+            my ($ref) = $raw =~ /whois:\s*([\w.-]+)/i;
+            my $detail = $ref ? $self->_raw_whois($ip, $ref) : $raw;
+            $result = $self->_parse_whois_text($detail) if $detail;
         }
     }
-
     return $result;
+}
+
+# Domain WHOIS: ask IANA for the TLD's whois server, then query it
+sub _domain_whois {
+    my ($self, $domain) = @_;
+    my $iana = $self->_raw_whois($domain, 'whois.iana.org') // return undef;
+    my ($server) = $iana =~ /whois:\s*([\w.-]+)/i;
+    return undef unless $server;
+    return $self->_raw_whois($domain, $server);
 }
 
 sub _rdap_lookup {
     my ($self, $ip) = @_;
     return {} unless $HAS_LWP;
-
     my $ua  = LWP::UserAgent->new(timeout => $self->{timeout},
                                   agent   => "Mail-Message-Abuse/$VERSION");
-    # ARIN's RDAP endpoint will redirect to the correct RIR
-    my $url = "https://rdap.arin.net/registry/ip/$ip";
-    my $res = eval { $ua->get($url) };
+    my $res = eval { $ua->get("https://rdap.arin.net/registry/ip/$ip") };
     return {} unless $res && $res->is_success;
-
-    my $json_text = $res->decoded_content;
-
-    # Minimal JSON parsing without a JSON module
+    my $j = $res->decoded_content;
     my %info;
-
-    # Organisation name
-    if ($json_text =~ /"name"\s*:\s*"([^"]+)"/) {
-        $info{org} = $1;
-    }
-
-    # CIDR / network handle
-    if ($json_text =~ /"handle"\s*:\s*"([^"]+)"/) {
-        $info{handle} = $1;
-    }
-
-    # Abuse contact — buried in the entities array
-    # Look for role":"abuse then nearby email
-    if ($json_text =~ /"abuse".*?"email"\s*:\s*"([^"]+)"/s) {
+    $info{org}    = $1 if $j =~ /"name"\s*:\s*"([^"]+)"/;
+    $info{handle} = $1 if $j =~ /"handle"\s*:\s*"([^"]+)"/;
+    if ($j =~ /"abuse".*?"email"\s*:\s*"([^"]+)"/s) {
         $info{abuse} = $1;
-    } elsif ($json_text =~ /"email"\s*:\s*"([^"@"]+@[^"]+)"/) {
+    } elsif ($j =~ /"email"\s*:\s*"([^@"]+@[^"]+)"/) {
         $info{abuse} = $1;
     }
-
     return \%info;
 }
 
 sub _raw_whois {
     my ($self, $query, $server) = @_;
     $server //= 'whois.iana.org';
-
     $self->_debug("WHOIS $server -> $query");
-
     my $sock = eval {
         IO::Socket::INET->new(
             PeerAddr => $server,
@@ -616,71 +880,51 @@ sub _raw_whois {
         );
     };
     return undef unless $sock;
-
     print $sock "$query\r\n";
-
     my $response = '';
-    local $/ = undef;
     eval {
         local $SIG{ALRM} = sub { die "timeout\n" };
         alarm($self->{timeout});
-        $response = <$sock>;
+        while (my $line = <$sock>) { $response .= $line }
         alarm(0);
     };
+    alarm(0);
     close $sock;
-    return $response;
+    return $response || undef;
 }
 
 sub _parse_whois_text {
     my ($self, $text) = @_;
     return {} unless $text;
-
     my %info;
-
-    # OrgName / org-name / owner / descr
-    for my $pat (qr/^OrgName:\s*(.+)/mi,
-                 qr/^org-name:\s*(.+)/mi,
-                 qr/^owner:\s*(.+)/mi,
-                 qr/^descr:\s*(.+)/mi) {
-        if ($text =~ $pat) {
-            $info{org} //= $1;
-            $info{org} =~ s/\s+$//;
+    for my $pat (
+        qr/^OrgName:\s*(.+)/mi,   qr/^org-name:\s*(.+)/mi,
+        qr/^owner:\s*(.+)/mi,     qr/^descr:\s*(.+)/mi,
+    ) {
+        if (!$info{org} && $text =~ $pat) {
+            ($info{org} = $1) =~ s/\s+$//;
         }
     }
-
-    # Abuse email
-    for my $pat (qr/OrgAbuseEmail:\s*(\S+@\S+)/mi,
-                 qr/abuse-mailbox:\s*(\S+@\S+)/mi,
-                 qr/abuse@\S+/mi) {
-        if ($text =~ $pat) {
-            $info{abuse} //= $1 // $&;
-            $info{abuse} =~ s/\s+$//;
+    for my $pat (
+        qr/OrgAbuseEmail:\s*(\S+@\S+)/mi,
+        qr/abuse-mailbox:\s*(\S+@\S+)/mi,
+    ) {
+        if (!$info{abuse} && $text =~ $pat) {
+            ($info{abuse} = $1) =~ s/\s+$//;
         }
     }
-
-    # CIDR / inetnum
-    if ($text =~ /^inetnum:\s*(.+)/mi) {
-        $info{cidr} = $1;
-        $info{cidr} =~ s/\s+$//;
-    }
-    if ($text =~ /^CIDR:\s*(.+)/mi) {
-        $info{cidr} //= $1;
-        $info{cidr} =~ s/\s+$//;
-    }
-
+    $info{abuse} //= $1 if $text =~ /(abuse\@[\w.-]+)/i;
     return \%info;
 }
 
 # -----------------------------------------------------------------------
-# Private: IP enrichment (rDNS + WHOIS in one step)
+# Private: utilities
 # -----------------------------------------------------------------------
 
 sub _enrich_ip {
     my ($self, $ip, $confidence, $note) = @_;
-
     my $rdns  = $self->_reverse_dns($ip);
     my $whois = $self->_whois_ip($ip);
-
     return {
         ip         => $ip,
         rdns       => $rdns  // '(no reverse DNS)',
@@ -691,28 +935,41 @@ sub _enrich_ip {
     };
 }
 
-# -----------------------------------------------------------------------
-# Private: CIDR helper
-# -----------------------------------------------------------------------
+sub _header_value {
+    my ($self, $name) = @_;
+    for my $h (@{ $self->{_headers} }) {
+        return $h->{value} if $h->{name} eq lc($name);
+    }
+    return undef;
+}
 
 sub _ip_in_cidr {
     my ($self, $ip, $cidr) = @_;
-
-    # If it's a plain IP (no slash), do exact match
-    unless ($cidr =~ m{/}) {
-        return $ip eq $cidr;
-    }
-
+    return $ip eq $cidr unless $cidr =~ m{/};
     my ($net_addr, $prefix) = split m{/}, $cidr;
     my $mask  = ~0 << (32 - $prefix);
-    my $net_n = unpack 'N', inet_aton($net_addr) // return 0;
-    my $ip_n  = unpack 'N', inet_aton($ip)       // return 0;
+    my $net_n = unpack 'N', (inet_aton($net_addr) // return 0);
+    my $ip_n  = unpack 'N', (inet_aton($ip)       // return 0);
     return ($ip_n & $mask) == ($net_n & $mask);
 }
 
-# -----------------------------------------------------------------------
-# Private: debug helper
-# -----------------------------------------------------------------------
+# Lightweight date-to-epoch for common WHOIS date formats:
+#   2024-11-01   2024-11-01T12:00:00Z   01-Nov-2024
+sub _parse_date_to_epoch {
+    my ($self, $str) = @_;
+    return undef unless $str;
+    my %mon = ( jan=>1,feb=>2,mar=>3,apr=>4,may=>5,jun=>6,
+                jul=>7,aug=>8,sep=>9,oct=>10,nov=>11,dec=>12 );
+    my ($y, $m, $d);
+    if    ($str =~ /^(\d{4})-(\d{2})-(\d{2})/)         { ($y,$m,$d)=($1,$2,$3) }
+    elsif ($str =~ /^(\d{2})-([A-Za-z]{3})-(\d{4})/)   { ($d,$m,$y)=($1,$mon{lc$2}//0,$3) }
+    elsif ($str =~ /^(\d{2})\/(\d{2})\/(\d{4})/)        { ($m,$d,$y)=($1,$2,$3) }
+    return undef unless $y && $m && $d;
+    if (eval { require Time::Local; 1 }) {
+        return eval { Time::Local::timegm(0,0,0,$d,$m-1,$y-1900) };
+    }
+    return ($y-1970)*365.25*86400 + ($m-1)*30.5*86400 + ($d-1)*86400;
+}
 
 sub _debug {
     my ($self, $msg) = @_;
@@ -723,155 +980,59 @@ sub _debug {
 
 __END__
 
-=head1 DETAILED ALGORITHM
+=head1 ALGORITHM: DOMAIN INTELLIGENCE PIPELINE
 
-=head2 Tracing the Originating Host
+For each unique non-infrastructure domain found in the email, the module
+runs the following pipeline:
 
-SpamCop's core insight — which this module replicates — is that
-C<Received:> headers are I<prepended> by each MTA, so:
+    Domain name
+        |
+        +-- A record  --> web hosting IP  --> RDAP --> org + abuse contact
+        |
+        +-- MX record --> mail server hostname --> A --> RDAP --> org + abuse
+        |
+        +-- NS record --> nameserver hostname  --> A --> RDAP --> org + abuse
+        |
+        +-- WHOIS (TLD whois server via IANA referral)
+               +-- Registrar name
+               +-- Creation date  (-> recently-registered flag if < 180 days)
+               +-- Expiry date
 
-    Received: from external.attacker.example [198.51.100.42]  <- added by YOUR MTA
-    Received: from internal.yourco.example [10.0.0.1]         <- added by your internal relay
-    Received: from mail.spammer.example [203.0.113.7]         <- added by external.attacker.example
+=head1 WHY WEB HOSTING != MAIL HOSTING != DNS HOSTING
 
-Reading from the I<bottom up> (innermost to outermost), the first IP
-that is neither private (RFC 1918 / loopback / link-local) nor in your
-declared C<trusted_relays> list is the most credible origin.  Because
-spammers can forge headers I<below> the first trusted hop, everything
-above the first trusted hop is considered reliable.
-
-The module assigns a B<confidence> level:
-
-=over 4
-
-=item B<high>
-
-Multiple external hops were found and they are consistent.
-
-=item B<medium>
-
-Only a single external Received line was found (common for direct
-injection).
-
-=item B<low>
-
-The IP was taken from an ancillary header such as
-C<X-Originating-IP> (set by webmail clients) because no usable
-C<Received:> lines were present.
-
-=back
-
-=head2 URL Host Identification
-
-1. All URLs are extracted from both the plain-text and HTML parts of the
-   body.  HTML is parsed with L<HTML::LinkExtor> when available; a
-   fallback regex handles plain-text and catches any links
-   C<HTML::LinkExtor> misses.
-
-2. The hostname of each unique URL is resolved to an IPv4 address via
-   L<Net::DNS> (preferred) or C<gethostbyname>.
-
-3. An RDAP query is sent to C<https://rdap.arin.net/registry/ip/{ip}>,
-   which automatically refers to the correct Regional Internet Registry
-   (ARIN, RIPE, APNIC, LACNIC, AFRINIC).  The JSON response is lightly
-   parsed to extract the network name and abuse e-mail.
-
-4. If RDAP fails, a traditional WHOIS TCP query (port 43) is made to
-   C<whois.iana.org>, the referral server is extracted from the response,
-   and a second query is made to that RIR's WHOIS server.  The plain-text
-   response is regex-parsed for C<OrgName>/C<org-name>/C<descr> and
-   C<OrgAbuseEmail>/C<abuse-mailbox> fields.
-
-=head1 CAVEATS AND LIMITATIONS
+A fraudster registering C<sminvestmentsupplychain.com> might:
 
 =over 4
 
-=item *
+=item * Register the domain at GoDaddy (registrar)
 
-B<Header forgery.> Spammers can insert fake C<Received:> headers below
-the injection point.  The module trusts only headers added by MTAs
-I<you> control (listed in C<trusted_relays>).  Everything else is
-treated as potentially forged.
+=item * Point the NS records at Cloudflare (DNS/CDN)
 
-=item *
+=item * Have no web server at all (A record absent)
 
-B<URL redirection.> The module resolves the I<literal> hostname in the
-URL.  It does not follow HTTP redirects.  Many spam campaigns use
-disposable link-shorteners; you may wish to follow redirects with
-L<LWP::UserAgent> and then re-analyse the final URL.
-
-=item *
-
-B<IPv6.> WHOIS lookups for IPv6 addresses are supported in the RDAP
-path; the raw-WHOIS fallback handles IPv6 queries as text but has not
-been as extensively tested.
-
-=item *
-
-B<Rate limiting.> ARIN RDAP is free for reasonable query volumes.
-WHOIS servers may block or throttle automated queries.  Add delays
-between calls if you are processing large volumes.
-
-=item *
-
-B<No authentication.> This module does not send reports.  It produces
-information suitable for composing a report to the abuse contacts it
-discovers; actually sending the report is left to the caller.
+=item * Route the MX records to Google Workspace or similar
 
 =back
 
-=head1 EXTENDING THE MODULE
+Each of these parties has an abuse contact, and each can independently
+take action to disrupt the spam/phishing operation.  The module reports
+all of them separately.
 
-The two primary extension points are:
+=head1 RECENTLY-REGISTERED FLAG
 
-=over 4
-
-=item C<_whois_ip( $ip )>
-
-Override this method in a subclass to use a commercial IP-intelligence
-feed (e.g. MaxMind, IPinfo.io) instead of public WHOIS/RDAP.
-
-=item C<_extract_urls_from_body( $body )>
-
-Override to add MIME decoding, base64 unwrapping, or URL-redirect
-following before URL analysis.
-
-=back
-
-=head1 EXAMPLE SCRIPT
-
-    #!/usr/bin/env perl
-    use strict;
-    use warnings;
-    use Mail::Message::Abuse;
-
-    local $/ = undef;
-    my $raw = <STDIN>;          # pipe the raw .eml file on STDIN
-
-    my $a = Mail::Message::Abuse->new( verbose => 1 );
-    $a->parse_email($raw);
-    print $a->report();
-
-Run as:
-
-    cat spam.eml | perl check_spam.pl
+Phishing domains are very commonly registered hours or days before the
+spam run.  The module flags any domain whose WHOIS creation date is
+less than 180 days ago with C<recently_registered =E<gt> 1>.
 
 =head1 SEE ALSO
 
-L<Mail::SpamAssassin>, L<Net::DNS>, L<Net::Whois::IP>,
-L<LWP::UserAgent>, L<HTML::LinkExtor>
+L<Net::DNS>, L<LWP::UserAgent>, L<HTML::LinkExtor>, L<MIME::QuotedPrint>
 
 SpamCop: L<https://www.spamcop.net/>
-
 ARIN RDAP: L<https://rdap.arin.net/>
-
-=head1 AUTHOR
-
-Generated by Mail::Message::Abuse
 
 =head1 LICENSE
 
-This module is released under the same terms as Perl itself
-(Artistic License 2.0 / GPL v1+).
+Same terms as Perl itself (Artistic 2.0 / GPL v1+).
 
 =cut
