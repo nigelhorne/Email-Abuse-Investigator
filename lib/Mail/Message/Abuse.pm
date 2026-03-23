@@ -133,6 +133,16 @@ my %TRUSTED_DOMAINS = map { $_ => 1 } qw(
     google.com microsoft.com apple.com amazon.com
 );
 
+# Known URL shortener / redirect domains — real destination is hidden
+my %URL_SHORTENERS = map { $_ => 1 } qw(
+    bit.ly      bitly.com   tinyurl.com  t.co        ow.ly
+    goo.gl      is.gd       buff.ly      ift.tt       dlvr.it
+    short.link  rebrand.ly  tiny.cc      cutt.ly      rb.gy
+    shorturl.at bl.ink      smarturl.it  yourls.org   clicky.me
+    snip.ly     adf.ly      bc.vc        lnkd.in      fb.me
+    youtu.be
+);
+
 # Well-known providers: use their specific abuse address / report URL
 # rather than whatever a generic WHOIS lookup might return.
 my %PROVIDER_ABUSE = (
@@ -370,6 +380,334 @@ sub all_domains {
 }
 
 # -----------------------------------------------------------------------
+# Private: MIME encoded-word decoder  (=?charset?B/Q?...?=)
+# -----------------------------------------------------------------------
+
+sub _decode_mime_words {
+    my ($self, $str) = @_;
+    return '' unless defined $str;
+    $str =~ s/=\?([^?]+)\?([BbQq])\?([^?]*)\?=/_decode_ew($1,$2,$3)/ge;
+    return $str;
+}
+
+sub _decode_ew {
+    my ($charset, $enc, $text) = @_;
+    my $raw;
+    if (uc($enc) eq 'B') {
+        $raw = decode_base64($text);
+    } else {
+        $text =~ s/_/ /g;
+        $raw  = decode_qp($text);
+    }
+    # Best-effort UTF-8; silently ignore decode errors
+    if (lc($charset) ne 'utf-8') {
+        # For non-UTF-8 charsets just return the raw bytes — good enough
+        # for display-name spoof detection which only needs ASCII matching
+    }
+    return $raw;
+}
+
+# -----------------------------------------------------------------------
+# Public: risk assessment
+# -----------------------------------------------------------------------
+
+=head2 risk_assessment()
+
+Returns a hashref with an overall risk level and a list of specific
+red flags found in the message:
+
+    {
+        level => 'HIGH',          # HIGH | MEDIUM | LOW | INFO
+        score => 7,               # raw weighted score
+        flags => [
+            { severity => 'HIGH',   flag => 'recently_registered_domain',
+              detail => 'firmluminary.com registered 2025-09-01 (< 180 days ago)' },
+            { severity => 'MEDIUM', flag => 'residential_sending_ip',
+              detail => 'rDNS 120-88-161-249.tpgi.com.au looks like a broadband line' },
+            { severity => 'MEDIUM', flag => 'url_shortener',
+              detail => 'bit.ly used — real destination hidden' },
+            ...
+        ],
+    }
+
+=cut
+
+sub risk_assessment {
+    my ($self) = @_;
+    return $self->{_risk} if $self->{_risk};
+
+    my @flags;
+    my $score = 0;
+
+    my $flag = sub {
+        my ($severity, $name, $detail) = @_;
+        my %weight = (HIGH => 3, MEDIUM => 2, LOW => 1, INFO => 0);
+        $score += $weight{$severity} // 1;
+        push @flags, { severity => $severity, flag => $name, detail => $detail };
+    };
+
+    # ---- Originating IP checks ----
+    my $orig = $self->originating_ip();
+    if ($orig) {
+        # Residential / broadband rDNS patterns
+        if ($orig->{rdns} && $orig->{rdns} =~ /
+            \d+[-_.]\d+[-_.]\d+[-_.]\d+   # dotted-quad in rDNS
+            | (?:dsl|adsl|cable|broad|dial|dynamic|dhcp|ppp|
+                 residential|cust|home|pool|client|user|
+                 static\d|host\d)
+        /xi) {
+            $flag->('HIGH', 'residential_sending_ip',
+                "Sending IP $orig->{ip} rDNS '$orig->{rdns}' looks like a broadband/residential line, not a legitimate mail server");
+        }
+
+        # No rDNS at all
+        if (!$orig->{rdns} || $orig->{rdns} eq '(no reverse DNS)') {
+            $flag->('HIGH', 'no_reverse_dns',
+                "Sending IP $orig->{ip} has no reverse DNS — legitimate mail servers always have rDNS");
+        }
+
+        # Low confidence origin
+        if ($orig->{confidence} eq 'low') {
+            $flag->('MEDIUM', 'low_confidence_origin',
+                "Originating IP taken from unverified header ($orig->{note})");
+        }
+
+        # Country flag for high-spam-originating countries (informational)
+        if ($orig->{country} && $orig->{country} =~ /^(?:CN|RU|NG|VN|IN|PK|BD)$/) {
+            $flag->('INFO', 'high_spam_country',
+                "Sending IP is in " . _country_name($orig->{country}) .
+                " ($orig->{country}) — statistically high spam volume country");
+        }
+    }
+
+    # ---- Authentication checks ----
+    my $auth = $self->_parse_auth_results_cached();
+    if (defined $auth->{spf} && $auth->{spf} !~ /^pass/i) {
+        $flag->('HIGH', 'spf_fail',
+            "SPF result: $auth->{spf} — sending IP not authorised by domain's SPF record");
+    }
+    if (defined $auth->{dkim} && $auth->{dkim} !~ /^pass/i) {
+        $flag->('HIGH', 'dkim_fail',
+            "DKIM result: $auth->{dkim} — message signature invalid or absent");
+    }
+    if (defined $auth->{dmarc} && $auth->{dmarc} !~ /^pass/i) {
+        $flag->('HIGH', 'dmarc_fail',
+            "DMARC result: $auth->{dmarc}");
+    }
+
+    # ---- Header identity checks ----
+    # From: display name spoofing another domain
+    my $from_raw = $self->_header_value('from') // '';
+    my $from_decoded = $self->_decode_mime_words($from_raw);
+    if ($from_decoded =~ /^"?([^"<]+?)"?\s*<([^>]+)>/) {
+        my ($display, $addr) = ($1, $2);
+        # Extract domains from display name
+        while ($display =~ /\b([\w-]+\.(?:com|net|org|io|co|uk|au|gov|edu))\b/gi) {
+            my $disp_domain = lc $1;
+            my ($addr_domain) = $addr =~ /\@([\w.-]+)/;
+            $addr_domain = lc($addr_domain // '');
+            my $reg_disp = _registrable($disp_domain);
+            my $reg_addr = _registrable($addr_domain);
+            if ($reg_disp && $reg_addr && $reg_disp ne $reg_addr) {
+                $flag->('HIGH', 'display_name_domain_spoof',
+                    "From: display name mentions '$disp_domain' but actual address is <$addr> — classic impersonation technique");
+            }
+        }
+    }
+
+    # From: is a free webmail provider
+    if ($from_raw =~ /\@(gmail|yahoo|hotmail|outlook|live|aol|mail\.ru|protonmail|yandex)\./i) {
+        $flag->('MEDIUM', 'free_webmail_sender',
+            "Message sent from free webmail address ($from_raw) — no corporate mail infrastructure");
+    }
+
+    # Reply-To differs from From:
+    my $reply_to = $self->_header_value('reply-to');
+    if ($reply_to) {
+        my ($from_addr)  = $from_raw    =~ /[\w.+%-]+\@[\w.-]+/;
+        my ($reply_addr) = $reply_to    =~ /[\w.+%-]+\@[\w.-]+/;
+        if ($from_addr && $reply_addr &&
+            lc($from_addr) ne lc($reply_addr)) {
+            $flag->('MEDIUM', 'reply_to_differs_from_from',
+                "Reply-To ($reply_addr) differs from From: ($from_addr) — replies will go to a different address");
+        }
+    }
+
+    # To: is undisclosed-recipients or missing
+    my $to = $self->_header_value('to') // '';
+    if ($to =~ /undisclosed|:;/ || $to eq '') {
+        $flag->('MEDIUM', 'undisclosed_recipients',
+            "To: header is '$to' — message was bulk-sent with hidden recipient list");
+    }
+
+    # Subject encoded to hide content from filters
+    my $subj_raw = $self->_header_value('subject') // '';
+    if ($subj_raw =~ /=\?[^?]+\?[BQ]\?/i) {
+        $flag->('LOW', 'encoded_subject',
+            "Subject line is MIME-encoded: '$subj_raw' (decoded: '" .
+            $self->_decode_mime_words($subj_raw) . "')");
+    }
+
+    # ---- URL checks ----
+    my (%shortener_seen, %url_host_seen);
+    for my $u ($self->embedded_urls()) {
+        # URL shorteners
+        my $bare = lc $u->{host};
+        $bare =~ s/^www\.//;
+        if ($URL_SHORTENERS{$bare} && !$shortener_seen{$bare}++) {
+            $flag->('MEDIUM', 'url_shortener',
+                "$u->{host} is a URL shortener — the real destination is hidden");
+        }
+        # HTTP not HTTPS
+        if ($u->{url} =~ m{^http://}i && !$url_host_seen{ $u->{host} }++) {
+            $flag->('LOW', 'http_not_https',
+                "$u->{host} linked over plain HTTP — no encryption");
+        }
+    }
+
+    # ---- Domain checks ----
+    for my $d ($self->mailto_domains()) {
+        if ($d->{recently_registered}) {
+            $flag->('HIGH', 'recently_registered_domain',
+                "$d->{domain} was registered $d->{registered} (less than 180 days ago)");
+        }
+        # Domain expires very soon (< 30 days) — throwaway domain
+        if ($d->{expires}) {
+            my $exp = $self->_parse_date_to_epoch($d->{expires});
+            if ($exp && ($exp - time()) < 30 * 86400 && ($exp - time()) > 0) {
+                $flag->('HIGH', 'domain_expires_soon',
+                    "$d->{domain} expires $d->{expires} — may be a throwaway domain");
+            }
+        }
+        # Domain already expired
+        if ($d->{expires}) {
+            my $exp = $self->_parse_date_to_epoch($d->{expires});
+            if ($exp && $exp < time()) {
+                $flag->('HIGH', 'domain_expired',
+                    "$d->{domain} expired $d->{expires} — domain has lapsed");
+            }
+        }
+        # Lookalike domain (contains well-known brand name but isn't it)
+        for my $brand (qw(paypal apple google amazon microsoft netflix ebay
+                          instagram facebook twitter linkedin bankofamerica
+                          wellsfargo chase barclays hsbc lloyds santander)) {
+            if ($d->{domain} =~ /\Q$brand\E/i &&
+                $d->{domain} !~ /^\Q$brand\E\.(?:com|co\.uk|net|org)$/) {
+                $flag->('HIGH', 'lookalike_domain',
+                    "$d->{domain} contains brand name '$brand' but is not the real domain — possible phishing");
+                last;
+            }
+        }
+    }
+
+    my $level = $score >= 9 ? 'HIGH'
+              : $score >= 5 ? 'MEDIUM'
+              : $score >= 2 ? 'LOW'
+              :               'INFO';
+
+    $self->{_risk} = { level => $level, score => $score, flags => \@flags };
+    return $self->{_risk};
+}
+
+sub _parse_auth_results_cached {
+    my ($self) = @_;
+    return $self->{_auth_results} if $self->{_auth_results};
+    my %auth;
+    my $raw = join('; ',
+        map { $_->{value} }
+        grep { $_->{name} eq 'authentication-results' }
+        @{ $self->{_headers} }
+    );
+    $auth{spf}   = $1 if $raw =~ /\bspf=(\S+)/i;
+    $auth{dkim}  = $1 if $raw =~ /\bdkim=(\S+)/i;
+    $auth{dmarc} = $1 if $raw =~ /\bdmarc=(\S+)/i;
+    $auth{arc}   = $1 if $raw =~ /\barc=(\S+)/i;
+    $self->{_auth_results} = \%auth;
+    return \%auth;
+}
+
+sub _registrable {
+    my ($host) = @_;
+    return undef unless $host && $host =~ /\./;
+    my @labels = split /\./, lc $host;
+    return $host if @labels <= 2;
+    if ($labels[-1] =~ /^[a-z]{2}$/ &&
+        $labels[-2] =~ /^(?:co|com|net|org|gov|edu|ac|me)$/) {
+        return join('.', @labels[-3..-1]);
+    }
+    return join('.', @labels[-2..-1]);
+}
+
+sub _country_name {
+    my ($cc) = @_;
+    my %names = ( CN => 'China', RU => 'Russia', NG => 'Nigeria',
+                  VN => 'Vietnam', IN => 'India', PK => 'Pakistan',
+                  BD => 'Bangladesh' );
+    return $names{$cc} // $cc;
+}
+
+# -----------------------------------------------------------------------
+# Public: ready-to-send abuse report text
+# -----------------------------------------------------------------------
+
+=head2 abuse_report_text()
+
+Returns a string suitable for pasting into an abuse report email.
+It includes the risk summary, the key findings, and the full original
+message headers.
+
+    my $report = $analyser->abuse_report_text();
+    # Then email to each address from $analyser->abuse_contacts()
+
+=cut
+
+sub abuse_report_text {
+    my ($self) = @_;
+    my @out;
+
+    push @out, "This is an automated abuse report generated by Mail::Message::Abuse.";
+    push @out, "Please investigate the following spam/phishing message.";
+    push @out, "";
+
+    my $risk = $self->risk_assessment();
+    push @out, "RISK LEVEL: $risk->{level} (score: $risk->{score})";
+    push @out, "";
+
+    if (@{ $risk->{flags} }) {
+        push @out, "RED FLAGS IDENTIFIED:";
+        for my $f (@{ $risk->{flags} }) {
+            push @out, "  [$f->{severity}] $f->{detail}";
+        }
+        push @out, "";
+    }
+
+    my $orig = $self->originating_ip();
+    if ($orig) {
+        push @out, "ORIGINATING IP: $orig->{ip} ($orig->{rdns})";
+        push @out, "NETWORK OWNER:  $orig->{org}";
+        push @out, "";
+    }
+
+    my @contacts = $self->abuse_contacts();
+    if (@contacts) {
+        push @out, "ABUSE CONTACTS:";
+        push @out, "  $_->{address} ($_->{role})" for @contacts;
+        push @out, "";
+    }
+
+    push @out, "-" x 72;
+    push @out, "ORIGINAL MESSAGE HEADERS:";
+    push @out, "-" x 72;
+    # Emit only the headers (not the body) to keep report concise
+    for my $h (@{ $self->{_headers} }) {
+        push @out, "$h->{name}: $h->{value}";
+    }
+    push @out, "";
+
+    return join("\n", @out);
+}
+
+# -----------------------------------------------------------------------
 # Public: consolidated abuse contact list
 # -----------------------------------------------------------------------
 
@@ -550,8 +888,23 @@ sub report {
     # ---- envelope summary ----
     for my $f (qw(from reply-to return-path subject date message-id)) {
         my $v = $self->_header_value($f);
-        push @out, sprintf("  %-14s : %s", ucfirst($f), $v)
-            if defined $v;
+        next unless defined $v;
+        my $decoded = $self->_decode_mime_words($v);
+        my $label   = ucfirst($f);
+        push @out, sprintf("  %-14s : %s", $label,
+            $decoded ne $v ? "$decoded  [encoded: $v]" : $v);
+    }
+    push @out, "";
+
+    # ---- risk assessment ----
+    my $risk = $self->risk_assessment();
+    push @out, "[ RISK ASSESSMENT: $risk->{level} (score: $risk->{score}) ]";
+    if (@{ $risk->{flags} }) {
+        for my $f (@{ $risk->{flags} }) {
+            push @out, "  [$f->{severity}] $f->{detail}";
+        }
+    } else {
+        push @out, "  (no specific red flags detected)";
     }
     push @out, "";
 
@@ -561,6 +914,7 @@ sub report {
     if ($orig) {
         push @out, "  IP           : $orig->{ip}";
         push @out, "  Reverse DNS  : $orig->{rdns}"       if $orig->{rdns};
+        push @out, "  Country      : $orig->{country}"    if $orig->{country};
         push @out, "  Organisation : $orig->{org}"         if $orig->{org};
         push @out, "  Abuse addr   : $orig->{abuse}"       if $orig->{abuse};
         push @out, "  Confidence   : $orig->{confidence}";
@@ -582,15 +936,19 @@ sub report {
             my $h = $u->{host};
             unless (exists $host_order{$h}) {
                 $host_order{$h} = $seq++;
-                $host_meta{$h}  = { ip => $u->{ip}, org => $u->{org}, abuse => $u->{abuse} };
+                $host_meta{$h}  = { ip => $u->{ip}, org => $u->{org},
+                                    abuse => $u->{abuse}, country => $u->{country} };
             }
             push @{ $host_paths{$h} }, $u->{url};
         }
 
         for my $h (sort { $host_order{$a} <=> $host_order{$b} } keys %host_order) {
-            my $m = $host_meta{$h};
-            push @out, "  Host         : $h";
+            my $m    = $host_meta{$h};
+            my $bare = lc $h; $bare =~ s/^www\.//;
+            push @out, "  Host         : $h" .
+                       ($URL_SHORTENERS{$bare} ? '  *** URL SHORTENER — real destination hidden ***' : '');
             push @out, "  IP           : $m->{ip}"    if $m->{ip};
+            push @out, "  Country      : $m->{country}" if $m->{country};
             push @out, "  Organisation : $m->{org}"   if $m->{org};
             push @out, "  Abuse addr   : $m->{abuse}" if $m->{abuse};
             my @paths = @{ $host_paths{$h} };
@@ -620,7 +978,8 @@ sub report {
             }
             push @out, "  Registered   : $d->{registered}" if $d->{registered};
             push @out, "  Expires      : $d->{expires}"     if $d->{expires};
-            push @out, "  Registrar    : $d->{registrar}"   if $d->{registrar};
+            push @out, "  Registrar    : $d->{registrar}"         if $d->{registrar};
+            push @out, "  Reg. abuse   : $d->{registrar_abuse}"   if $d->{registrar_abuse};
 
             if ($d->{web_ip}) {
                 push @out, "  Web host IP  : $d->{web_ip}";
@@ -829,9 +1188,10 @@ sub _extract_and_resolve_urls {
             my $ip    = $self->_resolve_host($host) // '(unresolved)';
             my $whois = $ip ne '(unresolved)' ? $self->_whois_ip($ip) : {};
             $host_cache{$host} = {
-                ip    => $ip,
-                org   => $whois->{org}   // '(unknown)',
-                abuse => $whois->{abuse} // '(unknown)',
+                ip      => $ip,
+                org     => $whois->{org}     // '(unknown)',
+                abuse   => $whois->{abuse}   // '(unknown)',
+                country => $whois->{country} // undef,
             };
         }
 
@@ -1003,6 +1363,17 @@ sub _analyse_domain {
             ($info{registrar} = $1) =~ s/\s+$//;
         }
 
+        # Registrar abuse contact email
+        for my $pat (
+            qr/Registrar Abuse Contact Email:\s*(\S+@\S+)/i,
+            qr/Abuse Contact Email:\s*(\S+@\S+)/i,
+            qr/abuse-contact:\s*(\S+@\S+)/i,
+        ) {
+            if (!$info{registrar_abuse} && $domain_whois =~ $pat) {
+                ($info{registrar_abuse} = $1) =~ s/\s+$//;
+            }
+        }
+
         for my $pat (
             qr/Creation Date:\s*(\S+)/i,
             qr/Created(?:\s+On)?:\s*(\S+)/i,
@@ -1124,6 +1495,8 @@ sub _rdap_lookup {
     } elsif ($j =~ /"email"\s*:\s*"([^@"]+@[^"]+)"/) {
         $info{abuse} = $1;
     }
+    # Country code from RDAP
+    $info{country} = $1 if $j =~ /"country"\s*:\s*"([A-Z]{2})"/;
     return \%info;
 }
 
@@ -1174,6 +1547,9 @@ sub _parse_whois_text {
         }
     }
     $info{abuse} //= $1 if $text =~ /(abuse\@[\w.-]+)/i;
+    # Country
+    $info{country} = $1
+        if $text =~ /^country:\s*([A-Z]{2})\s*$/mi;
     return \%info;
 }
 
@@ -1188,8 +1564,9 @@ sub _enrich_ip {
     return {
         ip         => $ip,
         rdns       => $rdns  // '(no reverse DNS)',
-        org        => $whois->{org}   // '(unknown)',
-        abuse      => $whois->{abuse} // '(unknown)',
+        org        => $whois->{org}     // '(unknown)',
+        abuse      => $whois->{abuse}   // '(unknown)',
+        country    => $whois->{country} // undef,
         confidence => $confidence,
         note       => $note,
     };
