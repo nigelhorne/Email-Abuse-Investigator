@@ -808,6 +808,9 @@ sub abuse_contacts {
 
         # MX host
         if ($d->{mx_abuse}) {
+		$d->{mx_org} //= 'Unknown organisation';
+		$d->{mx_ip} //= 'Unknown IP address';
+		$d->{mx_host} //= '(Unknown host)';
             $add->(role    => "Mail host (MX) for $dom",
                    address => $d->{mx_abuse},
                    note    => "MX $d->{mx_host} ($d->{mx_ip}, $d->{mx_org})",
@@ -845,7 +848,7 @@ sub abuse_contacts {
         }
     }
 
-    return @contacts;
+	return @contacts;
 }
 
 # Look up provider abuse contact by plain domain name
