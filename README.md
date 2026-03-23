@@ -1,6 +1,6 @@
 # NAME
 
-Mail::Message::Abuse - Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains
+Mail::Message::Abuse - Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains.
 
 # SYNOPSIS
 

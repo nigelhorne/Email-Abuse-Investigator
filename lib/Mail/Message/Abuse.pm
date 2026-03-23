@@ -7,8 +7,7 @@ our $VERSION = '2.00';
 
 =head1 NAME
 
-Mail::Message::Abuse - Analyse spam email to identify originating hosts,
-hosted URLs, and suspicious domains, similar to SpamCop
+Mail::Message::Abuse - Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains.
 
 =head1 SYNOPSIS
 
@@ -35,7 +34,7 @@ hosted URLs, and suspicious domains, similar to SpamCop
 =head1 DESCRIPTION
 
 C<Mail::Message::Abuse> examines the raw source of a spam/phishing e-mail
-and answers the questions SpamCop and manual abuse investigators ask:
+and answers the questions manual abuse investigators ask:
 
 =over 4
 
@@ -427,7 +426,7 @@ red flags found in the message:
             { severity => 'MEDIUM', flag => 'residential_sending_ip',
               detail => 'rDNS 120-88-161-249.tpgi.com.au looks like a broadband line' },
             { severity => 'MEDIUM', flag => 'url_shortener',
-              detail => 'bit.ly used — real destination hidden' },
+              detail => 'bit.ly used - real destination hidden' },
             ...
         ],
     }
@@ -727,12 +726,12 @@ receive an abuse report, in priority order:
 
 Roles produced (in order):
 
-  Sending ISP       — network owner of the originating IP
-  URL host          — network owner of each unique web-server IP
-  Mail host (MX)    — network owner of the domain's MX record IP
-  DNS host (NS)     — network owner of the authoritative NS IP
-  Domain registrar  — registrar abuse contact from domain WHOIS
-  Account provider  — e.g. Gmail / Outlook for the From: account
+  Sending ISP       - network owner of the originating IP
+  URL host          - network owner of each unique web-server IP
+  Mail host (MX)    - network owner of the domain's MX record IP
+  DNS host (NS)     - network owner of the authoritative NS IP
+  Domain registrar  - registrar abuse contact from domain WHOIS
+  Account provider  - e.g. Gmail / Outlook for the From: account
 
 Addresses are deduplicated so the same address never appears twice,
 even if it is discovered through multiple routes.
