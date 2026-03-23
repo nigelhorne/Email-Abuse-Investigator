@@ -358,12 +358,32 @@ sub report {
     push @out, "[ EMBEDDED HTTP/HTTPS URLs ]";
     my @urls = $self->embedded_urls();
     if (@urls) {
+        # Group by hostname so host/IP/org is shown once,
+        # with all distinct paths listed beneath it
+        my (%host_order, %host_meta, %host_paths);
+        my $seq = 0;
         for my $u (@urls) {
-            push @out, "  URL          : $u->{url}";
-            push @out, "  Host         : $u->{host}";
-            push @out, "  IP           : $u->{ip}"    if $u->{ip};
-            push @out, "  Organisation : $u->{org}"   if $u->{org};
-            push @out, "  Abuse addr   : $u->{abuse}" if $u->{abuse};
+            my $h = $u->{host};
+            unless (exists $host_order{$h}) {
+                $host_order{$h} = $seq++;
+                $host_meta{$h}  = { ip => $u->{ip}, org => $u->{org}, abuse => $u->{abuse} };
+            }
+            push @{ $host_paths{$h} }, $u->{url};
+        }
+
+        for my $h (sort { $host_order{$a} <=> $host_order{$b} } keys %host_order) {
+            my $m = $host_meta{$h};
+            push @out, "  Host         : $h";
+            push @out, "  IP           : $m->{ip}"    if $m->{ip};
+            push @out, "  Organisation : $m->{org}"   if $m->{org};
+            push @out, "  Abuse addr   : $m->{abuse}" if $m->{abuse};
+            my @paths = @{ $host_paths{$h} };
+            if (@paths == 1) {
+                push @out, "  URL          : $paths[0]";
+            } else {
+                push @out, "  URLs (" . scalar(@paths) . ")     :";
+                push @out, "    $_" for @paths;
+            }
             push @out, "";
         }
     } else {
@@ -563,22 +583,30 @@ sub _is_trusted {
 
 sub _extract_and_resolve_urls {
     my ($self) = @_;
-    my %seen;
+    my (%url_seen, %host_cache);
     my @results;
     my $combined = $self->{_body_plain} . "\n" . $self->{_body_html};
 
     for my $url ($self->_extract_http_urls($combined)) {
-        next if $seen{$url}++;
+        next if $url_seen{$url}++;
         my ($host) = $url =~ m{https?://([^/:?\s#]+)}i;
         next unless $host;
-        my $ip    = $self->_resolve_host($host) // '(unresolved)';
-        my $whois = $ip ne '(unresolved)' ? $self->_whois_ip($ip) : {};
+
+        # Resolve and WHOIS once per unique hostname, then cache
+        unless (exists $host_cache{$host}) {
+            my $ip    = $self->_resolve_host($host) // '(unresolved)';
+            my $whois = $ip ne '(unresolved)' ? $self->_whois_ip($ip) : {};
+            $host_cache{$host} = {
+                ip    => $ip,
+                org   => $whois->{org}   // '(unknown)',
+                abuse => $whois->{abuse} // '(unknown)',
+            };
+        }
+
         push @results, {
             url   => $url,
             host  => $host,
-            ip    => $ip,
-            org   => $whois->{org}   // '(unknown)',
-            abuse => $whois->{abuse} // '(unknown)',
+            %{ $host_cache{$host} },
         };
     }
     return \@results;
