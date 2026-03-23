@@ -1,0 +1,35 @@
+#!/usr/bin/env perl
+# -----------------------------------------------------------------------
+# example_abuse_check.pl  —  demonstrate Mail::Message::Abuse
+#
+# Usage:
+#   perl example_abuse_check.pl < spam.eml
+#   perl example_abuse_check.pl spam.eml
+# -----------------------------------------------------------------------
+use strict;
+use warnings;
+use lib '.';                          # find Mail/Message/Abuse.pm nearby
+use Mail::Message::Abuse;
+
+my $raw;
+if (@ARGV && -f $ARGV[0]) {
+    open my $fh, '<', $ARGV[0] or die "Cannot open $ARGV[0]: $!";
+    local $/ = undef;
+    $raw = <$fh>;
+    close $fh;
+} else {
+    local $/ = undef;
+    $raw = <STDIN>;
+}
+
+die "No email data supplied.\n" unless $raw && length $raw;
+
+my $analyser = Mail::Message::Abuse->new(
+    verbose        => 1,
+    timeout        => 15,
+    # List your own mail server IPs/CIDRs here so they are skipped:
+    # trusted_relays => ['203.0.113.0/24'],
+);
+
+$analyser->parse_email($raw);
+print $analyser->report();
