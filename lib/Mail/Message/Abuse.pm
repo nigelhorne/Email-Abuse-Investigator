@@ -133,6 +133,63 @@ my %TRUSTED_DOMAINS = map { $_ => 1 } qw(
     google.com microsoft.com apple.com amazon.com
 );
 
+# Well-known providers: use their specific abuse address / report URL
+# rather than whatever a generic WHOIS lookup might return.
+my %PROVIDER_ABUSE = (
+    # Google / Gmail
+    'google.com'        => { email => 'abuse@google.com',      note => 'Also report Gmail accounts via https://support.google.com/mail/contact/abuse' },
+    'gmail.com'         => { email => 'abuse@google.com',      note => 'Report Gmail spam via https://support.google.com/mail/contact/abuse' },
+    'googlemail.com'    => { email => 'abuse@google.com',      note => 'Report via https://support.google.com/mail/contact/abuse' },
+    '1e100.net'         => { email => 'abuse@google.com',      note => 'Google infrastructure' },
+    # Microsoft / Outlook / Hotmail
+    'microsoft.com'     => { email => 'abuse@microsoft.com',   note => 'Also report via https://www.microsoft.com/en-us/wdsi/support/report-unsafe-site' },
+    'outlook.com'       => { email => 'abuse@microsoft.com',   note => 'Report Outlook spam: https://support.microsoft.com/en-us/office/report-phishing' },
+    'hotmail.com'       => { email => 'abuse@microsoft.com',   note => 'Report via https://support.microsoft.com/en-us/office/report-phishing' },
+    'live.com'          => { email => 'abuse@microsoft.com',   note => 'Microsoft consumer mail' },
+    'office365.com'     => { email => 'abuse@microsoft.com',   note => 'Microsoft 365 infrastructure' },
+    'protection.outlook.com' => { email => 'abuse@microsoft.com', note => 'Microsoft EOP gateway' },
+    # Yahoo
+    'yahoo.com'         => { email => 'abuse@yahoo-inc.com',   note => 'Also use https://io.help.yahoo.com/contact/index' },
+    'yahoo.co.uk'       => { email => 'abuse@yahoo-inc.com',   note => 'Yahoo UK' },
+    # Apple
+    'apple.com'         => { email => 'reportphishing@apple.com', note => 'iCloud / Apple Mail abuse' },
+    'icloud.com'        => { email => 'reportphishing@apple.com', note => 'iCloud abuse' },
+    'me.com'            => { email => 'reportphishing@apple.com', note => 'Apple legacy mail' },
+    # Amazon / AWS
+    'amazon.com'        => { email => 'abuse@amazonaws.com',   note => 'Also https://aws.amazon.com/forms/report-abuse' },
+    'amazonaws.com'     => { email => 'abuse@amazonaws.com',   note => 'AWS abuse form: https://aws.amazon.com/forms/report-abuse' },
+    'amazonses.com'     => { email => 'abuse@amazonaws.com',   note => 'Amazon SES sending infrastructure' },
+    # Cloudflare
+    'cloudflare.com'    => { email => 'abuse@cloudflare.com',  note => 'Report via https://www.cloudflare.com/abuse/' },
+    # Fastly / Akamai
+    'fastly.net'        => { email => 'abuse@fastly.com',      note => 'Fastly CDN' },
+    'akamai.com'        => { email => 'abuse@akamai.com',      note => 'Akamai CDN' },
+    'akamaitechnologies.com' => { email => 'abuse@akamai.com', note => 'Akamai CDN' },
+    # Namecheap
+    'namecheap.com'     => { email => 'abuse@namecheap.com',   note => 'Registrar abuse' },
+    # GoDaddy
+    'godaddy.com'       => { email => 'abuse@godaddy.com',     note => 'Registrar/host abuse' },
+    # SendGrid / Twilio
+    'sendgrid.net'      => { email => 'abuse@sendgrid.com',    note => 'ESP — include full headers' },
+    'sendgrid.com'      => { email => 'abuse@sendgrid.com',    note => 'ESP — include full headers' },
+    # Mailchimp / Mandrill
+    'mailchimp.com'     => { email => 'abuse@mailchimp.com',   note => 'ESP abuse' },
+    'mandrillapp.com'   => { email => 'abuse@mailchimp.com',   note => 'Mandrill transactional ESP' },
+    # OVH
+    'ovh.net'           => { email => 'abuse@ovh.net',         note => 'OVH hosting' },
+    'ovh.com'           => { email => 'abuse@ovh.com',         note => 'OVH hosting' },
+    # Hetzner
+    'hetzner.com'       => { email => 'abuse@hetzner.com',     note => 'Hetzner hosting' },
+    # Digital Ocean
+    'digitalocean.com'  => { email => 'abuse@digitalocean.com',note => 'DO abuse form: https://www.digitalocean.com/company/contact/#abuse' },
+    # Linode / Akamai
+    'linode.com'        => { email => 'abuse@linode.com',      note => 'Linode/Akamai Cloud' },
+    # TPG / Internode (Australia — relevant for this email's sending IP)
+    'tpgi.com.au'       => { email => 'abuse@tpg.com.au',      note => 'TPG Telecom Australia' },
+    'tpg.com.au'        => { email => 'abuse@tpg.com.au',      note => 'TPG Telecom Australia' },
+    'internode.on.net'  => { email => 'abuse@internode.on.net',note => 'Internode Australia' },
+);
+
 # -----------------------------------------------------------------------
 # Constructor
 # -----------------------------------------------------------------------
@@ -313,6 +370,165 @@ sub all_domains {
 }
 
 # -----------------------------------------------------------------------
+# Public: consolidated abuse contact list
+# -----------------------------------------------------------------------
+
+=head2 abuse_contacts()
+
+Returns a de-duplicated list of hashrefs, one per party that should
+receive an abuse report, in priority order:
+
+    {
+        role    => 'Sending ISP',          # human-readable role
+        address => 'abuse@senderisp.example',
+        note    => 'IP block 120.88.0.0/14 owner',
+        via     => 'ip-whois',             # ip-whois | domain-whois | provider-table | rdap
+    }
+
+Roles produced (in order):
+
+  Sending ISP       — network owner of the originating IP
+  URL host          — network owner of each unique web-server IP
+  Mail host (MX)    — network owner of the domain's MX record IP
+  DNS host (NS)     — network owner of the authoritative NS IP
+  Domain registrar  — registrar abuse contact from domain WHOIS
+  Account provider  — e.g. Gmail / Outlook for the From: account
+
+Addresses are deduplicated so the same address never appears twice,
+even if it is discovered through multiple routes.
+
+=cut
+
+sub abuse_contacts {
+    my ($self) = @_;
+    my (@contacts, %seen);
+
+    my $add = sub {
+        my (%args) = @_;
+        my $addr = lc($args{address} // '');
+        return unless $addr && $addr =~ /\@/;
+        return if $seen{$addr}++;
+        push @contacts, \%args;
+    };
+
+    # 1. Sending ISP (originating IP)
+    my $orig = $self->originating_ip();
+    if ($orig) {
+        my $pa = $self->_provider_abuse_for_ip($orig->{ip}, $orig->{rdns});
+        if ($pa) {
+            $add->(role    => 'Sending ISP (provider table)',
+                   address => $pa->{email},
+                   note    => "$orig->{ip} ($orig->{rdns}) — $pa->{note}",
+                   via     => 'provider-table');
+        }
+        if ($orig->{abuse} && $orig->{abuse} ne '(unknown)') {
+            $add->(role    => 'Sending ISP',
+                   address => $orig->{abuse},
+                   note    => "Network owner of originating IP $orig->{ip} ($orig->{org})",
+                   via     => 'ip-whois');
+        }
+    }
+
+    # 2. URL hosts
+    my (%url_host_seen);
+    for my $u ($self->embedded_urls()) {
+        next if $url_host_seen{ $u->{host} }++;
+        my $pa = $self->_provider_abuse_for_host($u->{host});
+        if ($pa) {
+            $add->(role    => "URL host (provider table)",
+                   address => $pa->{email},
+                   note    => "$u->{host} — $pa->{note}",
+                   via     => 'provider-table');
+        }
+        if ($u->{abuse} && $u->{abuse} ne '(unknown)') {
+            $add->(role    => 'URL host',
+                   address => $u->{abuse},
+                   note    => "Hosting $u->{host} ($u->{ip}, $u->{org})",
+                   via     => 'ip-whois');
+        }
+    }
+
+    # 3. Contact/reply domains — web host, MX, NS, registrar, From: account
+    for my $d ($self->mailto_domains()) {
+        my $dom = $d->{domain};
+
+        # Web host
+        if ($d->{web_abuse}) {
+            my $pa = $self->_provider_abuse_for_host($dom);
+            if ($pa) {
+                $add->(role    => "Web host of $dom (provider table)",
+                       address => $pa->{email},
+                       note    => $pa->{note},
+                       via     => 'provider-table');
+            }
+            $add->(role    => "Web host of $dom",
+                   address => $d->{web_abuse},
+                   note    => "Hosting $dom ($d->{web_ip}, $d->{web_org})",
+                   via     => 'ip-whois');
+        }
+
+        # MX host
+        if ($d->{mx_abuse}) {
+            $add->(role    => "Mail host (MX) for $dom",
+                   address => $d->{mx_abuse},
+                   note    => "MX $d->{mx_host} ($d->{mx_ip}, $d->{mx_org})",
+                   via     => 'ip-whois');
+        }
+
+        # NS host
+        if ($d->{ns_abuse}) {
+            $add->(role    => "DNS host (NS) for $dom",
+                   address => $d->{ns_abuse},
+                   note    => "NS $d->{ns_host} ($d->{ns_ip}, $d->{ns_org})",
+                   via     => 'ip-whois');
+        }
+
+        # Domain registrar
+        if ($d->{registrar_abuse}) {
+            $add->(role    => "Domain registrar for $dom",
+                   address => $d->{registrar_abuse},
+                   note    => "Registrar: $d->{registrar}",
+                   via     => 'domain-whois');
+        }
+    }
+
+    # 4. From: / Reply-To: / Return-Path: account provider
+    for my $hname (qw(from reply-to return-path)) {
+        my $val = $self->_header_value($hname) // next;
+        my ($addr_domain) = $val =~ /\@([\w.-]+)/;
+        next unless $addr_domain;
+        my $pa = $self->_provider_abuse_for_host($addr_domain);
+        if ($pa) {
+            $add->(role    => "Account provider ($hname: $val)",
+                   address => $pa->{email},
+                   note    => $pa->{note},
+                   via     => 'provider-table');
+        }
+    }
+
+    return @contacts;
+}
+
+# Look up provider abuse contact by plain domain name
+sub _provider_abuse_for_host {
+    my ($self, $host) = @_;
+    $host = lc $host;
+    # Try exact match, then strip successive subdomains
+    while ($host =~ /\./) {
+        return $PROVIDER_ABUSE{$host} if $PROVIDER_ABUSE{$host};
+        $host =~ s/^[^.]+\.//;
+    }
+    return undef;
+}
+
+# Look up provider abuse contact by IP and/or rDNS hostname
+sub _provider_abuse_for_ip {
+    my ($self, $ip, $rdns) = @_;
+    return $self->_provider_abuse_for_host($rdns) if $rdns;
+    return undef;
+}
+
+# -----------------------------------------------------------------------
 # Public: report
 # -----------------------------------------------------------------------
 
@@ -434,6 +650,22 @@ sub report {
         }
     } else {
         push @out, "  (none found)";
+        push @out, "";
+    }
+
+    # ---- Abuse contacts summary ----
+    push @out, "[ WHERE TO SEND ABUSE REPORTS ]";
+    my @contacts = $self->abuse_contacts();
+    if (@contacts) {
+        for my $c (@contacts) {
+            push @out, "  Role         : $c->{role}";
+            push @out, "  Send to      : $c->{address}";
+            push @out, "  Note         : $c->{note}" if $c->{note};
+            push @out, "  Discovered   : $c->{via}";
+            push @out, "";
+        }
+    } else {
+        push @out, "  (no abuse contacts could be determined)";
         push @out, "";
     }
 
