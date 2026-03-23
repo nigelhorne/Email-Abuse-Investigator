@@ -525,8 +525,8 @@ sub risk_assessment {
     # Reply-To differs from From:
     my $reply_to = $self->_header_value('reply-to');
     if ($reply_to) {
-        my ($from_addr)  = $from_raw    =~ /[\w.+%-]+\@[\w.-]+/;
-        my ($reply_addr) = $reply_to    =~ /[\w.+%-]+\@[\w.-]+/;
+	my ($from_addr)  = $from_raw =~ /([\w.+%-]+\@[\w.-]+)/;
+my ($reply_addr) = $reply_to =~ /([\w.+%-]+\@[\w.-]+)/;
         if ($from_addr && $reply_addr &&
             lc($from_addr) ne lc($reply_addr)) {
             $flag->('MEDIUM', 'reply_to_differs_from_from',
@@ -1610,8 +1610,8 @@ sub _parse_date_to_epoch {
 }
 
 sub _debug {
-    my ($self, $msg) = @_;
-    print STDERR "[Mail::Message::Abuse] $msg\n" if $self->{verbose};
+	my ($self, $msg) = @_;
+	print STDERR "[Mail::Message::Abuse] $msg\n" if $self->{verbose};
 }
 
 1;
