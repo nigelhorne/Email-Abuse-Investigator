@@ -739,16 +739,17 @@ even if it is discovered through multiple routes.
 =cut
 
 sub abuse_contacts {
-    my ($self) = @_;
-    my (@contacts, %seen);
+	my ($self) = @_;
+	my (@contacts, %seen);
 
-    my $add = sub {
-        my (%args) = @_;
-        my $addr = lc($args{address} // '');
-        return unless $addr && $addr =~ /\@/;
-        return if $seen{$addr}++;
-        push @contacts, \%args;
-    };
+	my $add = sub {
+		my %args = @_;
+		my $addr = lc($args{address} // '');
+
+		return unless $addr && $addr =~ /\@/;
+		return if $seen{$addr}++;
+		push @contacts, \%args;
+	};
 
     # 1. Sending ISP (originating IP)
     my $orig = $self->originating_ip();
@@ -808,12 +809,12 @@ sub abuse_contacts {
 
         # MX host
         if ($d->{mx_abuse}) {
-		$d->{mx_org} //= 'Unknown organisation';
-		$d->{mx_ip} //= 'Unknown IP address';
-		$d->{mx_host} //= '(Unknown host)';
             $add->(role    => "Mail host (MX) for $dom",
                    address => $d->{mx_abuse},
-                   note    => "MX $d->{mx_host} ($d->{mx_ip}, $d->{mx_org})",
+		   note => sprintf('MX %s (%s, %s)',
+			    $d->{mx_host} // '(unknown host)',
+			    $d->{mx_ip}   // '(unknown IP)',
+			    $d->{mx_org}  // '(unknown org)'),
                    via     => 'ip-whois');
         }
 
@@ -821,7 +822,10 @@ sub abuse_contacts {
         if ($d->{ns_abuse}) {
             $add->(role    => "DNS host (NS) for $dom",
                    address => $d->{ns_abuse},
-                   note    => "NS $d->{ns_host} ($d->{ns_ip}, $d->{ns_org})",
+		   note => sprintf('NS %s (%s, %s)',
+			    $d->{ns_host} // '(unknown host)',
+			    $d->{ns_ip}   // '(unknown IP)',
+			    $d->{ns_org}  // '(unknown org)'),
                    via     => 'ip-whois');
         }
 
