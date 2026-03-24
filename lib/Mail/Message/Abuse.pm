@@ -435,11 +435,11 @@ red flags found in the message:
 =cut
 
 sub risk_assessment {
-    my ($self) = @_;
-    return $self->{_risk} if $self->{_risk};
+	my $self = $_[0];
+	return $self->{_risk} if $self->{_risk};
 
-    my @flags;
-    my $score = 0;
+	my @flags;
+	my $score = 0;
 
     my $flag = sub {
         my ($severity, $name, $detail) = @_;
@@ -573,20 +573,21 @@ sub risk_assessment {
             $flag->('HIGH', 'recently_registered_domain',
                 "$d->{domain} was registered $d->{registered} (less than 180 days ago)");
         }
+	        if ($d->{expires}) {
+            my $exp       = $self->_parse_date_to_epoch($d->{expires});
+            my $now       = time();
+            if ($exp) {
+                my $remaining = $exp - $now;
+                if ($remaining > 0 && $remaining < 30 * 86400) {
         # Domain expires very soon (< 30 days) — throwaway domain
-        if ($d->{expires}) {
-            my $exp = $self->_parse_date_to_epoch($d->{expires});
-            if ($exp && ($exp - time()) < 30 * 86400 && ($exp - time()) > 0) {
                 $flag->('HIGH', 'domain_expires_soon',
                     "$d->{domain} expires $d->{expires} — may be a throwaway domain");
-            }
-        }
+                }
+                elsif ($remaining <= 0) {
         # Domain already expired
-        if ($d->{expires}) {
-            my $exp = $self->_parse_date_to_epoch($d->{expires});
-            if ($exp && $exp < time()) {
                 $flag->('HIGH', 'domain_expired',
                     "$d->{domain} expired $d->{expires} — domain has lapsed");
+                }
             }
         }
         # Lookalike domain (contains well-known brand name but isn't it)
