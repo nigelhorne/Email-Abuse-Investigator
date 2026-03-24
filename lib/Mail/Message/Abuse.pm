@@ -367,17 +367,18 @@ Union of every domain seen across HTTP URLs and mailto/reply domains.
 =cut
 
 sub all_domains {
-    my ($self) = @_;
-    my %seen;
-    my @out;
-    for my $u ($self->embedded_urls()) {
-        my ($dom) = $u->{host} =~ /([^.]+\.[^.]+)$/;
-        push @out, $dom if $dom && !$seen{$dom}++;
-    }
-    for my $d ($self->mailto_domains()) {
-        push @out, $d->{domain} if !$seen{ $d->{domain} }++;
-    }
-    return @out;
+	my $self = $_[0];
+	my %seen;
+	my @out;
+	for my $u ($self->embedded_urls()) {
+		my $dom = _registrable($u->{host});
+		push @out, $dom if $dom && !$seen{$dom}++;
+	}
+	for my $d ($self->mailto_domains()) {
+		my $dom = _registrable($d->{domain}) // $d->{domain};
+		push @out, $dom if $dom && !$seen{$dom}++;
+	}
+	return @out;
 }
 
 # -----------------------------------------------------------------------
