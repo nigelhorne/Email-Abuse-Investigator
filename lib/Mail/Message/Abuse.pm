@@ -808,7 +808,10 @@ sub abuse_contacts {
             }
             $add->(role    => "Web host of $dom",
                    address => $d->{web_abuse},
-                   note    => "Hosting $dom ($d->{web_ip}, $d->{web_org})",
+		   note => sprintf('Hosting %s (%s, %s)',
+			    $dom // '(unknown domain)',
+			    $d->{web_ip}   // '(unknown IP)',
+			    $d->{web_org}  // '(unknown org)'),
                    via     => 'ip-whois');
         }
 
@@ -838,7 +841,7 @@ sub abuse_contacts {
         if ($d->{registrar_abuse}) {
             $add->(role    => "Domain registrar for $dom",
                    address => $d->{registrar_abuse},
-                   note    => "Registrar: $d->{registrar}",
+                   note    => ($d->{registrar}) ? "Registrar: $d->{registrar}" : 'Registrar: unknown',
                    via     => 'domain-whois');
         }
     }
@@ -1053,6 +1056,8 @@ sub _split_message {
     my ($self, $text) = @_;
 
     my ($header_block, $body_raw) = split /\r?\n\r?\n/, $text, 2;
+
+    return unless($header_block);
     $body_raw //= '';
 
     # Unfold continuation lines (RFC 2822 s2.2.3)
@@ -1563,7 +1568,8 @@ sub _parse_whois_text {
     # Country
     $info{country} = $1
         if $text =~ /^country:\s*([A-Z]{2})\s*$/mi;
-    return \%info;
+	$info{country} = uc($info{country}) if($info{country});
+	return \%info;
 }
 
 # -----------------------------------------------------------------------
