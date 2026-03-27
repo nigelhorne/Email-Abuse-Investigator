@@ -34,6 +34,7 @@ WriteMakefile(
 		'Params::Get' => 0,
 		'Params::Validate::Strict' => 0,
 		'Params::Validate::Strict' => 0,
+		'Readonly::Values::Months' => 0,
 		'Socket' => 0,
 	# }, RECOMMENDED => {
 		# 'Net::DNS' => 0,

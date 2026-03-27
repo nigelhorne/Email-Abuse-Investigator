@@ -9,6 +9,7 @@ use MIME::Base64 qw( decode_base64 );
 use Object::Configure;
 use Params::Get;
 use Params::Validate::Strict;
+use Readonly::Values::Months;
 use Socket qw( inet_aton inet_ntoa );
 
 # Optional - gracefully degraded
@@ -4861,19 +4862,22 @@ sub _ip_in_cidr {
 # Lightweight date-to-epoch for common WHOIS date formats:
 #   2024-11-01   2024-11-01T12:00:00Z   01-Nov-2024
 sub _parse_date_to_epoch {
-    my ($self, $str) = @_;
-    return undef unless $str;
-    my %mon = ( jan=>1,feb=>2,mar=>3,apr=>4,may=>5,jun=>6,
-                jul=>7,aug=>8,sep=>9,oct=>10,nov=>11,dec=>12 );
-    my ($y, $m, $d);
-    if    ($str =~ /^(\d{4})-(\d{2})-(\d{2})/)         { ($y,$m,$d)=($1,$2,$3) }
-    elsif ($str =~ /^(\d{2})-([A-Za-z]{3})-(\d{4})/)   { ($d,$m,$y)=($1,$mon{lc$2}//0,$3) }
-    elsif ($str =~ /^(\d{2})\/(\d{2})\/(\d{4})/)        { ($m,$d,$y)=($1,$2,$3) }
-    return undef unless $y && $m && $d;
-    if (eval { require Time::Local; 1 }) {
-        return eval { Time::Local::timegm(0,0,0,$d,$m-1,$y-1900) };
-    }
-    return ($y-1970)*365.25*86400 + ($m-1)*30.5*86400 + ($d-1)*86400;
+	my ($self, $str) = @_;
+
+	return undef unless $str;
+
+	my ($y, $m, $d);
+	if    ($str =~ /^(\d{4})-(\d{2})-(\d{2})/)         { ($y,$m,$d)=($1,$2,$3) }
+	elsif ($str =~ /^(\d{2})-([A-Za-z]{3})-(\d{4})/)   { ($d,$m,$y)=($1,$months{lc$2}//0,$3) }	# Readonly::Values::Months
+	elsif ($str =~ /^(\d{2})\/(\d{2})\/(\d{4})/)        { ($m,$d,$y)=($1,$2,$3) }
+
+	return unless $y && $m && $d;
+
+	if (eval { require Time::Local; 1 }) {
+		return eval { Time::Local::timegm(0,0,0,$d,$m-1,$y-1900) };
+	}
+
+	return ($y-1970)*365.25*86400 + ($m-1)*30.5*86400 + ($d-1)*86400;
 }
 
 # Parse a RFC 2822 date string to a Unix epoch.
@@ -4885,19 +4889,19 @@ sub _parse_date_to_epoch {
 # is UTC.  For the sole current use-case (7-day suspicious_date window)
 # the maximum error is ~14 hours, which is well within the 7-day tolerance.
 sub _parse_rfc2822_date {
-    my ($str) = @_;
-    return undef unless $str;
-    my %mon = ( Jan=>1, Feb=>2,  Mar=>3,  Apr=>4,  May=>5,  Jun=>6,
-                Jul=>7, Aug=>8,  Sep=>9,  Oct=>10, Nov=>11, Dec=>12 );
-    if ($str =~ /(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/) {
-        my ($d, $m, $y, $H, $M, $S) =
-            ($1, $mon{ ucfirst lc $2 } // 0, $3, $4, $5, $6);
-        return undef unless $m;
-        if (eval { require Time::Local; 1 }) {
-            return eval { Time::Local::timegm($S, $M, $H, $d, $m - 1, $y - 1900) };
-        }
-    }
-    return undef;
+	my $str = $_[0];
+
+	return undef unless $str;
+
+	if ($str =~ /(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/) {
+		# Readonly::Values::Months
+		my ($d, $m, $y, $H, $M, $S) = ($1, $months{ lc $2 } // 0, $3, $4, $5, $6);
+		return undef unless $m;
+		if (eval { require Time::Local; 1 }) {
+			return eval { Time::Local::timegm($S, $M, $H, $d, $m - 1, $y - 1900) };
+		}
+	}
+	return undef;
 }
 
 sub _decode_mime_words {
