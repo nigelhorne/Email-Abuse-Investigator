@@ -43,7 +43,7 @@ sub make_email {
     my $return_path = $h{return_path} // '<sender@example.org>';
     my $to          = $h{to}          // 'victim@bandsman.co.uk';
     my $subject     = $h{subject}     // 'Test subject';
-    my $date        = $h{date}        // 'Mon, 01 Jan 2024 00:00:00 +0000';
+    my $date        = $h{date}        // POSIX::strftime('%a, %d %b %Y %H:%M:%S +0000', gmtime);
     my $message_id  = $h{message_id}  // '<test-001@example.org>';
     my $ct          = $h{ct}          // 'text/plain; charset=us-ascii';
     my $cte         = $h{cte}         // '7bit';

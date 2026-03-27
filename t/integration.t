@@ -120,7 +120,7 @@ sub make_raw_email {
     my $return_path = $h{return_path} // '<spammer@spam.example>';
     my $to          = $h{to}          // 'victim@test.example';
     my $subject     = $h{subject}     // 'Integration test message';
-    my $date        = $h{date}        // 'Mon, 01 Jan 2024 00:00:00 +0000';
+    my $date        = $h{date}        // POSIX::strftime('%a, %d %b %Y %H:%M:%S +0000', gmtime);
     my $mid         = $h{message_id}  // '<inttest@spam.example>';
     my $ct          = $h{ct}          // 'text/plain; charset=us-ascii';
     my $cte         = $h{cte}         // '7bit';
@@ -947,6 +947,7 @@ subtest 'Scenario 12: clean legitimate email scores INFO — no false positives'
         return_path  => '<news@verifiedcorp.example>',
         to           => 'subscriber@test.example',
         subject      => 'Monthly Update',
+        message_id   => '<monthly-001@verifiedcorp.example>',
         body         => 'Please find the monthly update attached. No links.',
     ));
 

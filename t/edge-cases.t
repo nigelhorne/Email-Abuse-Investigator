@@ -805,12 +805,14 @@ subtest 'risk_assessment -- score 2..4 is LOW' => sub {
 subtest 'risk_assessment -- score 0..1 is INFO' => sub {
     null_net();
     my $a = new_ok('Mail::Message::Abuse');
+    my $today = strftime('%a, %d %b %Y %H:%M:%S +0000', gmtime);
     $a->parse_email(
         "Received: from h (h [91.198.174.1]) by mx\n"
       . "Authentication-Results: mx; spf=pass; dkim=pass; dmarc=pass\n"
       . "From: x\@verifiedcorp.example\n"
       . "Return-Path: <x\@verifiedcorp.example>\n"
       . "To: user\@test.example\n"
+      . "Date: $today\n"
       . "Subject: Plain subject\n\nbody");
     $a->{_origin} = {
         ip=>'91.198.174.1', rdns=>'mail.verifiedcorp.example',

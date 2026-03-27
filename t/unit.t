@@ -40,7 +40,7 @@ sub make_email {
     my $return_path = $h{return_path} // '<sender@spamsite.example>';
     my $to          = $h{to}          // 'victim@bandsman.co.uk';
     my $subject     = $h{subject}     // 'Unit test message';
-    my $date        = $h{date}        // 'Mon, 01 Jan 2024 00:00:00 +0000';
+    my $date        = $h{date}        // POSIX::strftime('%a, %d %b %Y %H:%M:%S +0000', gmtime);
     my $mid         = $h{message_id}  // '<unit-001@spamsite.example>';
     my $ct          = $h{ct}          // 'text/plain; charset=us-ascii';
     my $cte         = $h{cte}         // '7bit';

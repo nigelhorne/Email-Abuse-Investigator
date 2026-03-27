@@ -1,6 +1,7 @@
 # NAME
 
-Mail::Message::Abuse - Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains.
+Mail::Message::Abuse - Analyse spam email to identify originating hosts,
+hosted URLs, and suspicious domains
 
 # SYNOPSIS
 
@@ -43,8 +44,9 @@ and answers the questions manual abuse investigators ask:
 - 3. Who owns the reply-to / contact domains?
 
     Extracts domains from `mailto:` links, bare e-mail addresses in the body,
-    the `From:`/`Reply-To:` headers, and the `Return-Path:`.  For each
-    unique domain it gathers:
+    the `From:`/`Reply-To:`/`Sender:`/`Return-Path:` headers, `DKIM-Signature: d=`
+    (the signing domain), `List-Unsubscribe:` (the ESP or bulk-sender domain), and the
+    `Message-ID:` domain.  For each unique domain it gathers:
 
     - Domain registrar and registrant (WHOIS)
     - Web-hosting IP and network owner (A record -> RDAP)
@@ -109,7 +111,9 @@ Returns a list of hashrefs for every HTTP/HTTPS URL in the body:
 
 Returns a list of hashrefs, one per unique non-infrastructure domain found
 in `mailto:` links, bare e-mail addresses in the body, and the envelope /
-header fields `From:`, `Reply-To:`, `Return-Path:`.
+header fields `From:`, `Reply-To:`, `Sender:`, `Return-Path:`,
+`DKIM-Signature: d=` (signing domain), `List-Unsubscribe:` (ESP domain),
+and the domain portion of `Message-ID:`.
 
 Each hashref contains:
 
@@ -148,6 +152,34 @@ Each hashref contains:
 
 Union of every domain seen across HTTP URLs and mailto/reply domains.
 
+## sending\_software()
+
+Returns an arrayref of hashrefs identifying software or infrastructure
+clues extracted from the email headers.  Each entry has:
+
+    {
+        header => 'X-PHP-Originating-Script',
+        value  => '1000:newsletter.php',
+        note   => 'PHP script on shared hosting — report to hosting abuse team',
+    }
+
+Headers examined: `X-Mailer`, `User-Agent`, `X-PHP-Originating-Script`,
+`X-Source`, `X-Source-Args`, `X-Source-Host`.
+
+## received\_trail()
+
+Returns an arrayref of hashrefs, one per `Received:` header (oldest first),
+each containing the extracted IP, envelope recipient (`for` clause), and
+the server's internal tracking ID (`id` clause).  These are the tracking
+identifiers a receiving ISP's abuse team needs to look up the mail session
+in their logs.
+
+    [
+      { received => '...raw header...', ip => '1.2.3.4',
+        for => 'victim@example.com', id => 'ABC123' },
+      ...
+    ]
+
 ## risk\_assessment()
 
 Returns a hashref with an overall risk level and a list of specific
@@ -162,7 +194,7 @@ red flags found in the message:
             { severity => 'MEDIUM', flag => 'residential_sending_ip',
               detail => 'rDNS 120-88-161-249.tpgi.com.au looks like a broadband line' },
             { severity => 'MEDIUM', flag => 'url_shortener',
-              detail => 'bit.ly used - real destination hidden' },
+              detail => 'bit.ly used — real destination hidden' },
             ...
         ],
     }
@@ -190,12 +222,14 @@ receive an abuse report, in priority order:
 
 Roles produced (in order):
 
-    Sending ISP       - network owner of the originating IP
-    URL host          - network owner of each unique web-server IP
-    Mail host (MX)    - network owner of the domain's MX record IP
-    DNS host (NS)     - network owner of the authoritative NS IP
-    Domain registrar  - registrar abuse contact from domain WHOIS
-    Account provider  - e.g. Gmail / Outlook for the From: account
+    Sending ISP            — network owner of the originating IP
+    URL host               — network owner of each unique web-server IP
+    Mail host (MX)         — network owner of the domain's MX record IP
+    DNS host (NS)          — network owner of the authoritative NS IP
+    Domain registrar       — registrar abuse contact from domain WHOIS
+    Account provider       — e.g. Gmail / Outlook for the From:/Sender: account
+    DKIM signer            — the organisation whose key signed the message
+    ESP / bulk sender      — identified via List-Unsubscribe: domain
 
 Addresses are deduplicated so the same address never appears twice,
 even if it is discovered through multiple routes.
@@ -218,9 +252,17 @@ runs the following pipeline:
         +-- NS record --> nameserver hostname  --> A --> RDAP --> org + abuse
         |
         +-- WHOIS (TLD whois server via IANA referral)
-               +-- Registrar name
+               +-- Registrar name + abuse contact
                +-- Creation date  (-> recently-registered flag if < 180 days)
-               +-- Expiry date
+               +-- Expiry date    (-> expires-soon or expired flags)
+
+Domains are collected from:
+
+    From:/Reply-To:/Sender:/Return-Path: headers
+    DKIM-Signature: d=  (signing domain)
+    List-Unsubscribe:   (ESP / bulk sender domain)
+    Message-ID:         (often reveals real sending platform)
+    mailto: links and bare addresses in the body
 
 # WHY WEB HOSTING != MAIL HOSTING != DNS HOSTING
 
@@ -245,9 +287,16 @@ less than 180 days ago with `recently_registered => 1`.
 
 [Net::DNS](https://metacpan.org/pod/Net%3A%3ADNS), [LWP::UserAgent](https://metacpan.org/pod/LWP%3A%3AUserAgent), [HTML::LinkExtor](https://metacpan.org/pod/HTML%3A%3ALinkExtor), [MIME::QuotedPrint](https://metacpan.org/pod/MIME%3A%3AQuotedPrint)
 
-SpamCop: [https://www.spamcop.net/](https://www.spamcop.net/)
 ARIN RDAP: [https://rdap.arin.net/](https://rdap.arin.net/)
 
 # LICENSE
 
 Same terms as Perl itself (Artistic 2.0 / GPL v1+).
+
+# POD ERRORS
+
+Hey! **The above document had some coding errors, which are explained below:**
+
+- Around line 441:
+
+    Non-ASCII character seen before =encoding in '—'. Assuming UTF-8

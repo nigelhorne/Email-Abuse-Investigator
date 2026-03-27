@@ -94,7 +94,7 @@ sub make_email {
     $hdrs .= "Reply-To: $reply_to\n" if defined $reply_to;
     $hdrs .= "To: $to\n";
     $hdrs .= "Subject: $subject\n";
-    $hdrs .= "Date: Mon, 01 Jan 2024 00:00:00 +0000\n";
+    $hdrs .= "Date: " . POSIX::strftime('%a, %d %b %Y %H:%M:%S +0000', gmtime) . "\n";
     $hdrs .= "Message-ID: <ext\@test>\n";
     $hdrs .= "Content-Type: $ct\n";
     $hdrs .= "Content-Transfer-Encoding: 7bit\n";

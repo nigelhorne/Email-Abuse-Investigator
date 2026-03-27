@@ -3,29 +3,12 @@ package Mail::Message::Abuse;
 use strict;
 use warnings;
 
-# -----------------------------------------------------------------------
-# Core dependencies (always available)
-# -----------------------------------------------------------------------
-use Socket          qw( inet_aton inet_ntoa );
-use IO::Socket::INET;
-use MIME::QuotedPrint qw( decode_qp );
-use MIME::Base64      qw( decode_base64 );
-
-# Optional - gracefully degraded
-my $HAS_NET_DNS;
-BEGIN { $HAS_NET_DNS = eval { require Net::DNS; 1 } }
-
-my $HAS_LWP;
-BEGIN { $HAS_LWP = eval { require LWP::UserAgent; 1 } }
-
-my $HAS_HTML_LINKEXTOR;
-BEGIN { $HAS_HTML_LINKEXTOR = eval { require HTML::LinkExtor; 1 } }
-
 our $VERSION = '0.01';
 
 =head1 NAME
 
-Mail::Message::Abuse - Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains.
+Mail::Message::Abuse - Analyse spam email to identify originating hosts,
+hosted URLs, and suspicious domains
 
 =head1 SYNOPSIS
 
@@ -70,8 +53,9 @@ parts, resolves each hostname to an IP, and looks up the network owner.
 =item 3. Who owns the reply-to / contact domains?
 
 Extracts domains from C<mailto:> links, bare e-mail addresses in the body,
-the C<From:>/C<Reply-To:> headers, and the C<Return-Path:>.  For each
-unique domain it gathers:
+the C<From:>/C<Reply-To:>/C<Sender:>/C<Return-Path:> headers, C<DKIM-Signature: d=>
+(the signing domain), C<List-Unsubscribe:> (the ESP or bulk-sender domain), and the
+C<Message-ID:> domain.  For each unique domain it gathers:
 
 =over 8
 
@@ -104,25 +88,43 @@ All are available from CPAN.
 =cut
 
 # -----------------------------------------------------------------------
+# Core dependencies (always available)
+# -----------------------------------------------------------------------
+use Socket          qw( inet_aton inet_ntoa );
+use IO::Socket::INET;
+use MIME::QuotedPrint qw( decode_qp );
+use MIME::Base64      qw( decode_base64 );
+
+# Optional - gracefully degraded
+my $HAS_NET_DNS;
+BEGIN { $HAS_NET_DNS = eval { require Net::DNS; 1 } }
+
+my $HAS_LWP;
+BEGIN { $HAS_LWP = eval { require LWP::UserAgent; 1 } }
+
+my $HAS_HTML_LINKEXTOR;
+BEGIN { $HAS_HTML_LINKEXTOR = eval { require HTML::LinkExtor; 1 } }
+
+# -----------------------------------------------------------------------
 # Constants
 # -----------------------------------------------------------------------
 
 my @PRIVATE_RANGES = (
-    qr/^0\./,                          # 0.0.0.0/8  this-network (RFC 1122)
-    qr/^127\./,                        # 127.0.0.0/8 loopback
-    qr/^10\./,                         # 10.0.0.0/8  RFC 1918
-    qr/^192\.168\./,                   # 192.168.0.0/16 RFC 1918
-    qr/^172\.(?:1[6-9]|2\d|3[01])\./,  # 172.16.0.0/12  RFC 1918
-    qr/^169\.254\./,                   # 169.254.0.0/16 link-local
-    qr/^100\.(?:6[4-9]|[7-9]\d|1(?:[01]\d|2[0-7]))\./,  # 100.64.0.0/10 shared (RFC 6598)
-    qr/^192\.0\.0\./,                  # 192.0.0.0/24  IETF protocol (RFC 6890)
-    qr/^192\.0\.2\./,                  # 192.0.2.0/24  TEST-NET-1 (RFC 5737)
-    qr/^198\.51\.100\./,               # 198.51.100.0/24 TEST-NET-2 (RFC 5737)
-    qr/^203\.0\.113\./,                # 203.0.113.0/24 TEST-NET-3 (RFC 5737)
-    qr/^255\./,                        # 255.0.0.0/8 broadcast
-    qr/^::1$/,                         # IPv6 loopback
-    qr/^fc/i,                          # IPv6 ULA fc00::/7
-    qr/^fd/i,                          # IPv6 ULA fd00::/8
+    qr/^0\./,                         # 0.0.0.0/8  this-network (RFC 1122)
+    qr/^127\./,                       # 127.0.0.0/8 loopback
+    qr/^10\./,                        # 10.0.0.0/8  RFC 1918
+    qr/^192\.168\./,                 # 192.168.0.0/16 RFC 1918
+    qr/^172\.(?:1[6-9]|2\d|3[01])\./, # 172.16.0.0/12  RFC 1918
+    qr/^169\.254\./,                 # 169.254.0.0/16 link-local
+    qr/^100\.(?:6[4-9]|[7-9]\d|1(?:[01]\d|2[0-7]))\./,  # 100.64.0.0/10 shared address space (RFC 6598)
+    qr/^192\.0\.0\./,              # 192.0.0.0/24  IETF protocol (RFC 6890)
+    qr/^192\.0\.2\./,              # 192.0.2.0/24  TEST-NET-1 (RFC 5737)
+    qr/^198\.51\.100\./,           # 198.51.100.0/24 TEST-NET-2 (RFC 5737)
+    qr/^203\.0\.113\./,            # 203.0.113.0/24 TEST-NET-3 (RFC 5737)
+    qr/^255\./,                      # 255.0.0.0/8 broadcast
+    qr/^::1$/,                        # IPv6 loopback
+    qr/^fc/i,                         # IPv6 ULA fc00::/7
+    qr/^fd/i,                         # IPv6 ULA fd00::/8
 );
 
 my @RECEIVED_IP_RE = (
@@ -200,7 +202,34 @@ my %PROVIDER_ABUSE = (
     'digitalocean.com'  => { email => 'abuse@digitalocean.com',note => 'DO abuse form: https://www.digitalocean.com/company/contact/#abuse' },
     # Linode / Akamai
     'linode.com'        => { email => 'abuse@linode.com',      note => 'Linode/Akamai Cloud' },
-    # TPG / Internode (Australia — relevant for this email's sending IP)
+    # Constant Contact
+    'constantcontact.com' => { email => 'abuse@constantcontact.com', note => 'ESP abuse' },
+    'r.constantcontact.com' => { email => 'abuse@constantcontact.com', note => 'Constant Contact sending infrastructure' },
+    # HubSpot
+    'hubspot.com'         => { email => 'abuse@hubspot.com',       note => 'ESP abuse' },
+    'hs-analytics.net'    => { email => 'abuse@hubspot.com',       note => 'HubSpot analytics infrastructure' },
+    # Campaign Monitor
+    'createsend.com'      => { email => 'abuse@campaignmonitor.com', note => 'Campaign Monitor ESP' },
+    'cmail20.com'         => { email => 'abuse@campaignmonitor.com', note => 'Campaign Monitor sending infrastructure' },
+    # Klaviyo
+    'klaviyo.com'         => { email => 'abuse@klaviyo.com',       note => 'ESP abuse' },
+    # Brevo (formerly Sendinblue)
+    'sendinblue.com'      => { email => 'abuse@sendinblue.com',    note => 'ESP abuse' },
+    'brevo.com'           => { email => 'abuse@brevo.com',         note => 'ESP abuse' },
+    # Mailgun
+    'mailgun.com'         => { email => 'abuse@mailgun.com',       note => 'ESP abuse' },
+    'mailgun.org'         => { email => 'abuse@mailgun.com',       note => 'Mailgun sending infrastructure' },
+    # Postmark
+    'postmarkapp.com'     => { email => 'abuse@postmarkapp.com',   note => 'ESP abuse' },
+    # Vultr
+    'vultr.com'           => { email => 'abuse@vultr.com',         note => 'Vultr hosting' },
+    # Contabo
+    'contabo.com'         => { email => 'abuse@contabo.com',       note => 'Contabo hosting' },
+    # Leaseweb
+    'leaseweb.com'        => { email => 'abuse@leaseweb.com',      note => 'Leaseweb hosting' },
+    # M247
+    'm247.com'            => { email => 'abuse@m247.com',          note => 'M247 hosting' },
+    # TPG / Internode (Australia)
     'tpgi.com.au'       => { email => 'abuse@tpg.com.au',      note => 'TPG Telecom Australia' },
     'tpg.com.au'        => { email => 'abuse@tpg.com.au',      note => 'TPG Telecom Australia' },
     'internode.on.net'  => { email => 'abuse@internode.on.net',note => 'Internode Australia' },
@@ -223,12 +252,11 @@ my %PROVIDER_ABUSE = (
 =cut
 
 sub new {
-	my ($class, %opts) = @_;
-
+    my ($class, %opts) = @_;
     return bless {
         timeout        => $opts{timeout}        // 10,
         trusted_relays => $opts{trusted_relays} // [],
-        verbose        => $opts{verbose}        || 0,
+        verbose        => $opts{verbose}        // 0,
         _raw           => '',
         _headers       => [],
         _body_plain    => '',
@@ -238,6 +266,8 @@ sub new {
         _urls          => undef,    # lazy
         _mailto_domains=> undef,    # lazy
         _domain_info   => {},       # cache: domain -> hashref
+        _sending_sw    => [],       # X-Mailer / X-PHP-Originating-Script etc.
+        _rcvd_tracking => [],       # per-hop tracking IDs from Received: headers
     }, $class;
 }
 
@@ -263,6 +293,8 @@ sub parse_email {
     $self->{_domain_info}    = {};
     $self->{_risk}           = undef;
     $self->{_auth_results}   = undef;
+    $self->{_sending_sw}     = [];
+    $self->{_rcvd_tracking}  = [];
 
     $self->_split_message($text);
     return $self;
@@ -288,10 +320,9 @@ Returns a hashref:
 =cut
 
 sub originating_ip {
-	my $self = $_[0];
-
-	$self->{_origin} //= $self->_find_origin();
-	return $self->{_origin};
+    my ($self) = @_;
+    $self->{_origin} //= $self->_find_origin();
+    return $self->{_origin};
 }
 
 # -----------------------------------------------------------------------
@@ -326,7 +357,9 @@ sub embedded_urls {
 
 Returns a list of hashrefs, one per unique non-infrastructure domain found
 in C<mailto:> links, bare e-mail addresses in the body, and the envelope /
-header fields C<From:>, C<Reply-To:>, C<Return-Path:>.
+header fields C<From:>, C<Reply-To:>, C<Sender:>, C<Return-Path:>,
+C<DKIM-Signature: d=> (signing domain), C<List-Unsubscribe:> (ESP domain),
+and the domain portion of C<Message-ID:>.
 
 Each hashref contains:
 
@@ -376,23 +409,74 @@ Union of every domain seen across HTTP URLs and mailto/reply domains.
 =cut
 
 sub all_domains {
-	my $self = $_[0];
-	my %seen;
-	my @out;
-	for my $u ($self->embedded_urls()) {
-		my $dom = _registrable($u->{host});
-		push @out, $dom if $dom && !$seen{$dom}++;
-	}
-	for my $d ($self->mailto_domains()) {
-		my $dom = _registrable($d->{domain}) // $d->{domain};
-		push @out, $dom if $dom && !$seen{$dom}++;
-	}
-	return @out;
+    my ($self) = @_;
+    my %seen;
+    my @out;
+    for my $u ($self->embedded_urls()) {
+        my $dom = _registrable($u->{host});
+        push @out, $dom if $dom && !$seen{$dom}++;
+    }
+    for my $d ($self->mailto_domains()) {
+        # mailto_domains() stores the full domain from the address;
+        # normalise to registrable domain so sub.spamco.example and
+        # a URL at www.spamco.example both collapse to spamco.example.
+        my $dom = _registrable($d->{domain}) // $d->{domain};
+        push @out, $dom if $dom && !$seen{$dom}++;
+    }
+    return @out;
 }
 
 # -----------------------------------------------------------------------
-# Private: MIME encoded-word decoder  (=?charset?B/Q?...?=)
+# Public: sending software fingerprint
 # -----------------------------------------------------------------------
+
+=head2 sending_software()
+
+Returns an arrayref of hashrefs identifying software or infrastructure
+clues extracted from the email headers.  Each entry has:
+
+    {
+        header => 'X-PHP-Originating-Script',
+        value  => '1000:newsletter.php',
+        note   => 'PHP script on shared hosting — report to hosting abuse team',
+    }
+
+Headers examined: C<X-Mailer>, C<User-Agent>, C<X-PHP-Originating-Script>,
+C<X-Source>, C<X-Source-Args>, C<X-Source-Host>.
+
+=cut
+
+sub sending_software {
+    my ($self) = @_;
+    return $self->{_sending_sw};
+}
+
+# -----------------------------------------------------------------------
+# Public: per-hop tracking IDs from Received: chain
+# -----------------------------------------------------------------------
+
+=head2 received_trail()
+
+Returns an arrayref of hashrefs, one per C<Received:> header (oldest first),
+each containing the extracted IP, envelope recipient (C<for> clause), and
+the server's internal tracking ID (C<id> clause).  These are the tracking
+identifiers a receiving ISP's abuse team needs to look up the mail session
+in their logs.
+
+    [
+      { received => '...raw header...', ip => '1.2.3.4',
+        for => 'victim@example.com', id => 'ABC123' },
+      ...
+    ]
+
+=cut
+
+sub received_trail {
+    my ($self) = @_;
+    return $self->{_rcvd_tracking};
+}
+
+
 
 sub _decode_mime_words {
     my ($self, $str) = @_;
@@ -436,7 +520,7 @@ red flags found in the message:
             { severity => 'MEDIUM', flag => 'residential_sending_ip',
               detail => 'rDNS 120-88-161-249.tpgi.com.au looks like a broadband line' },
             { severity => 'MEDIUM', flag => 'url_shortener',
-              detail => 'bit.ly used - real destination hidden' },
+              detail => 'bit.ly used — real destination hidden' },
             ...
         ],
     }
@@ -444,11 +528,11 @@ red flags found in the message:
 =cut
 
 sub risk_assessment {
-	my $self = $_[0];
-	return $self->{_risk} if $self->{_risk};
+    my ($self) = @_;
+    return $self->{_risk} if $self->{_risk};
 
-	my @flags;
-	my $score = 0;
+    my @flags;
+    my $score = 0;
 
     my $flag = sub {
         my ($severity, $name, $detail) = @_;
@@ -493,9 +577,17 @@ sub risk_assessment {
 
     # ---- Authentication checks ----
     my $auth = $self->_parse_auth_results_cached();
-    if (defined $auth->{spf} && $auth->{spf} !~ /^pass/i) {
-        $flag->('HIGH', 'spf_fail',
-            "SPF result: $auth->{spf} — sending IP not authorised by domain's SPF record");
+    if (defined $auth->{spf}) {
+        if ($auth->{spf} =~ /^fail/i) {
+            $flag->('HIGH', 'spf_fail',
+                "SPF result: $auth->{spf} — sending IP not authorised by domain's SPF record");
+        } elsif ($auth->{spf} =~ /^softfail/i) {
+            $flag->('MEDIUM', 'spf_softfail',
+                "SPF result: softfail (~all) — sending IP not explicitly authorised");
+        } elsif ($auth->{spf} !~ /^pass/i) {
+            $flag->('HIGH', 'spf_fail',
+                "SPF result: $auth->{spf} — sending IP not authorised by domain's SPF record");
+        }
     }
     if (defined $auth->{dkim} && $auth->{dkim} !~ /^pass/i) {
         $flag->('HIGH', 'dkim_fail',
@@ -504,6 +596,33 @@ sub risk_assessment {
     if (defined $auth->{dmarc} && $auth->{dmarc} !~ /^pass/i) {
         $flag->('HIGH', 'dmarc_fail',
             "DMARC result: $auth->{dmarc}");
+    }
+
+    # DKIM domain differs from From: domain — signing key may be impersonating
+    if ($auth->{dkim_domain}) {
+        my ($from_domain) = ($self->_header_value('from') // '') =~ /\@([\w.-]+)/;
+        if ($from_domain) {
+            my $reg_dkim = _registrable($auth->{dkim_domain}) // $auth->{dkim_domain};
+            my $reg_from = _registrable(lc $from_domain)     // lc $from_domain;
+            if ($reg_dkim ne $reg_from && $auth->{dkim} && $auth->{dkim} =~ /^pass/i) {
+                $flag->('MEDIUM', 'dkim_domain_mismatch',
+                    "DKIM signed by '$auth->{dkim_domain}' but From: domain is '$from_domain' — message routed through third-party sender");
+            }
+        }
+    }
+
+    # ---- Date: header checks ----
+    my $date_raw = $self->_header_value('date');
+    if (!$date_raw || $date_raw !~ /\S/) {
+        $flag->('MEDIUM', 'missing_date',
+            'No Date: header — violates RFC 5322; common in spam');
+    } else {
+        # Check for dates wildly outside the current window (> 7 days off)
+        my $date_epoch = _parse_rfc2822_date($date_raw);
+        if (defined $date_epoch && abs(time() - $date_epoch) > 7 * 86400) {
+            $flag->('LOW', 'suspicious_date',
+                "Date: '$date_raw' is more than 7 days from now — possible header forgery");
+        }
     }
 
     # ---- Header identity checks ----
@@ -527,9 +646,8 @@ sub risk_assessment {
     }
 
     # From: is a free webmail provider
- # mail.ru matched separately without requiring trailing dot
-if ($from_raw =~ /\@(gmail|yahoo|hotmail|outlook|live|aol|protonmail|yandex)\./i
- || $from_raw =~ /\@mail\.ru(?:[\s>]|$)/i) {
+    if ($from_raw =~ /\@(gmail|yahoo|hotmail|outlook|live|aol|protonmail|yandex)\./i
+     || $from_raw =~ /\@mail\.ru(?:[\s>]|$)/i) {
         $flag->('MEDIUM', 'free_webmail_sender',
             "Message sent from free webmail address ($from_raw) — no corporate mail infrastructure");
     }
@@ -584,20 +702,19 @@ if ($from_raw =~ /\@(gmail|yahoo|hotmail|outlook|live|aol|protonmail|yandex)\./i
             $flag->('HIGH', 'recently_registered_domain',
                 "$d->{domain} was registered $d->{registered} (less than 180 days ago)");
         }
-	        if ($d->{expires}) {
-            my $exp       = $self->_parse_date_to_epoch($d->{expires});
-            my $now       = time();
+        # Domain expiry checks — parse once, test twice
+        if ($d->{expires}) {
+            my $exp  = $self->_parse_date_to_epoch($d->{expires});
+            my $now  = time();
             if ($exp) {
                 my $remaining = $exp - $now;
                 if ($remaining > 0 && $remaining < 30 * 86400) {
-        # Domain expires very soon (< 30 days) — throwaway domain
-                $flag->('HIGH', 'domain_expires_soon',
-                    "$d->{domain} expires $d->{expires} — may be a throwaway domain");
+                    $flag->('HIGH', 'domain_expires_soon',
+                        "$d->{domain} expires $d->{expires} — may be a throwaway domain");
                 }
                 elsif ($remaining <= 0) {
-        # Domain already expired
-                $flag->('HIGH', 'domain_expired',
-                    "$d->{domain} expired $d->{expires} — domain has lapsed");
+                    $flag->('HIGH', 'domain_expired',
+                        "$d->{domain} expired $d->{expires} — domain has lapsed");
                 }
             }
         }
@@ -632,11 +749,24 @@ sub _parse_auth_results_cached {
         grep { $_->{name} eq 'authentication-results' }
         @{ $self->{_headers} }
     );
-    $auth{spf} = $1 if $raw =~ /\bspf=(\S+)/i;
-	$auth{spf} =~ s/[;,\s]+$// if defined $auth{spf};
+    $auth{spf}   = $1 if $raw =~ /\bspf=(\S+)/i;
     $auth{dkim}  = $1 if $raw =~ /\bdkim=(\S+)/i;
     $auth{dmarc} = $1 if $raw =~ /\bdmarc=(\S+)/i;
     $auth{arc}   = $1 if $raw =~ /\barc=(\S+)/i;
+    # Strip trailing punctuation captured by \S+
+    for my $k (qw(spf dkim dmarc arc)) {
+        $auth{$k} =~ s/[;,\s]+$// if defined $auth{$k};
+    }
+
+    # Extract DKIM signing domain from DKIM-Signature: d= tag
+    # There may be multiple signatures; take the first passing one, else the first
+    for my $h (grep { $_->{name} eq 'dkim-signature' } @{ $self->{_headers} }) {
+        if ($h->{value} =~ /\bd=([^;,\s]+)/) {
+            $auth{dkim_domain} = lc $1;
+            last;
+        }
+    }
+
     $self->{_auth_results} = \%auth;
     return \%auth;
 }
@@ -740,12 +870,14 @@ receive an abuse report, in priority order:
 
 Roles produced (in order):
 
-  Sending ISP       - network owner of the originating IP
-  URL host          - network owner of each unique web-server IP
-  Mail host (MX)    - network owner of the domain's MX record IP
-  DNS host (NS)     - network owner of the authoritative NS IP
-  Domain registrar  - registrar abuse contact from domain WHOIS
-  Account provider  - e.g. Gmail / Outlook for the From: account
+  Sending ISP            — network owner of the originating IP
+  URL host               — network owner of each unique web-server IP
+  Mail host (MX)         — network owner of the domain's MX record IP
+  DNS host (NS)          — network owner of the authoritative NS IP
+  Domain registrar       — registrar abuse contact from domain WHOIS
+  Account provider       — e.g. Gmail / Outlook for the From:/Sender: account
+  DKIM signer            — the organisation whose key signed the message
+  ESP / bulk sender      — identified via List-Unsubscribe: domain
 
 Addresses are deduplicated so the same address never appears twice,
 even if it is discovered through multiple routes.
@@ -753,17 +885,16 @@ even if it is discovered through multiple routes.
 =cut
 
 sub abuse_contacts {
-	my ($self) = @_;
-	my (@contacts, %seen);
+    my ($self) = @_;
+    my (@contacts, %seen);
 
-	my $add = sub {
-		my %args = @_;
-		my $addr = lc($args{address} // '');
-
-		return unless $addr && $addr =~ /\@/;
-		return if $seen{$addr}++;
-		push @contacts, \%args;
-	};
+    my $add = sub {
+        my (%args) = @_;
+        my $addr = lc($args{address} // '');
+        return unless $addr && $addr =~ /\@/;
+        return if $seen{$addr}++;
+        push @contacts, \%args;
+    };
 
     # 1. Sending ISP (originating IP)
     my $orig = $self->originating_ip();
@@ -817,10 +948,10 @@ sub abuse_contacts {
             }
             $add->(role    => "Web host of $dom",
                    address => $d->{web_abuse},
-		   note => sprintf('Hosting %s (%s, %s)',
-			    $dom // '(unknown domain)',
-			    $d->{web_ip}   // '(unknown IP)',
-			    $d->{web_org}  // '(unknown org)'),
+                   note    => sprintf('Hosting %s (%s, %s)',
+                                  $dom              // '(unknown domain)',
+                                  $d->{web_ip}      // '(unknown IP)',
+                                  $d->{web_org}     // '(unknown org)'),
                    via     => 'ip-whois');
         }
 
@@ -828,10 +959,10 @@ sub abuse_contacts {
         if ($d->{mx_abuse}) {
             $add->(role    => "Mail host (MX) for $dom",
                    address => $d->{mx_abuse},
-		   note => sprintf('MX %s (%s, %s)',
-			    $d->{mx_host} // '(unknown host)',
-			    $d->{mx_ip}   // '(unknown IP)',
-			    $d->{mx_org}  // '(unknown org)'),
+                   note    => sprintf('MX %s (%s, %s)',
+                                  $d->{mx_host} // '(unknown host)',
+                                  $d->{mx_ip}   // '(unknown IP)',
+                                  $d->{mx_org}  // '(unknown org)'),
                    via     => 'ip-whois');
         }
 
@@ -839,10 +970,10 @@ sub abuse_contacts {
         if ($d->{ns_abuse}) {
             $add->(role    => "DNS host (NS) for $dom",
                    address => $d->{ns_abuse},
-		   note => sprintf('NS %s (%s, %s)',
-			    $d->{ns_host} // '(unknown host)',
-			    $d->{ns_ip}   // '(unknown IP)',
-			    $d->{ns_org}  // '(unknown org)'),
+                   note    => sprintf('NS %s (%s, %s)',
+                                  $d->{ns_host} // '(unknown host)',
+                                  $d->{ns_ip}   // '(unknown IP)',
+                                  $d->{ns_org}  // '(unknown org)'),
                    via     => 'ip-whois');
         }
 
@@ -850,13 +981,13 @@ sub abuse_contacts {
         if ($d->{registrar_abuse}) {
             $add->(role    => "Domain registrar for $dom",
                    address => $d->{registrar_abuse},
-                   note    => ($d->{registrar}) ? "Registrar: $d->{registrar}" : 'Registrar: unknown',
+                   note    => 'Registrar: ' . ($d->{registrar} // '(unknown)'),
                    via     => 'domain-whois');
         }
     }
 
-    # 4. From: / Reply-To: / Return-Path: account provider
-    for my $hname (qw(from reply-to return-path)) {
+    # 4. From: / Reply-To: / Return-Path: / Sender: account provider
+    for my $hname (qw(from reply-to return-path sender)) {
         my $val = $self->_header_value($hname) // next;
         my ($addr_domain) = $val =~ /\@([\w.-]+)/;
         next unless $addr_domain;
@@ -869,7 +1000,52 @@ sub abuse_contacts {
         }
     }
 
-	return @contacts;
+    # 5. DKIM signing domain — the organisation that vouches for the message
+    my $auth = $self->_parse_auth_results_cached();
+    if ($auth->{dkim_domain}) {
+        my $pa = $self->_provider_abuse_for_host($auth->{dkim_domain});
+        if ($pa) {
+            $add->(role    => "DKIM signer (provider table): $auth->{dkim_domain}",
+                   address => $pa->{email},
+                   note    => $pa->{note},
+                   via     => 'provider-table');
+        }
+        # Also run through the full domain pipeline if not already seen
+        if (!grep { $_->{domain} eq $auth->{dkim_domain} } $self->mailto_domains()) {
+            my $info = $self->_analyse_domain($auth->{dkim_domain});
+            if ($info->{registrar_abuse}) {
+                $add->(role    => "DKIM signing domain registrar: $auth->{dkim_domain}",
+                       address => $info->{registrar_abuse},
+                       note    => 'Registrar: ' . ($info->{registrar} // '(unknown)'),
+                       via     => 'domain-whois');
+            }
+        }
+    }
+
+    # 6. List-Unsubscribe domain — the ESP or bulk sender responsible for delivery
+    my $unsub = $self->_header_value('list-unsubscribe');
+    if ($unsub) {
+        # Extract both mailto: and https: addresses
+        my @unsub_domains;
+        while ($unsub =~ m{https?://([^/:?\s>]+)}gi) {
+            push @unsub_domains, lc $1;
+        }
+        while ($unsub =~ m{mailto:[^@\s>]+\@([\w.-]+)}gi) {
+            push @unsub_domains, lc $1;
+        }
+        my %unsub_seen;
+        for my $dom (grep { !$unsub_seen{$_}++ } @unsub_domains) {
+            my $pa = $self->_provider_abuse_for_host($dom);
+            if ($pa) {
+                $add->(role    => "ESP / bulk sender (List-Unsubscribe: $dom)",
+                       address => $pa->{email},
+                       note    => "$pa->{note} — responsible for this bulk delivery",
+                       via     => 'provider-table');
+            }
+        }
+    }
+
+    return @contacts;
 }
 
 # Look up provider abuse contact by plain domain name
@@ -948,6 +1124,32 @@ sub report {
         push @out, "  (could not determine originating IP)";
     }
     push @out, "";
+
+    # ---- Sending software / infrastructure clues ----
+    my @sw = @{ $self->{_sending_sw} };
+    if (@sw) {
+        push @out, "[ SENDING SOFTWARE / INFRASTRUCTURE CLUES ]";
+        for my $s (@sw) {
+            push @out, sprintf("  %-14s : %s", $s->{header}, $s->{value});
+            push @out, "  Note           : $s->{note}";
+            push @out, "";
+        }
+    }
+
+    # ---- Received chain tracking IDs ----
+    my @trail = grep { defined $_->{id} || defined $_->{for} }
+                @{ $self->{_rcvd_tracking} };
+    if (@trail) {
+        push @out, "[ RECEIVED CHAIN TRACKING IDs ]";
+        push @out, "  (Supply these to the relevant ISP abuse team to trace the session)";
+        push @out, "";
+        for my $hop (@trail) {
+            push @out, "  IP           : " . ($hop->{ip} // '(unknown)');
+            push @out, "  Envelope for : $hop->{for}" if $hop->{for};
+            push @out, "  Server ID    : $hop->{id}"  if $hop->{id};
+            push @out, "";
+        }
+    }
 
     # ---- HTTP/HTTPS URLs ----
     push @out, "[ EMBEDDED HTTP/HTTPS URLs ]";
@@ -1066,7 +1268,7 @@ sub _split_message {
 
     my ($header_block, $body_raw) = split /\r?\n\r?\n/, $text, 2;
 
-    return unless($header_block);
+    return unless defined $header_block && $header_block =~ /\S/;
     $body_raw //= '';
 
     # Unfold continuation lines (RFC 2822 s2.2.3)
@@ -1098,6 +1300,39 @@ sub _split_message {
 
     $self->_debug(sprintf "Parsed %d headers, %d Received lines",
         scalar @headers, scalar @{ $self->{_received} });
+
+    # ---- Sending software fingerprints ----
+    my %sw_notes = (
+        'x-php-originating-script' => 'PHP script on shared hosting — report to hosting abuse team',
+        'x-source'                 => 'Source file on shared hosting — report to hosting abuse team',
+        'x-source-host'            => 'Sending hostname injected by shared hosting provider',
+        'x-source-args'            => 'Command-line args injected by shared hosting provider',
+        'x-mailer'                 => 'Email client or bulk-mailer identifier',
+        'user-agent'               => 'Email client identifier',
+    );
+    for my $sw_hdr (sort keys %sw_notes) {
+        my ($h) = grep { $_->{name} eq $sw_hdr } @headers;
+        next unless $h;
+        push @{ $self->{_sending_sw} }, {
+            header => $sw_hdr,
+            value  => $h->{value},
+            note   => $sw_notes{$sw_hdr},
+        };
+    }
+
+    # ---- Per-hop tracking IDs from Received: chain (oldest first) ----
+    for my $rcvd (reverse @{ $self->{_received} }) {
+        my $ip  = $self->_extract_ip_from_received($rcvd);
+        my ($for_addr) = $rcvd =~ /\bfor\s+<?([^\s>]+\@[\w.-]+)>?/i;
+        my ($srv_id)   = $rcvd =~ /\bid\s+([\w.-]+)/i;
+        next unless defined $ip || defined $for_addr || defined $srv_id;
+        push @{ $self->{_rcvd_tracking} }, {
+            received => $rcvd,
+            ip       => $ip,
+            for      => $for_addr,
+            id       => $srv_id,
+        };
+    }
 }
 
 sub _decode_multipart {
@@ -1252,7 +1487,7 @@ sub _extract_http_urls {
 
     my %seen;
     my @all = grep { !$seen{$_}++ } @urls;
-    @all = map { (my $u = $_) =~ s/[.,;:!?\)>\]]+$//; $u } @all;
+    s/[.,;:!?\)>\]]+$// for @all;
     return @all;
 }
 
@@ -1279,11 +1514,35 @@ sub _extract_and_analyse_domains {
         'from'         => 'From: header',
         'reply-to'     => 'Reply-To: header',
         'return-path'  => 'Return-Path: header',
+        'sender'       => 'Sender: header',
     );
     for my $hname (sort keys %header_sources) {
         my $val = $self->_header_value($hname) // next;
         $record->($_, $header_sources{$hname})
             for $self->_domains_from_text($val);
+    }
+
+    # Message-ID domain — often reveals the real sending platform
+    my $mid = $self->_header_value('message-id');
+    if ($mid && $mid =~ /\@([\w.-]+)/) {
+        $record->(lc $1, 'Message-ID: header');
+    }
+
+    # DKIM signing domain — the organisation that vouches for the message
+    my $auth = $self->_parse_auth_results_cached();
+    if ($auth->{dkim_domain}) {
+        $record->($auth->{dkim_domain}, 'DKIM-Signature: d= (signing domain)');
+    }
+
+    # List-Unsubscribe domain — identifies the ESP / bulk sender
+    my $unsub = $self->_header_value('list-unsubscribe');
+    if ($unsub) {
+        while ($unsub =~ m{https?://([^/:?\s>]+)}gi) {
+            $record->(lc $1, 'List-Unsubscribe: header');
+        }
+        while ($unsub =~ m{mailto:[^@\s>]+\@([\w.-]+)}gi) {
+            $record->(lc $1, 'List-Unsubscribe: header');
+        }
     }
 
     # Body (plain + HTML)
@@ -1405,7 +1664,7 @@ sub _analyse_domain {
             qr/Creation Date:\s*(\S+)/i,
             qr/Created(?:\s+On)?:\s*(\S+)/i,
             qr/Registration Time:\s*(\S+)/i,
-	    qr/^registered:\s*(\S+)/im,
+            qr/^registered:\s*(\S+)/im,
         ) {
             if (!$info{registered} && $domain_whois =~ $pat) {
                 ($info{registered} = $1) =~ s/[TZ].*//;
@@ -1548,7 +1807,7 @@ sub _raw_whois {
         while (my $line = <$sock>) { $response .= $line }
         alarm(0);
     };
-    alarm(0);	# FIXME, not good in mod_perl or on Windows
+    alarm(0);
     close $sock;
     return $response || undef;
 }
@@ -1574,11 +1833,11 @@ sub _parse_whois_text {
         }
     }
     $info{abuse} //= $1 if $text =~ /(abuse\@[\w.-]+)/i;
-    # Country
-    $info{country} = $1
-        if $text =~ /^country:\s*([A-Z]{2})\s*$/mi;
-	$info{country} = uc($info{country}) if($info{country});
-	return \%info;
+    # Country — match case-insensitively but normalise to uppercase
+    if ($text =~ /^country:\s*([A-Za-z]{2})\s*$/m) {
+        $info{country} = uc $1;
+    }
+    return \%info;
 }
 
 # -----------------------------------------------------------------------
@@ -1601,11 +1860,11 @@ sub _enrich_ip {
 }
 
 sub _header_value {
-	my ($self, $name) = @_;
-	for my $h (@{ $self->{_headers} }) {
-		return $h->{value} if $h->{name} eq lc($name);
-	}
-	return undef;
+    my ($self, $name) = @_;
+    for my $h (@{ $self->{_headers} }) {
+        return $h->{value} if $h->{name} eq lc($name);
+    }
+    return undef;
 }
 
 sub _ip_in_cidr {
@@ -1637,9 +1896,28 @@ sub _parse_date_to_epoch {
     return ($y-1970)*365.25*86400 + ($m-1)*30.5*86400 + ($d-1)*86400;
 }
 
+# Parse a RFC 2822 date string to a Unix epoch.
+# Handles: "Mon, 01 Jan 2024 00:00:00 +0000" and common variants.
+# Returns undef if the string cannot be parsed.
+sub _parse_rfc2822_date {
+    my ($str) = @_;
+    return undef unless $str;
+    my %mon = ( Jan=>1, Feb=>2,  Mar=>3,  Apr=>4,  May=>5,  Jun=>6,
+                Jul=>7, Aug=>8,  Sep=>9,  Oct=>10, Nov=>11, Dec=>12 );
+    if ($str =~ /(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/) {
+        my ($d, $m, $y, $H, $M, $S) =
+            ($1, $mon{ ucfirst lc $2 } // 0, $3, $4, $5, $6);
+        return undef unless $m;
+        if (eval { require Time::Local; 1 }) {
+            return eval { Time::Local::timegm($S, $M, $H, $d, $m - 1, $y - 1900) };
+        }
+    }
+    return undef;
+}
+
 sub _debug {
-	my ($self, $msg) = @_;
-	print STDERR "[Mail::Message::Abuse] $msg\n" if $self->{verbose};
+    my ($self, $msg) = @_;
+    print STDERR "[Mail::Message::Abuse] $msg\n" if $self->{verbose};
 }
 
 1;
@@ -1660,9 +1938,17 @@ runs the following pipeline:
         +-- NS record --> nameserver hostname  --> A --> RDAP --> org + abuse
         |
         +-- WHOIS (TLD whois server via IANA referral)
-               +-- Registrar name
+               +-- Registrar name + abuse contact
                +-- Creation date  (-> recently-registered flag if < 180 days)
-               +-- Expiry date
+               +-- Expiry date    (-> expires-soon or expired flags)
+
+Domains are collected from:
+
+    From:/Reply-To:/Sender:/Return-Path: headers
+    DKIM-Signature: d=  (signing domain)
+    List-Unsubscribe:   (ESP / bulk sender domain)
+    Message-ID:         (often reveals real sending platform)
+    mailto: links and bare addresses in the body
 
 =head1 WHY WEB HOSTING != MAIL HOSTING != DNS HOSTING
 
@@ -1694,7 +1980,6 @@ less than 180 days ago with C<recently_registered =E<gt> 1>.
 
 L<Net::DNS>, L<LWP::UserAgent>, L<HTML::LinkExtor>, L<MIME::QuotedPrint>
 
-SpamCop: L<https://www.spamcop.net/>
 ARIN RDAP: L<https://rdap.arin.net/>
 
 =head1 LICENSE
