@@ -3,12 +3,18 @@ package Mail::Message::Abuse;
 use strict;
 use warnings;
 
-our $VERSION = '2.10';
-
 =head1 NAME
 
 Mail::Message::Abuse - Analyse spam email to identify originating hosts,
 hosted URLs, and suspicious domains
+
+=head1 VERSION
+
+Version 0.01
+
+=cut
+
+our $VERSION = '0.01';
 
 =head1 SYNOPSIS
 
@@ -3107,12 +3113,8 @@ sub abuse_report_text {
     }
     push @out, '';
 
-    return join("\n", @out);
+	return join("\n", @out);
 }
-
-# -----------------------------------------------------------------------
-# Public: consolidated abuse contact list
-# -----------------------------------------------------------------------
 
 =head2 abuse_contacts()
 
@@ -4257,9 +4259,9 @@ sub _debug {
     print STDERR "[Mail::Message::Abuse] $msg\n" if $self->{verbose};
 }
 
-1;
+=head1 AUTHOR
 
-__END__
+Nigel Horne, C<< <njh at nigelhorne.com> >>
 
 =head1 ALGORITHM: DOMAIN INTELLIGENCE PIPELINE
 
@@ -4315,12 +4317,67 @@ less than 180 days ago with C<recently_registered =E<gt> 1>.
 
 =head1 SEE ALSO
 
-L<Net::DNS>, L<LWP::UserAgent>, L<HTML::LinkExtor>, L<MIME::QuotedPrint>
+L<Net::DNS>, L<LWP::UserAgent>, L<HTML::LinkExtor>, L<MIME::QuotedPrint>,
+L<ARIN RDAP|https://rdap.arin.net/>
 
-ARIN RDAP: L<https://rdap.arin.net/>
+=head1 REPOSITORY
 
-=head1 LICENSE
+L<https://github.com/nigelhorne/Mail-Message-Abuse>
 
-Same terms as Perl itself (Artistic 2.0 / GPL v1+).
+=head1 SUPPORT
+
+This module is provided as-is without any warranty.
+
+Please report any bugs or feature requests to C<bug-mail-message-abuse at rt.cpan.org>,
+or through the web interface at
+L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Mail-Message-Abuse>
+I will be notified, and then you'll
+automatically be notified of progress on your bug as I make changes.
+
+You can find documentation for this module with the perldoc command.
+
+    perldoc Mail::Message::Abuse
+
+You can also look for information at:
+
+=over 4
+
+=item * MetaCPAN
+
+L<https://metacpan.org/dist/Mail-Message-Abuse>
+
+=item * RT: CPAN's request tracker
+
+L<https://rt.cpan.org/NoAuth/Bugs.html?Dist=Mail-Message-Abuse>
+
+=item * CPAN Testers' Matrix
+
+L<http://matrix.cpantesters.org/?dist=Mail-Message-Abuse>
+
+=item * CPAN Testers Dependencies
+
+L<http://deps.cpantesters.org/?module=Mail::Message::Abuse>
+
+=back
+
+=head1 LICENCE AND COPYRIGHT
+
+Copyright 2026 Nigel Horne.
+
+Usage is subject to licence terms.
+
+The licence terms of this software are as follows:
+
+=over 4
+
+=item * Personal single user, single computer use: GPL2
+
+=item * All other users (including Commercial, Charity, Educational, Government)
+  must apply in writing for a licence for use from Nigel Horne at the
+  above e-mail.
+
+=back
 
 =cut
+
+1;
