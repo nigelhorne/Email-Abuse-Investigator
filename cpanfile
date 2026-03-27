@@ -8,6 +8,7 @@ requires 'MIME::QuotedPrint';
 requires 'Object::Configure';
 requires 'Params::Get';
 requires 'Params::Validate::Strict';
+requires 'Readonly::Values::Months';
 requires 'Socket';
 
 on 'configure' => sub {
