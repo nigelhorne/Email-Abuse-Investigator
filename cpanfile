@@ -5,6 +5,8 @@ requires 'perl', '5.008';
 requires 'IO::Socket::INET';
 requires 'MIME::Base64';
 requires 'MIME::QuotedPrint';
+requires 'Object::Configure';
+requires 'Params::Get';
 requires 'Socket';
 
 on 'configure' => sub {

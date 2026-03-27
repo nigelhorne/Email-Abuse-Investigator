@@ -3,103 +3,12 @@ package Mail::Message::Abuse;
 use strict;
 use warnings;
 
-=head1 NAME
-
-Mail::Message::Abuse - Analyse spam email to identify originating hosts,
-hosted URLs, and suspicious domains
-
-=head1 VERSION
-
-Version 0.01
-
-=cut
-
-our $VERSION = '0.01';
-
-=head1 SYNOPSIS
-
-    use Mail::Message::Abuse;
-
-    my $analyser = Mail::Message::Abuse->new( verbose => 1 );
-    $analyser->parse_email($raw_email_text);
-
-    # Originating IP and its network owner
-    my $origin = $analyser->originating_ip();
-
-    # All HTTP/HTTPS URLs found in the body
-    my @urls  = $analyser->embedded_urls();
-
-    # All domains extracted from mailto: links and bare addresses in the body
-    my @mdoms = $analyser->mailto_domains();
-
-    # All domains mentioned anywhere (union of the above)
-    my @adoms = $analyser->all_domains();
-
-    # Full printable report
-    print $analyser->report();
-
-=head1 DESCRIPTION
-
-C<Mail::Message::Abuse> examines the raw source of a spam/phishing e-mail
-and answers the questions abuse investigators ask:
-
-=over 4
-
-=item 1. Where did the message really come from?
-
-Walks the C<Received:> chain, skips private/trusted IPs, and identifies the
-first external hop.  Enriches with rDNS, WHOIS/RDAP org name and abuse
-contact.
-
-=item 2. Who hosts the advertised web sites?
-
-Extracts every C<http://> and C<https://> URL from both plain-text and HTML
-parts, resolves each hostname to an IP, and looks up the network owner.
-
-=item 3. Who owns the reply-to / contact domains?
-
-Extracts domains from C<mailto:> links, bare e-mail addresses in the body,
-the C<From:>/C<Reply-To:>/C<Sender:>/C<Return-Path:> headers, C<DKIM-Signature: d=>
-(the signing domain), C<List-Unsubscribe:> (the ESP or bulk-sender domain), and the
-C<Message-ID:> domain.  For each unique domain it gathers:
-
-=over 8
-
-=item * Domain registrar and registrant (WHOIS)
-
-=item * Web-hosting IP and network owner (A record -> RDAP)
-
-=item * Mail-hosting IP and network owner (MX record -> RDAP)
-
-=item * DNS nameserver operator (NS record -> RDAP)
-
-=item * Whether the domain was recently registered (potential flag)
-
-=back
-
-=back
-
-=head1 REQUIRED MODULES
-
-    Net::DNS
-    LWP::UserAgent
-    HTML::LinkExtor
-    Socket
-    IO::Socket::INET
-    MIME::QuotedPrint  (core since Perl 5.8)
-    MIME::Base64       (core since Perl 5.8)
-
-All are available from CPAN.
-
-=cut
-
-# -----------------------------------------------------------------------
-# Core dependencies (always available)
-# -----------------------------------------------------------------------
-use Socket          qw( inet_aton inet_ntoa );
 use IO::Socket::INET;
 use MIME::QuotedPrint qw( decode_qp );
 use MIME::Base64      qw( decode_base64 );
+use Object::Configure;
+use Params::Get;
+use Socket          qw( inet_aton inet_ntoa );
 
 # Optional - gracefully degraded
 my $HAS_NET_DNS;
@@ -116,35 +25,35 @@ BEGIN { $HAS_HTML_LINKEXTOR = eval { require HTML::LinkExtor; 1 } }
 # -----------------------------------------------------------------------
 
 my @PRIVATE_RANGES = (
-    qr/^0\./,                         # 0.0.0.0/8  this-network (RFC 1122)
-    qr/^127\./,                       # 127.0.0.0/8 loopback
-    qr/^10\./,                        # 10.0.0.0/8  RFC 1918
-    qr/^192\.168\./,                 # 192.168.0.0/16 RFC 1918
-    qr/^172\.(?:1[6-9]|2\d|3[01])\./, # 172.16.0.0/12  RFC 1918
-    qr/^169\.254\./,                 # 169.254.0.0/16 link-local
-    qr/^100\.(?:6[4-9]|[7-9]\d|1(?:[01]\d|2[0-7]))\./,  # 100.64.0.0/10 shared address space (RFC 6598)
-    qr/^192\.0\.0\./,              # 192.0.0.0/24  IETF protocol (RFC 6890)
-    qr/^192\.0\.2\./,              # 192.0.2.0/24  TEST-NET-1 (RFC 5737)
-    qr/^198\.51\.100\./,           # 198.51.100.0/24 TEST-NET-2 (RFC 5737)
-    qr/^203\.0\.113\./,            # 203.0.113.0/24 TEST-NET-3 (RFC 5737)
-    qr/^255\./,                      # 255.0.0.0/8 broadcast
-    qr/^::1$/,                        # IPv6 loopback
-    qr/^fc/i,                         # IPv6 ULA fc00::/7
-    qr/^fd/i,                         # IPv6 ULA fd00::/8
+	qr/^0\./,                         # 0.0.0.0/8  this-network (RFC 1122)
+	qr/^127\./,                       # 127.0.0.0/8 loopback
+	qr/^10\./,                        # 10.0.0.0/8  RFC 1918
+	qr/^192\.168\./,                 # 192.168.0.0/16 RFC 1918
+	qr/^172\.(?:1[6-9]|2\d|3[01])\./, # 172.16.0.0/12  RFC 1918
+	qr/^169\.254\./,                 # 169.254.0.0/16 link-local
+	qr/^100\.(?:6[4-9]|[7-9]\d|1(?:[01]\d|2[0-7]))\./,  # 100.64.0.0/10 shared address space (RFC 6598)
+	qr/^192\.0\.0\./,              # 192.0.0.0/24  IETF protocol (RFC 6890)
+	qr/^192\.0\.2\./,              # 192.0.2.0/24  TEST-NET-1 (RFC 5737)
+	qr/^198\.51\.100\./,           # 198.51.100.0/24 TEST-NET-2 (RFC 5737)
+	qr/^203\.0\.113\./,            # 203.0.113.0/24 TEST-NET-3 (RFC 5737)
+	qr/^255\./,                      # 255.0.0.0/8 broadcast
+	qr/^::1$/,                        # IPv6 loopback
+	qr/^fc/i,                         # IPv6 ULA fc00::/7
+	qr/^fd/i,                         # IPv6 ULA fd00::/8
 );
 
 my @RECEIVED_IP_RE = (
-    qr/\[\s*([\d.]+)\s*\]/,
-    qr/\(\s*[\w.-]*\s*\[?\s*([\d.]+)\s*\]?\s*\)/,
-    qr/from\s+[\w.-]+\s+([\d.]+)/,
-    qr/([\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3})/,
+	qr/\[\s*([\d.]+)\s*\]/,
+	qr/\(\s*[\w.-]*\s*\[?\s*([\d.]+)\s*\]?\s*\)/,
+	qr/from\s+[\w.-]+\s+([\d.]+)/,
+	qr/([\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3})/,
 );
 
 # Domains we never bother reporting on - they are the infrastructure,
 # not the criminal.
 my %TRUSTED_DOMAINS = map { $_ => 1 } qw(
-    gmail.com googlemail.com yahoo.com outlook.com hotmail.com
-    google.com microsoft.com apple.com amazon.com
+	gmail.com googlemail.com yahoo.com outlook.com hotmail.com
+	google.com microsoft.com apple.com amazon.com
 );
 
 # Known URL shortener / redirect domains — real destination is hidden
@@ -241,9 +150,81 @@ my %PROVIDER_ABUSE = (
     'internode.on.net'  => { email => 'abuse@internode.on.net',note => 'Internode Australia' },
 );
 
-# -----------------------------------------------------------------------
-# Constructor
-# -----------------------------------------------------------------------
+=head1 NAME
+
+Mail::Message::Abuse - Analyse spam email to identify originating hosts,
+hosted URLs, and suspicious domains
+
+=head1 VERSION
+
+Version 0.01
+
+=cut
+
+our $VERSION = '0.01';
+
+=head1 SYNOPSIS
+
+    use Mail::Message::Abuse;
+
+    my $analyser = Mail::Message::Abuse->new( verbose => 1 );
+    $analyser->parse_email($raw_email_text);
+
+    # Originating IP and its network owner
+    my $origin = $analyser->originating_ip();
+
+    # All HTTP/HTTPS URLs found in the body
+    my @urls  = $analyser->embedded_urls();
+
+    # All domains extracted from mailto: links and bare addresses in the body
+    my @mdoms = $analyser->mailto_domains();
+
+    # All domains mentioned anywhere (union of the above)
+    my @adoms = $analyser->all_domains();
+
+    # Full printable report
+    print $analyser->report();
+
+=head1 DESCRIPTION
+
+C<Mail::Message::Abuse> examines the raw source of a spam/phishing e-mail
+and answers the questions abuse investigators ask:
+
+=over 4
+
+=item 1. Where did the message really come from?
+
+Walks the C<Received:> chain, skips private/trusted IPs, and identifies the
+first external hop.  Enriches with rDNS, WHOIS/RDAP org name and abuse
+contact.
+
+=item 2. Who hosts the advertised web sites?
+
+Extracts every C<http://> and C<https://> URL from both plain-text and HTML
+parts, resolves each hostname to an IP, and looks up the network owner.
+
+=item 3. Who owns the reply-to / contact domains?
+
+Extracts domains from C<mailto:> links, bare e-mail addresses in the body,
+the C<From:>/C<Reply-To:>/C<Sender:>/C<Return-Path:> headers, C<DKIM-Signature: d=>
+(the signing domain), C<List-Unsubscribe:> (the ESP or bulk-sender domain), and the
+C<Message-ID:> domain.  For each unique domain it gathers:
+
+=over 8
+
+=item * Domain registrar and registrant (WHOIS)
+
+=item * Web-hosting IP and network owner (A record -> RDAP)
+
+=item * Mail-hosting IP and network owner (MX record -> RDAP)
+
+=item * DNS nameserver operator (NS record -> RDAP)
+
+=item * Whether the domain was recently registered (potential flag)
+
+=back
+
+=back
 
 =head1 METHODS
 
@@ -411,11 +392,18 @@ timeout on affected platforms.
 =cut
 
 sub new {
-	my ($class, %opts) = @_;
+	my $class = shift;
+
+	# Handle hash or hashref arguments
+	my $params = Params::Get::get_params(undef, \@_) || {};
+
+	# Load the configuration from a config file, if provided
+	$params = Object::Configure::configure($class, $params);
+
 	return bless {
-		timeout        => $opts{timeout}        // 10,
-		trusted_relays => $opts{trusted_relays} // [],
-		verbose        => $opts{verbose}        // 0,
+		timeout        => $params->{timeout}        // 10,
+		trusted_relays => $params->{trusted_relays} // [],
+		verbose        => $params->{verbose}        // 0,
 		_raw           => '',
 		_headers       => [],
 		_body_plain    => '',
@@ -3118,6 +3106,58 @@ sub abuse_report_text {
 
 =head2 abuse_contacts()
 
+=head3 Purpose
+
+Collates the complete set of parties that should receive an abuse report
+for this message: the ISP that owns the sending IP, the operators of every
+URL host, the web, mail, and DNS hosts of every contact domain, each
+domain's registrar, the webmail or ESP account provider identified from
+key headers, the DKIM signing organisation, and the ESP identified via
+the C<List-Unsubscribe:> header.
+
+For each party the method produces the role description, the abuse email
+address, a supporting note, and the source of the information.  Addresses
+are deduplicated globally: if the same address is discovered through
+multiple routes (e.g. Cloudflare as both a URL host and a nameserver), it
+appears only once, using the data from the first route that found it.
+
+This method is designed to be used together with C<abuse_report_text()>:
+iterate over the returned contacts to obtain the list of addresses, and
+send the text from C<abuse_report_text()> to each one.
+
+=head3 Usage
+
+    $analyser->parse_email($raw);
+    my @contacts = $analyser->abuse_contacts();
+
+    for my $c (@contacts) {
+        printf "Role    : %s\n", $c->{role};
+        printf "Send to : %s\n", $c->{address};
+        printf "Note    : %s\n", $c->{note}  if $c->{note};
+        printf "Source  : %s\n", $c->{via};
+        print  "\n";
+    }
+
+    # Collect addresses for sending
+    my @addresses = map { $_->{address} } @contacts;
+
+    # Filter to WHOIS-discovered contacts only
+    my @whois_contacts = grep { $_->{via} =~ /whois/ } @contacts;
+
+    # Check whether any registrar abuse contacts were found
+    my @registrar = grep { $_->{role} =~ /registrar/ } @contacts;
+
+=head3 Arguments
+
+None.  C<parse_email()> must have been called first.
+
+=head3 Returns
+
+A list (not an arrayref) of hashrefs, one per unique abuse contact address,
+in the order they were first discovered.  Returns an empty list if no
+actionable abuse contacts can be determined, or if C<parse_email()> has
+not been called.
+
 Returns a de-duplicated list of hashrefs, one per party that should
 receive an abuse report, in priority order:
 
@@ -3141,6 +3181,252 @@ Roles produced (in order):
 
 Addresses are deduplicated so the same address never appears twice,
 even if it is discovered through multiple routes.
+
+Each hashref contains exactly four keys, all always present:
+
+=over 4
+
+=item C<role> (string)
+
+A human-readable description of the party's relationship to the message.
+The role string often includes the relevant domain name or IP address
+inline (e.g. C<"Web host of firmluminary.com">,
+C<"Domain registrar for firmluminary.com">,
+C<"Account provider (from: Sender E<lt>spammer@gmail.comE<gt>)">).
+See the Algorithm section for the full set of role string patterns.
+
+=item C<address> (string)
+
+The abuse contact email address, lower-cased.  Always contains an C<@>
+sign.  Deduplicated globally: each distinct address appears at most once
+across the entire list, regardless of how many discovery routes found it.
+
+=item C<note> (string)
+
+Supporting information about why this party was identified and what action
+to request.  For provider-table entries this is the note from the built-in
+table (which may include a URL to a web-based abuse form).  For WHOIS- and
+RDAP-discovered entries this describes the IP block or domain involved.
+Always defined; may be the empty string for entries where no note is
+available.
+
+=item C<via> (string)
+
+The discovery method.  One of:
+
+=over 8
+
+=item C<'provider-table'>
+
+The address was found in the module's built-in table of well-known
+providers (Google, Microsoft, Cloudflare, SendGrid, Mailchimp, etc.).
+Provider-table addresses take priority over WHOIS for the same entity
+because they are curated and point to the right team, whereas generic
+WHOIS contacts sometimes route to NOCs rather than abuse desks.
+
+=item C<'ip-whois'>
+
+The address was obtained from an RDAP or WHOIS lookup on an IP block
+(the sending IP, a URL host IP, or an MX/NS IP).
+
+=item C<'domain-whois'>
+
+The address was obtained from a WHOIS lookup on a domain name (registrar
+abuse contact from the C<Registrar Abuse Contact Email:> or equivalent
+field).
+
+=back
+
+=back
+
+=head3 Side Effects
+
+Triggers C<originating_ip()>, C<embedded_urls()>, and C<mailto_domains()>
+if they have not already run on the current message, performing all
+associated network I/O as documented in those methods.  Additionally
+consults the built-in provider table and the cached authentication results;
+neither requires network I/O.
+
+The result is not independently cached.  Each call recomputes the contact
+list from the cached results of the underlying methods.  Because those
+results are cached, subsequent calls are fast (no network I/O), but they
+do re-execute the collation and deduplication logic.
+
+=head3 Algorithm: discovery routes
+
+Contacts are discovered through six routes, applied in order.
+Deduplication is global across all routes: once an address is added it
+cannot be added again regardless of which later route also finds it.
+An entry is suppressed entirely if its address is empty, does not contain
+an C<@> sign, or is the sentinel C<'(unknown)'>.
+
+=over 4
+
+=item Route 1 -- Sending ISP
+
+The originating IP from C<originating_ip()> is looked up in the built-in
+provider table (by rDNS hostname, stripping subdomains until a match is
+found).  If found, a C<provider-table> entry is added with role
+C<"Sending ISP (provider table)">.
+
+The C<abuse> field from C<originating_ip()> (obtained from RDAP/WHOIS) is
+then added as an C<ip-whois> entry with role C<"Sending ISP">, unless it
+is C<'(unknown)'>.
+
+=item Route 2 -- URL hosts
+
+For each unique hostname in C<embedded_urls()>, the built-in provider
+table is consulted (by hostname, stripping subdomains).  If found, a
+C<provider-table> entry is added with role C<"URL host (provider table)">.
+
+The C<abuse> field from the URL hashref is then added as an C<ip-whois>
+entry with role C<"URL host">, unless it is C<'(unknown)'>.
+
+Each unique hostname is processed at most once; multiple URLs on the same
+host do not generate multiple contacts.
+
+=item Route 3 -- Contact domain hosting and registration
+
+For each domain from C<mailto_domains()>, up to four contacts may be
+generated:
+
+=over 8
+
+=item *
+
+B<Web host>: if C<web_abuse> is present, both a provider-table lookup
+on the domain name and the WHOIS-derived C<web_abuse> address are tried.
+Role: C<"Web host of $domain"> or C<"Web host of $domain (provider table)">.
+
+=item *
+
+B<Mail host (MX)>: if C<mx_abuse> is present.
+Role: C<"Mail host (MX) for $domain">, via C<ip-whois>.
+
+=item *
+
+B<DNS host (NS)>: if C<ns_abuse> is present.
+Role: C<"DNS host (NS) for $domain">, via C<ip-whois>.
+
+=item *
+
+B<Domain registrar>: if C<registrar_abuse> is present.
+Role: C<"Domain registrar for $domain">, via C<domain-whois>.
+
+=back
+
+=item Route 4 -- Account provider
+
+The C<From:>, C<Reply-To:>, C<Return-Path:>, and C<Sender:> header values
+are inspected in that order.  The domain portion of each address is looked
+up in the built-in provider table (stripping subdomains until a match).
+If found, a C<provider-table> entry is added with role
+C<"Account provider ($header: $value)">.  This identifies the webmail
+or ESP service that hosts the sender's account.
+
+=item Route 5 -- DKIM signing organisation
+
+The C<d=> tag from the C<DKIM-Signature:> header is looked up in the
+built-in provider table.  If found, a C<provider-table> entry is added
+with role C<"DKIM signer (provider table): $domain">.  The full domain
+pipeline (web/MX/NS/WHOIS) for this domain is already handled via Route 3
+through C<mailto_domains()>.
+
+=item Route 6 -- ESP / bulk sender (List-Unsubscribe)
+
+Both C<https://> URLs and C<mailto:> addresses in the C<List-Unsubscribe:>
+header are parsed for their domains.  Each unique domain is looked up in
+the built-in provider table.  If found, a C<provider-table> entry is added
+with role C<"ESP / bulk sender (List-Unsubscribe: $domain)">.
+
+=back
+
+=head3 Notes
+
+=over 4
+
+=item *
+
+Deduplication is by lower-cased address only.  Two contacts with different
+roles but the same address result in a single entry using the data from
+whichever route found it first.  The later route's role and note are
+silently discarded.
+
+=item *
+
+The provider table contains curated entries for approximately 50
+well-known domains including major webmail providers (Gmail, Outlook,
+Yahoo, Apple), CDNs and hosters (Cloudflare, Fastly, Akamai, AWS,
+DigitalOcean, Vultr, Hetzner, Contabo, Leaseweb, M247, OVH, Linode),
+ESPs (SendGrid, Mailchimp, Mailgun, Postmark, Brevo, Klaviyo, Campaign
+Monitor, Constant Contact, HubSpot), registrars (GoDaddy, Namecheap),
+and ISPs (TPG, Internode).  Subdomain matching strips labels left-to-right
+until a match is found, so C<mail.sendgrid.net> matches C<sendgrid.net>.
+
+=item *
+
+Provider-table entries take priority in the sense that they are added
+first; if the WHOIS address happens to match the provider-table address,
+the WHOIS entry is suppressed by deduplication.  If they differ (unusual
+but possible), both are added.
+
+=item *
+
+The result is not cached.  If you call C<abuse_contacts()> multiple times
+on the same object, the full collation runs each time.  If this is a
+concern, store the result in a variable:
+C<my @contacts = $analyser-E<gt>abuse_contacts()>.
+
+=item *
+
+An empty list is returned if the message has no usable originating IP, no
+extractable URLs, no contact domains, and no recognised provider-table
+matches.  This is unusual in practice but can occur for very sparse or
+malformed messages.
+
+=back
+
+=head3 API Specification
+
+=head4 Input
+
+    # Params::Validate::Strict compatible specification
+    # No arguments.
+    []
+
+=head4 Output
+
+    # Return::Set compatible specification
+
+    # A list (possibly empty) of hashrefs, in discovery order:
+    (
+        {
+            type => HASHREF,
+            keys => {
+                role => {
+                    type => SCALAR,
+                    # Human-readable role description; always defined,
+                    # may contain inline domain/IP/header values.
+                },
+                address => {
+                    type  => SCALAR,
+                    regex => qr/^[^\s@]+\@[^\s@]+$/,
+                    # Lower-cased email address; unique across the list.
+                },
+                note => {
+                    type => SCALAR,
+                    # Supporting detail; always defined, may be empty string.
+                },
+                via => {
+                    type  => SCALAR,
+                    regex => qr/^(?:provider-table|ip-whois|domain-whois)$/,
+                },
+            },
+        },
+        # ... one hashref per unique address, in first-discovered order
+    )
+
+    # Empty list when no actionable abuse contacts can be determined.
 
 =cut
 
@@ -3299,100 +3585,6 @@ sub abuse_contacts {
     }
 
     return @contacts;
-}
-
-sub _decode_mime_words {
-    my ($self, $str) = @_;
-    return '' unless defined $str;
-    $str =~ s/=\?([^?]+)\?([BbQq])\?([^?]*)\?=/_decode_ew($1,$2,$3)/ge;
-    return $str;
-}
-
-sub _decode_ew {
-    my ($charset, $enc, $text) = @_;
-    my $raw;
-    if (uc($enc) eq 'B') {
-        $raw = decode_base64($text);
-    } else {
-        $text =~ s/_/ /g;
-        $raw  = decode_qp($text);
-    }
-    # Best-effort UTF-8; silently ignore decode errors
-    if (lc($charset) ne 'utf-8') {
-        # For non-UTF-8 charsets just return the raw bytes — good enough
-        # for display-name spoof detection which only needs ASCII matching
-    }
-    return $raw;
-}
-
-sub _parse_auth_results_cached {
-    my ($self) = @_;
-    return $self->{_auth_results} if $self->{_auth_results};
-    my %auth;
-    my $raw = join('; ',
-        map { $_->{value} }
-        grep { $_->{name} eq 'authentication-results' }
-        @{ $self->{_headers} }
-    );
-    $auth{spf}   = $1 if $raw =~ /\bspf=(\S+)/i;
-    $auth{dkim}  = $1 if $raw =~ /\bdkim=(\S+)/i;
-    $auth{dmarc} = $1 if $raw =~ /\bdmarc=(\S+)/i;
-    $auth{arc}   = $1 if $raw =~ /\barc=(\S+)/i;
-    # Strip trailing punctuation captured by \S+
-    for my $k (qw(spf dkim dmarc arc)) {
-        $auth{$k} =~ s/[;,\s]+$// if defined $auth{$k};
-    }
-
-    # Extract DKIM signing domain from DKIM-Signature: d= tag
-    # There may be multiple signatures; take the first passing one, else the first
-    for my $h (grep { $_->{name} eq 'dkim-signature' } @{ $self->{_headers} }) {
-        if ($h->{value} =~ /\bd=([^;,\s]+)/) {
-            $auth{dkim_domain} = lc $1;
-            last;
-        }
-    }
-
-    $self->{_auth_results} = \%auth;
-    return \%auth;
-}
-
-sub _registrable {
-    my ($host) = @_;
-    return undef unless $host && $host =~ /\./;
-    my @labels = split /\./, lc $host;
-    return $host if @labels <= 2;
-    if ($labels[-1] =~ /^[a-z]{2}$/ &&
-        $labels[-2] =~ /^(?:co|com|net|org|gov|edu|ac|me)$/) {
-        return join('.', @labels[-3..-1]);
-    }
-    return join('.', @labels[-2..-1]);
-}
-
-sub _country_name {
-    my ($cc) = @_;
-    my %names = ( CN => 'China', RU => 'Russia', NG => 'Nigeria',
-                  VN => 'Vietnam', IN => 'India', PK => 'Pakistan',
-                  BD => 'Bangladesh' );
-    return $names{$cc} // $cc;
-}
-
-# Look up provider abuse contact by plain domain name
-sub _provider_abuse_for_host {
-    my ($self, $host) = @_;
-    $host = lc $host;
-    # Try exact match, then strip successive subdomains
-    while ($host =~ /\./) {
-        return $PROVIDER_ABUSE{$host} if $PROVIDER_ABUSE{$host};
-        $host =~ s/^[^.]+\.//;
-    }
-    return undef;
-}
-
-# Look up provider abuse contact by IP and/or rDNS hostname
-sub _provider_abuse_for_ip {
-    my ($self, $ip, $rdns) = @_;
-    return $self->_provider_abuse_for_host($rdns) if $rdns;
-    return undef;
 }
 
 # -----------------------------------------------------------------------
@@ -4251,6 +4443,100 @@ sub _parse_rfc2822_date {
             return eval { Time::Local::timegm($S, $M, $H, $d, $m - 1, $y - 1900) };
         }
     }
+    return undef;
+}
+
+sub _decode_mime_words {
+    my ($self, $str) = @_;
+    return '' unless defined $str;
+    $str =~ s/=\?([^?]+)\?([BbQq])\?([^?]*)\?=/_decode_ew($1,$2,$3)/ge;
+    return $str;
+}
+
+sub _decode_ew {
+    my ($charset, $enc, $text) = @_;
+    my $raw;
+    if (uc($enc) eq 'B') {
+        $raw = decode_base64($text);
+    } else {
+        $text =~ s/_/ /g;
+        $raw  = decode_qp($text);
+    }
+    # Best-effort UTF-8; silently ignore decode errors
+    if (lc($charset) ne 'utf-8') {
+        # For non-UTF-8 charsets just return the raw bytes — good enough
+        # for display-name spoof detection which only needs ASCII matching
+    }
+    return $raw;
+}
+
+sub _parse_auth_results_cached {
+    my ($self) = @_;
+    return $self->{_auth_results} if $self->{_auth_results};
+    my %auth;
+    my $raw = join('; ',
+        map { $_->{value} }
+        grep { $_->{name} eq 'authentication-results' }
+        @{ $self->{_headers} }
+    );
+    $auth{spf}   = $1 if $raw =~ /\bspf=(\S+)/i;
+    $auth{dkim}  = $1 if $raw =~ /\bdkim=(\S+)/i;
+    $auth{dmarc} = $1 if $raw =~ /\bdmarc=(\S+)/i;
+    $auth{arc}   = $1 if $raw =~ /\barc=(\S+)/i;
+    # Strip trailing punctuation captured by \S+
+    for my $k (qw(spf dkim dmarc arc)) {
+        $auth{$k} =~ s/[;,\s]+$// if defined $auth{$k};
+    }
+
+    # Extract DKIM signing domain from DKIM-Signature: d= tag
+    # There may be multiple signatures; take the first passing one, else the first
+    for my $h (grep { $_->{name} eq 'dkim-signature' } @{ $self->{_headers} }) {
+        if ($h->{value} =~ /\bd=([^;,\s]+)/) {
+            $auth{dkim_domain} = lc $1;
+            last;
+        }
+    }
+
+    $self->{_auth_results} = \%auth;
+    return \%auth;
+}
+
+sub _registrable {
+    my ($host) = @_;
+    return undef unless $host && $host =~ /\./;
+    my @labels = split /\./, lc $host;
+    return $host if @labels <= 2;
+    if ($labels[-1] =~ /^[a-z]{2}$/ &&
+        $labels[-2] =~ /^(?:co|com|net|org|gov|edu|ac|me)$/) {
+        return join('.', @labels[-3..-1]);
+    }
+    return join('.', @labels[-2..-1]);
+}
+
+sub _country_name {
+    my ($cc) = @_;
+    my %names = ( CN => 'China', RU => 'Russia', NG => 'Nigeria',
+                  VN => 'Vietnam', IN => 'India', PK => 'Pakistan',
+                  BD => 'Bangladesh' );
+    return $names{$cc} // $cc;
+}
+
+# Look up provider abuse contact by plain domain name
+sub _provider_abuse_for_host {
+    my ($self, $host) = @_;
+    $host = lc $host;
+    # Try exact match, then strip successive subdomains
+    while ($host =~ /\./) {
+        return $PROVIDER_ABUSE{$host} if $PROVIDER_ABUSE{$host};
+        $host =~ s/^[^.]+\.//;
+    }
+    return undef;
+}
+
+# Look up provider abuse contact by IP and/or rDNS hostname
+sub _provider_abuse_for_ip {
+    my ($self, $ip, $rdns) = @_;
+    return $self->_provider_abuse_for_host($rdns) if $rdns;
     return undef;
 }
 

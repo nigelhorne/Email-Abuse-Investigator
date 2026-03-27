@@ -27,10 +27,12 @@ WriteMakefile(
 	CONFIGURE_REQUIRES => {
 		'ExtUtils::MakeMaker' => 6.64,	# Minimum version for TEST_REQUIRES
 	}, PREREQ_PM => {
-		'Socket' => 0,
 		'IO::Socket::INET' => 0,
 		'MIME::QuotedPrint' => 0,
 		'MIME::Base64' => 0,
+		'Object::Configure' => 0,
+		'Params::Get' => 0,
+		'Socket' => 0,
 	}, TEST_REQUIRES => {
 		'FindBin' => 0,
 		'MIME::Base64' => 0,
