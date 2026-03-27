@@ -2013,23 +2013,240 @@ sub sending_software {
 	return @{ $self->{_sending_sw} };
 }
 
-# -----------------------------------------------------------------------
-# Public: per-hop tracking IDs from Received: chain
-# -----------------------------------------------------------------------
 
 =head2 received_trail()
 
-Returns a list of hashrefs, one per C<Received:> header (oldest first),
-each containing the extracted IP, envelope recipient (C<for> clause), and
-the server's internal tracking ID (C<id> clause).  These are the tracking
-identifiers a receiving ISP's abuse team needs to look up the mail session
-in their logs.
+=head3 Purpose
+
+Returns the per-hop tracking data extracted from the C<Received:> header
+chain: the IP address, envelope recipient address, and server-assigned
+session ID for each relay that handled the message.
+
+When filing an abuse report with a transit ISP or relay operator, these
+are the identifiers their postmaster team needs to look up the specific
+SMTP session in their mail logs.  Without the session ID or envelope
+recipient, an ISP typically cannot locate a single message among billions
+of log entries; with them, the lookup takes seconds.
+
+The data is extracted synchronously during C<parse_email()> with no network
+I/O.  This method simply returns the pre-built list.
+
+=head3 Usage
+
+    $analyser->parse_email($raw);
+    my @trail = $analyser->received_trail();
+
+    for my $hop (@trail) {
+        printf "Hop IP : %s\n",  $hop->{ip}       // '(unknown)';
+        printf "  For  : %s\n",  $hop->{for}       if defined $hop->{for};
+        printf "  ID   : %s\n",  $hop->{id}        if defined $hop->{id};
+        printf "  Raw  : %s\n",  $hop->{received};
+        print  "\n";
+    }
+
+    # Build a list of session IDs to include in an abuse report
+    my @ids = map  { "$_->{ip}: id $_->{id}" }
+              grep { defined $_->{id} }
+              @trail;
+
+    # Find which ISP handled a particular relay IP
+    my ($hop) = grep { ($_->{ip} // '') eq '91.198.174.5' } @trail;
+    if ($hop) {
+        print "Session ID at that relay: $hop->{id}\n" if defined $hop->{id};
+    }
+
+=head3 Arguments
+
+None.  C<parse_email()> must have been called first.
+
+=head3 Returns
+
+A list (not an arrayref) of hashrefs, one per C<Received:> hop from which
+at least one of an IP address, an envelope recipient address, or a server
+session ID could be extracted, in oldest-first order (i.e. the first element
+is the outermost relay, the last element is the most recent hop before your
+own server).  Returns an empty list if no C<Received:> headers are present
+or none yielded any extractable data, or if C<parse_email()> has not been
+called.
 
     (
       { received => '...raw header...', ip => '1.2.3.4',
         for => 'victim@example.com', id => 'ABC123' },
       ...
     )
+
+Each hashref contains exactly four keys:
+
+=over 4
+
+=item C<received> (string, always present)
+
+The complete raw value of the C<Received:> header for this hop, exactly as
+it appeared in the message.  Suitable for including verbatim in an abuse
+report so the receiving ISP can see the full context.
+
+=item C<ip> (string or undef)
+
+The IPv4 address extracted from this C<Received:> hop, or C<undef> if no
+recognisable IPv4 address was found.  Uses the same four-pattern extraction
+priority as C<originating_ip()>: bracketed C<[1.2.3.4]> first, then
+parenthesised, then C<from hostname addr>, then any bare dotted-quad as a
+last resort.  Private, reserved, and trusted IPs are B<not> filtered here;
+all IPs including RFC 1918 addresses are returned as found.  (Filtering is
+applied only by C<originating_ip()>.)
+
+=item C<for> (string or undef)
+
+The envelope recipient address extracted from the C<for> clause of the
+C<Received:> header (e.g. C<for E<lt>victim@example.comE<gt>>), or C<undef>
+if no such clause is present or it does not contain a fully-qualified email
+address (one with both a local part and a domain containing at least one
+dot).  Bare postmaster addresses, C<for multiple recipients>, and similar
+non-address forms are not captured and result in C<undef>.
+
+=item C<id> (string or undef)
+
+The server's internal session or queue identifier from the C<id> clause
+of the C<Received:> header (e.g. C<with ESMTP id ABC123XYZ>), or C<undef>
+if no C<id> clause is present.  The value is a single whitespace-delimited
+token of word characters and dots; longer or more structured ID formats may
+be truncated at the first whitespace boundary.
+
+=back
+
+=head3 Side Effects
+
+None.  All data is collected during C<parse_email()> and this method only
+returns the pre-collected list.  No network I/O is performed.
+
+=head3 Algorithm: extraction and ordering
+
+During C<parse_email()>, the C<Received:> headers are walked in reverse
+message order (i.e. oldest hop first, which is the same order as
+C<originating_ip()>'s chain walk).  For each header:
+
+=over 4
+
+=item 1.
+
+The IP address is extracted using the same four-pattern priority sequence
+documented in C<originating_ip()>.
+
+=item 2.
+
+The envelope recipient is extracted with the pattern
+C<\bfor\s+E<lt>?([^\s>]+@[\w.-]+\.[\w]+)E<gt>?> (case-insensitive).  The
+domain portion of the address must contain at least one dot; single-label
+names such as C<postmaster> are not matched.
+
+=item 3.
+
+The session ID is extracted with the pattern C<\bid\s+([\w.-]+)>
+(case-insensitive), capturing the first word-character token following the
+keyword C<id>.
+
+=item 4.
+
+If none of the three fields can be extracted (all are C<undef>), the hop is
+silently discarded and does not appear in the result list.  This suppresses
+internal or synthetic hops that carry no useful tracking information.
+
+=back
+
+The result list therefore contains only hops that carry at least one
+actionable piece of tracking data.
+
+=head3 Notes
+
+=over 4
+
+=item *
+
+The result list is reset to empty by each call to C<parse_email()>.  It
+reflects the C<Received:> headers of the current message only.
+
+=item *
+
+Oldest-first ordering means C<$trail[0]> is the first relay the message
+passed through after leaving the sender, and C<$trail[-1]> is the last hop
+before your own server.  This is the natural order for walking the chain
+when composing a forwarded abuse report.
+
+=item *
+
+C<ip> may be C<undef> for a hop that nonetheless has a valid C<for> or
+C<id> field -- for example, a C<Received:> header added by a local
+delivery agent that does not record an IP.  Always test C<defined
+$hop-E<gt>{ip}> before using it.
+
+=item *
+
+C<for> and C<id> are C<undef>, not the empty string, when absent.  C<ip>
+is also C<undef>, not C<'(unknown)'> as in some other methods.  All four
+fields must be tested with C<defined>, not boolean truthiness, to
+distinguish between absent and empty.
+
+=item *
+
+C<report()> applies an additional filter when displaying this data: it only
+shows hops where C<id> or C<for> is defined, suppressing hops where only
+an IP was found.  C<received_trail()> itself returns all hops with any
+extractable data, including IP-only hops, giving callers the full picture.
+
+=item *
+
+The C<received> field is the unfolded header value as stored after RFC 2822
+line-folding is removed during C<parse_email()>.  Continuation whitespace
+is replaced with a single space; the value will not contain embedded
+newlines.
+
+=back
+
+=head3 API Specification
+
+=head4 Input
+
+    # Params::Validate::Strict compatible specification
+    # No arguments.
+    []
+
+=head4 Output
+
+    # Return::Set compatible specification
+
+    # A list (possibly empty) of hashrefs, oldest-hop first:
+    (
+        {
+            type => HASHREF,
+            keys => {
+                received => {
+                    type => SCALAR,
+                    # Complete unfolded Received: header value; always defined.
+                },
+                ip => {
+                    type     => SCALAR,
+                    optional => 1,  # present but may be undef
+                    regex    => qr/^\d{1,3}(?:\.\d{1,3}){3}$/,
+                },
+                for => {
+                    type     => SCALAR,
+                    optional => 1,  # present but may be undef
+                    # Fully-qualified email address: local@domain.tld
+                    regex    => qr/^[^\s@]+\@[\w.-]+\.[a-zA-Z]{2,}$/,
+                },
+                id => {
+                    type     => SCALAR,
+                    optional => 1,  # present but may be undef
+                    regex    => qr/^[\w.-]+$/,
+                },
+            },
+        },
+        # ... one hashref per hop with at least one extractable field,
+        #     in oldest-first (outermost relay first) order
+    )
+
+    # Empty list when no Received: headers are present or none yielded
+    # any extractable data.
 
 =cut
 
@@ -2039,11 +2256,61 @@ sub received_trail {
 	return @{ $self->{_rcvd_tracking} };
 }
 
-# -----------------------------------------------------------------------
-# Public: risk assessment
-# -----------------------------------------------------------------------
-
 =head2 risk_assessment()
+
+=head3 Purpose
+
+Evaluates the message against a set of heuristic checks and returns an
+overall risk level, a weighted numeric score, and a list of every specific
+red flag that contributed to the score.
+
+The assessment covers five categories: originating IP characteristics, email
+authentication results, C<Date:> header validity, identity and header
+consistency, and URL and domain properties.  Each finding is assigned a
+severity, a machine-readable flag name, and a human-readable detail string.
+
+The result is computed once and cached; subsequent calls on the same object
+return the same hashref without repeating any analysis.  Calling
+C<risk_assessment()> also implicitly triggers C<originating_ip()>,
+C<embedded_urls()>, and C<mailto_domains()> if they have not already been
+called, performing all associated network I/O.
+
+=head3 Usage
+
+    $analyser->parse_email($raw);
+    my $risk = $analyser->risk_assessment();
+
+    printf "Risk level : %s (score: %d)\n", $risk->{level}, $risk->{score};
+
+    for my $f (@{ $risk->{flags} }) {
+        printf "  [%-6s] %s\n    %s\n",
+            $f->{severity}, $f->{flag}, $f->{detail};
+    }
+
+    # Gate an automated report on HIGH level only
+    if ($risk->{level} eq 'HIGH') {
+        send_abuse_report($analyser->abuse_report_text());
+    }
+
+    # Collect only HIGH and MEDIUM flags for a summary
+    my @significant = grep { $_->{severity} =~ /^(?:HIGH|MEDIUM)$/ }
+                      @{ $risk->{flags} };
+
+    # Check for a specific flag
+    my ($flag) = grep { $_->{flag} eq 'recently_registered_domain' }
+                 @{ $risk->{flags} };
+    warn "Phishing domain suspected\n" if $flag;
+
+    # INFO level means no actionable red flags
+    if ($risk->{level} eq 'INFO') {
+        print "No significant red flags detected.\n";
+    }
+
+=head3 Arguments
+
+None.  C<parse_email()> must have been called first.
+
+=head3 Returns
 
 Returns a hashref with an overall risk level and a list of specific
 red flags found in the message:
@@ -2062,14 +2329,338 @@ red flags found in the message:
         ],
     }
 
+A hashref with exactly three keys, all always present:
+
+=over 4
+
+=item C<level> (string)
+
+The overall risk classification, determined by the weighted score:
+
+    Score >= 9  =>  'HIGH'
+    Score >= 5  =>  'MEDIUM'
+    Score >= 2  =>  'LOW'
+    Score <  2  =>  'INFO'
+
+C<'INFO'> means either no flags were raised or only zero-weight (INFO
+severity) flags were raised.  It does not mean the message is definitely
+legitimate; it means no significant heuristic evidence of spam was found.
+
+=item C<score> (integer)
+
+The sum of the weights of all flags raised.  Weights by severity:
+
+    HIGH   => 3
+    MEDIUM => 2
+    LOW    => 1
+    INFO   => 0
+
+The score is a non-negative integer.  Multiple flags of the same severity
+each contribute their full weight independently; there is no cap on the
+score.
+
+=item C<flags> (arrayref of hashrefs)
+
+A reference to a list of flag hashrefs, one per red flag raised, in the
+order they were detected.  Each hashref contains exactly three keys:
+
+=over 8
+
+=item C<severity> (string)
+
+One of C<'HIGH'>, C<'MEDIUM'>, C<'LOW'>, or C<'INFO'>.
+
+=item C<flag> (string)
+
+A lower-cased, underscore-separated machine-readable identifier.  See the
+Algorithm section for the full list of possible flag names.
+
+=item C<detail> (string)
+
+A human-readable sentence describing the specific finding, including the
+values from the message that triggered the flag (domain name, IP address,
+header value, etc.).  Suitable for inclusion in an abuse report or log.
+
+=back
+
+The arrayref is empty (C<[]>) when no flags are raised.
+
+=back
+
+=head3 Side Effects
+
+The first call triggers C<originating_ip()>, C<embedded_urls()>, and
+C<mailto_domains()> if they have not already run on the current message.
+Each of those methods may perform network I/O as documented in their own
+entries.  Specifically:
+
+=over 4
+
+=item * C<originating_ip()> performs a PTR lookup and RDAP/WHOIS for the
+sending IP.
+
+=item * C<embedded_urls()> performs an A lookup and RDAP/WHOIS for each
+unique URL hostname.
+
+=item * C<mailto_domains()> performs A, MX, NS, and WHOIS queries for
+each unique contact domain.
+
+=back
+
+All results are cached.  Subsequent calls to C<risk_assessment()> on the
+same object return the cached hashref immediately.  The cache is invalidated
+by C<parse_email()>.
+
+=head3 Algorithm: flags and scoring
+
+The following flags may be raised.  They are evaluated in five groups, in
+the order shown.  The same flag name is never raised more than once per
+message.
+
+B<Group 1 -- Originating IP> (requires C<originating_ip()> to return a
+result):
+
+=over 4
+
+=item C<residential_sending_ip> (HIGH, weight 3)
+
+The rDNS of the sending IP matches patterns associated with residential
+broadband or dynamically-assigned addresses: an embedded dotted-quad, or
+any of the substrings C<dsl>, C<adsl>, C<cable>, C<broad>, C<dial>,
+C<dynamic>, C<dhcp>, C<ppp>, C<residential>, C<cust>, C<home>, C<pool>,
+C<client>, C<user>, C<staticN>, or C<hostN>.
+
+=item C<no_reverse_dns> (HIGH, weight 3)
+
+The sending IP has no PTR record, or the PTR lookup returned the sentinel
+C<'(no reverse DNS)'>.  Legitimate mail servers invariably have rDNS.
+
+=item C<low_confidence_origin> (MEDIUM, weight 2)
+
+The originating IP was taken from an unverified header (C<X-Originating-IP>)
+rather than from the C<Received:> chain.  Confidence level is C<'low'>.
+
+=item C<high_spam_country> (INFO, weight 0)
+
+The sending IP's country code is one of: C<CN> (China), C<RU> (Russia),
+C<NG> (Nigeria), C<VN> (Vietnam), C<IN> (India), C<PK> (Pakistan),
+C<BD> (Bangladesh).  Informational only; does not contribute to the score.
+
+=back
+
+B<Group 2 -- Email authentication> (from C<Authentication-Results:> header):
+
+=over 4
+
+=item C<spf_fail> (HIGH, weight 3)
+
+SPF result is C<fail>, C<permerror>, C<temperror>, C<none>, or any value
+other than C<pass> or C<softfail>.  The sending IP is not authorised by
+the domain's SPF record.
+
+=item C<spf_softfail> (MEDIUM, weight 2)
+
+SPF result is C<softfail> (C<~all>).  The sending IP is not explicitly
+authorised but the domain policy does not hard-fail it.
+
+=item C<dkim_fail> (HIGH, weight 3)
+
+DKIM result is present and is any value other than C<pass>.
+
+=item C<dmarc_fail> (HIGH, weight 3)
+
+DMARC result is present and is any value other than C<pass>.
+
+=item C<dkim_domain_mismatch> (INFO or MEDIUM, weight 0 or 2)
+
+The DKIM signing domain (C<d=> tag) differs from the registrable domain
+of the C<From:> address.  Raised at INFO (weight 0) when DKIM passes --
+this is normal for bulk senders using ESPs such as SendGrid or Mailchimp.
+Raised at MEDIUM (weight 2) when DKIM fails or is absent -- a differing
+domain combined with a failed signature is more suspicious.
+
+=back
+
+B<Group 3 -- Date: header>:
+
+=over 4
+
+=item C<missing_date> (MEDIUM, weight 2)
+
+No C<Date:> header is present, or it contains only whitespace.  Violates
+RFC 5322; common in programmatically-generated spam.
+
+=item C<suspicious_date> (LOW, weight 1)
+
+The C<Date:> header is present but more than 7 days in the past or more
+than 7 days in the future relative to the time of analysis.  Timezone
+offsets are ignored during comparison (maximum error: approximately 14
+hours, well within the 7-day window).
+
+=back
+
+B<Group 4 -- Header identity and consistency>:
+
+=over 4
+
+=item C<display_name_domain_spoof> (HIGH, weight 3)
+
+The C<From:> display name contains a domain name (matched against the
+suffixes C<.com>, C<.net>, C<.org>, C<.io>, C<.co>, C<.uk>, C<.au>,
+C<.gov>, C<.edu>) that differs at the registrable level from the actual
+C<From:> address domain.  Example: C<"PayPal paypal.com" E<lt>phish@evil.exampleE<gt>>.
+
+=item C<free_webmail_sender> (MEDIUM, weight 2)
+
+The C<From:> address belongs to a free webmail provider: Gmail, Yahoo,
+Hotmail, Outlook, Live, AOL, ProtonMail, Yandex, or mail.ru.
+
+=item C<reply_to_differs_from_from> (MEDIUM, weight 2)
+
+A C<Reply-To:> header is present and its email address differs from the
+C<From:> address (case-insensitive comparison).  Replies will be harvested
+by a different address than the apparent sender.
+
+=item C<undisclosed_recipients> (MEDIUM, weight 2)
+
+The C<To:> header is absent, empty, contains the string C<undisclosed>, or
+matches the group-syntax sentinel C<:;>.
+
+=item C<encoded_subject> (LOW, weight 1)
+
+The C<Subject:> header contains a MIME encoded-word sequence
+(C<=?charset?encoding?text?=>).  Often used to evade keyword filters.
+
+=back
+
+B<Group 5 -- URLs and domains> (from C<embedded_urls()> and
+C<mailto_domains()>):
+
+=over 4
+
+=item C<url_shortener> (MEDIUM, weight 2)
+
+At least one URL hostname is in the built-in URL shortener list (over 25
+services including C<bit.ly>, C<tinyurl.com>, C<t.co>, C<ow.ly>, etc.).
+Raised at most once per unique shortener hostname per message.
+
+=item C<http_not_https> (LOW, weight 1)
+
+At least one URL uses the plain C<http://> scheme rather than C<https://>.
+Raised at most once per unique hostname.
+
+=item C<recently_registered_domain> (HIGH, weight 3)
+
+At least one contact domain was registered less than 180 days before the
+time of analysis.
+
+=item C<domain_expires_soon> (HIGH, weight 3)
+
+At least one contact domain expires within the next 30 days.  Suggests a
+throwaway domain.
+
+=item C<domain_expired> (HIGH, weight 3)
+
+At least one contact domain has already passed its expiry date.
+
+=item C<lookalike_domain> (HIGH, weight 3)
+
+At least one contact domain contains the name of a well-known brand
+(C<paypal>, C<apple>, C<google>, C<amazon>, C<microsoft>, C<netflix>,
+C<ebay>, C<instagram>, C<facebook>, C<twitter>, C<linkedin>,
+C<bankofamerica>, C<wellsfargo>, C<chase>, C<barclays>, C<hsbc>,
+C<lloyds>, C<santander>) but is not the brand's own canonical domain
+(e.g. C<paypal.com>, C<paypal.co.uk>).
+
+=back
+
+=head3 Notes
+
+=over 4
+
+=item *
+
+The C<flags> arrayref is a reference to the module's internal list.
+Callers must not modify it.  To iterate safely, use C<@{ $risk-E<gt>{flags} }>.
+
+=item *
+
+Flags are not deduplicated across categories.  If C<spf_fail> and
+C<dkim_fail> both apply, both appear in the list and both contribute to
+the score.
+
+=item *
+
+C<high_spam_country> and C<dkim_domain_mismatch> (when DKIM passes)
+contribute zero to the score.  Their presence does not change the level
+classification, but they appear in the C<flags> list so callers can
+include them in reports.
+
+=item *
+
+The level thresholds are fixed constants: HIGH >= 9, MEDIUM >= 5, LOW >= 2,
+INFO < 2.  They are not configurable.
+
+=item *
+
+C<risk_assessment()> does not directly raise flags for domains found only
+in URLs (C<embedded_urls()> hosts); domain checks in Group 5 apply only
+to domains from C<mailto_domains()>.  URL hostname checks (shorteners,
+HTTP) use the C<embedded_urls()> list.
+
+=item *
+
+If C<parse_email()> has not been called, or was called with an empty or
+malformed message, C<risk_assessment()> returns a valid hashref with
+C<level =E<gt> 'INFO'>, C<score =E<gt> 0>, and C<flags =E<gt> []>.
+
+=back
+
+=head3 API Specification
+
+=head4 Input
+
+    # Params::Validate::Strict compatible specification
+    # No arguments.
+    []
+
+=head4 Output
+
+    # Return::Set compatible specification
+    {
+        type => HASHREF,
+        keys => {
+            level => {
+                type  => SCALAR,
+                regex => qr/^(?:HIGH|MEDIUM|LOW|INFO)$/,
+            },
+            score => {
+                type  => SCALAR,
+                regex => qr/^\d+$/,  # non-negative integer
+            },
+            flags => {
+                type => ARRAYREF,
+                # Reference to a list (possibly empty) of hashrefs:
+                # [
+                #   {
+                #     severity => qr/^(?:HIGH|MEDIUM|LOW|INFO)$/,
+                #     flag     => qr/^[a-z][a-z0-9_]+$/,
+                #     detail   => SCALAR,  # human-readable string
+                #   },
+                #   ...
+                # ]
+            },
+        },
+    }
+
 =cut
 
 sub risk_assessment {
-    my ($self) = @_;
-    return $self->{_risk} if $self->{_risk};
+	my ($self) = @_;
+	return $self->{_risk} if $self->{_risk};
 
-    my @flags;
-    my $score = 0;
+	my @flags;
+	my $score = 0;
 
     my $flag = sub {
         my ($severity, $name, $detail) = @_;
@@ -2293,81 +2884,6 @@ sub risk_assessment {
 
     $self->{_risk} = { level => $level, score => $score, flags => \@flags };
     return $self->{_risk};
-}
-
-sub _decode_mime_words {
-    my ($self, $str) = @_;
-    return '' unless defined $str;
-    $str =~ s/=\?([^?]+)\?([BbQq])\?([^?]*)\?=/_decode_ew($1,$2,$3)/ge;
-    return $str;
-}
-
-sub _decode_ew {
-    my ($charset, $enc, $text) = @_;
-    my $raw;
-    if (uc($enc) eq 'B') {
-        $raw = decode_base64($text);
-    } else {
-        $text =~ s/_/ /g;
-        $raw  = decode_qp($text);
-    }
-    # Best-effort UTF-8; silently ignore decode errors
-    if (lc($charset) ne 'utf-8') {
-        # For non-UTF-8 charsets just return the raw bytes — good enough
-        # for display-name spoof detection which only needs ASCII matching
-    }
-    return $raw;
-}
-
-sub _parse_auth_results_cached {
-    my ($self) = @_;
-    return $self->{_auth_results} if $self->{_auth_results};
-    my %auth;
-    my $raw = join('; ',
-        map { $_->{value} }
-        grep { $_->{name} eq 'authentication-results' }
-        @{ $self->{_headers} }
-    );
-    $auth{spf}   = $1 if $raw =~ /\bspf=(\S+)/i;
-    $auth{dkim}  = $1 if $raw =~ /\bdkim=(\S+)/i;
-    $auth{dmarc} = $1 if $raw =~ /\bdmarc=(\S+)/i;
-    $auth{arc}   = $1 if $raw =~ /\barc=(\S+)/i;
-    # Strip trailing punctuation captured by \S+
-    for my $k (qw(spf dkim dmarc arc)) {
-        $auth{$k} =~ s/[;,\s]+$// if defined $auth{$k};
-    }
-
-    # Extract DKIM signing domain from DKIM-Signature: d= tag
-    # There may be multiple signatures; take the first passing one, else the first
-    for my $h (grep { $_->{name} eq 'dkim-signature' } @{ $self->{_headers} }) {
-        if ($h->{value} =~ /\bd=([^;,\s]+)/) {
-            $auth{dkim_domain} = lc $1;
-            last;
-        }
-    }
-
-    $self->{_auth_results} = \%auth;
-    return \%auth;
-}
-
-sub _registrable {
-    my ($host) = @_;
-    return undef unless $host && $host =~ /\./;
-    my @labels = split /\./, lc $host;
-    return $host if @labels <= 2;
-    if ($labels[-1] =~ /^[a-z]{2}$/ &&
-        $labels[-2] =~ /^(?:co|com|net|org|gov|edu|ac|me)$/) {
-        return join('.', @labels[-3..-1]);
-    }
-    return join('.', @labels[-2..-1]);
-}
-
-sub _country_name {
-    my ($cc) = @_;
-    my %names = ( CN => 'China', RU => 'Russia', NG => 'Nigeria',
-                  VN => 'Vietnam', IN => 'India', PK => 'Pakistan',
-                  BD => 'Bangladesh' );
-    return $names{$cc} // $cc;
 }
 
 # -----------------------------------------------------------------------
@@ -2618,6 +3134,81 @@ sub abuse_contacts {
     }
 
     return @contacts;
+}
+
+sub _decode_mime_words {
+    my ($self, $str) = @_;
+    return '' unless defined $str;
+    $str =~ s/=\?([^?]+)\?([BbQq])\?([^?]*)\?=/_decode_ew($1,$2,$3)/ge;
+    return $str;
+}
+
+sub _decode_ew {
+    my ($charset, $enc, $text) = @_;
+    my $raw;
+    if (uc($enc) eq 'B') {
+        $raw = decode_base64($text);
+    } else {
+        $text =~ s/_/ /g;
+        $raw  = decode_qp($text);
+    }
+    # Best-effort UTF-8; silently ignore decode errors
+    if (lc($charset) ne 'utf-8') {
+        # For non-UTF-8 charsets just return the raw bytes — good enough
+        # for display-name spoof detection which only needs ASCII matching
+    }
+    return $raw;
+}
+
+sub _parse_auth_results_cached {
+    my ($self) = @_;
+    return $self->{_auth_results} if $self->{_auth_results};
+    my %auth;
+    my $raw = join('; ',
+        map { $_->{value} }
+        grep { $_->{name} eq 'authentication-results' }
+        @{ $self->{_headers} }
+    );
+    $auth{spf}   = $1 if $raw =~ /\bspf=(\S+)/i;
+    $auth{dkim}  = $1 if $raw =~ /\bdkim=(\S+)/i;
+    $auth{dmarc} = $1 if $raw =~ /\bdmarc=(\S+)/i;
+    $auth{arc}   = $1 if $raw =~ /\barc=(\S+)/i;
+    # Strip trailing punctuation captured by \S+
+    for my $k (qw(spf dkim dmarc arc)) {
+        $auth{$k} =~ s/[;,\s]+$// if defined $auth{$k};
+    }
+
+    # Extract DKIM signing domain from DKIM-Signature: d= tag
+    # There may be multiple signatures; take the first passing one, else the first
+    for my $h (grep { $_->{name} eq 'dkim-signature' } @{ $self->{_headers} }) {
+        if ($h->{value} =~ /\bd=([^;,\s]+)/) {
+            $auth{dkim_domain} = lc $1;
+            last;
+        }
+    }
+
+    $self->{_auth_results} = \%auth;
+    return \%auth;
+}
+
+sub _registrable {
+    my ($host) = @_;
+    return undef unless $host && $host =~ /\./;
+    my @labels = split /\./, lc $host;
+    return $host if @labels <= 2;
+    if ($labels[-1] =~ /^[a-z]{2}$/ &&
+        $labels[-2] =~ /^(?:co|com|net|org|gov|edu|ac|me)$/) {
+        return join('.', @labels[-3..-1]);
+    }
+    return join('.', @labels[-2..-1]);
+}
+
+sub _country_name {
+    my ($cc) = @_;
+    my %names = ( CN => 'China', RU => 'Russia', NG => 'Nigeria',
+                  VN => 'Vietnam', IN => 'India', PK => 'Pakistan',
+                  BD => 'Bangladesh' );
+    return $names{$cc} // $cc;
 }
 
 # Look up provider abuse contact by plain domain name

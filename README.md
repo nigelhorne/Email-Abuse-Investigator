@@ -1516,11 +1516,58 @@ begins with `x-`.
 
 ## received\_trail()
 
-Returns a list of hashrefs, one per `Received:` header (oldest first),
-each containing the extracted IP, envelope recipient (`for` clause), and
-the server's internal tracking ID (`id` clause).  These are the tracking
-identifiers a receiving ISP's abuse team needs to look up the mail session
-in their logs.
+### Purpose
+
+Returns the per-hop tracking data extracted from the `Received:` header
+chain: the IP address, envelope recipient address, and server-assigned
+session ID for each relay that handled the message.
+
+When filing an abuse report with a transit ISP or relay operator, these
+are the identifiers their postmaster team needs to look up the specific
+SMTP session in their mail logs.  Without the session ID or envelope
+recipient, an ISP typically cannot locate a single message among billions
+of log entries; with them, the lookup takes seconds.
+
+The data is extracted synchronously during `parse_email()` with no network
+I/O.  This method simply returns the pre-built list.
+
+### Usage
+
+    $analyser->parse_email($raw);
+    my @trail = $analyser->received_trail();
+
+    for my $hop (@trail) {
+        printf "Hop IP : %s\n",  $hop->{ip}       // '(unknown)';
+        printf "  For  : %s\n",  $hop->{for}       if defined $hop->{for};
+        printf "  ID   : %s\n",  $hop->{id}        if defined $hop->{id};
+        printf "  Raw  : %s\n",  $hop->{received};
+        print  "\n";
+    }
+
+    # Build a list of session IDs to include in an abuse report
+    my @ids = map  { "$_->{ip}: id $_->{id}" }
+              grep { defined $_->{id} }
+              @trail;
+
+    # Find which ISP handled a particular relay IP
+    my ($hop) = grep { ($_->{ip} // '') eq '91.198.174.5' } @trail;
+    if ($hop) {
+        print "Session ID at that relay: $hop->{id}\n" if defined $hop->{id};
+    }
+
+### Arguments
+
+None.  `parse_email()` must have been called first.
+
+### Returns
+
+A list (not an arrayref) of hashrefs, one per `Received:` hop from which
+at least one of an IP address, an envelope recipient address, or a server
+session ID could be extracted, in oldest-first order (i.e. the first element
+is the outermost relay, the last element is the most recent hop before your
+own server).  Returns an empty list if no `Received:` headers are present
+or none yielded any extractable data, or if `parse_email()` has not been
+called.
 
     (
       { received => '...raw header...', ip => '1.2.3.4',
@@ -1528,7 +1575,194 @@ in their logs.
       ...
     )
 
+Each hashref contains exactly four keys:
+
+- `received` (string, always present)
+
+    The complete raw value of the `Received:` header for this hop, exactly as
+    it appeared in the message.  Suitable for including verbatim in an abuse
+    report so the receiving ISP can see the full context.
+
+- `ip` (string or undef)
+
+    The IPv4 address extracted from this `Received:` hop, or `undef` if no
+    recognisable IPv4 address was found.  Uses the same four-pattern extraction
+    priority as `originating_ip()`: bracketed `[1.2.3.4]` first, then
+    parenthesised, then `from hostname addr`, then any bare dotted-quad as a
+    last resort.  Private, reserved, and trusted IPs are **not** filtered here;
+    all IPs including RFC 1918 addresses are returned as found.  (Filtering is
+    applied only by `originating_ip()`.)
+
+- `for` (string or undef)
+
+    The envelope recipient address extracted from the `for` clause of the
+    `Received:` header (e.g. `for <victim@example.com>`), or `undef`
+    if no such clause is present or it does not contain a fully-qualified email
+    address (one with both a local part and a domain containing at least one
+    dot).  Bare postmaster addresses, `for multiple recipients`, and similar
+    non-address forms are not captured and result in `undef`.
+
+- `id` (string or undef)
+
+    The server's internal session or queue identifier from the `id` clause
+    of the `Received:` header (e.g. `with ESMTP id ABC123XYZ`), or `undef`
+    if no `id` clause is present.  The value is a single whitespace-delimited
+    token of word characters and dots; longer or more structured ID formats may
+    be truncated at the first whitespace boundary.
+
+### Side Effects
+
+None.  All data is collected during `parse_email()` and this method only
+returns the pre-collected list.  No network I/O is performed.
+
+### Algorithm: extraction and ordering
+
+During `parse_email()`, the `Received:` headers are walked in reverse
+message order (i.e. oldest hop first, which is the same order as
+`originating_ip()`'s chain walk).  For each header:
+
+1. The IP address is extracted using the same four-pattern priority sequence
+documented in `originating_ip()`.
+2. The envelope recipient is extracted with the pattern
+`\bfor\s+<?([^\s`\]+@\[\\w.-\]+\\.\[\\w\]+)>?> (case-insensitive).  The
+domain portion of the address must contain at least one dot; single-label
+names such as `postmaster` are not matched.
+3. The session ID is extracted with the pattern `\bid\s+([\w.-]+)`
+(case-insensitive), capturing the first word-character token following the
+keyword `id`.
+4. If none of the three fields can be extracted (all are `undef`), the hop is
+silently discarded and does not appear in the result list.  This suppresses
+internal or synthetic hops that carry no useful tracking information.
+
+The result list therefore contains only hops that carry at least one
+actionable piece of tracking data.
+
+### Notes
+
+- The result list is reset to empty by each call to `parse_email()`.  It
+reflects the `Received:` headers of the current message only.
+- Oldest-first ordering means `$trail[0]` is the first relay the message
+passed through after leaving the sender, and `$trail[-1]` is the last hop
+before your own server.  This is the natural order for walking the chain
+when composing a forwarded abuse report.
+- `ip` may be `undef` for a hop that nonetheless has a valid `for` or
+`id` field -- for example, a `Received:` header added by a local
+delivery agent that does not record an IP.  Always test `defined
+$hop->{ip}` before using it.
+- `for` and `id` are `undef`, not the empty string, when absent.  `ip`
+is also `undef`, not `'(unknown)'` as in some other methods.  All four
+fields must be tested with `defined`, not boolean truthiness, to
+distinguish between absent and empty.
+- `report()` applies an additional filter when displaying this data: it only
+shows hops where `id` or `for` is defined, suppressing hops where only
+an IP was found.  `received_trail()` itself returns all hops with any
+extractable data, including IP-only hops, giving callers the full picture.
+- The `received` field is the unfolded header value as stored after RFC 2822
+line-folding is removed during `parse_email()`.  Continuation whitespace
+is replaced with a single space; the value will not contain embedded
+newlines.
+
+### API Specification
+
+#### Input
+
+    # Params::Validate::Strict compatible specification
+    # No arguments.
+    []
+
+#### Output
+
+    # Return::Set compatible specification
+
+    # A list (possibly empty) of hashrefs, oldest-hop first:
+    (
+        {
+            type => HASHREF,
+            keys => {
+                received => {
+                    type => SCALAR,
+                    # Complete unfolded Received: header value; always defined.
+                },
+                ip => {
+                    type     => SCALAR,
+                    optional => 1,  # present but may be undef
+                    regex    => qr/^\d{1,3}(?:\.\d{1,3}){3}$/,
+                },
+                for => {
+                    type     => SCALAR,
+                    optional => 1,  # present but may be undef
+                    # Fully-qualified email address: local@domain.tld
+                    regex    => qr/^[^\s@]+\@[\w.-]+\.[a-zA-Z]{2,}$/,
+                },
+                id => {
+                    type     => SCALAR,
+                    optional => 1,  # present but may be undef
+                    regex    => qr/^[\w.-]+$/,
+                },
+            },
+        },
+        # ... one hashref per hop with at least one extractable field,
+        #     in oldest-first (outermost relay first) order
+    )
+
+    # Empty list when no Received: headers are present or none yielded
+    # any extractable data.
+
 ## risk\_assessment()
+
+### Purpose
+
+Evaluates the message against a set of heuristic checks and returns an
+overall risk level, a weighted numeric score, and a list of every specific
+red flag that contributed to the score.
+
+The assessment covers five categories: originating IP characteristics, email
+authentication results, `Date:` header validity, identity and header
+consistency, and URL and domain properties.  Each finding is assigned a
+severity, a machine-readable flag name, and a human-readable detail string.
+
+The result is computed once and cached; subsequent calls on the same object
+return the same hashref without repeating any analysis.  Calling
+`risk_assessment()` also implicitly triggers `originating_ip()`,
+`embedded_urls()`, and `mailto_domains()` if they have not already been
+called, performing all associated network I/O.
+
+### Usage
+
+    $analyser->parse_email($raw);
+    my $risk = $analyser->risk_assessment();
+
+    printf "Risk level : %s (score: %d)\n", $risk->{level}, $risk->{score};
+
+    for my $f (@{ $risk->{flags} }) {
+        printf "  [%-6s] %s\n    %s\n",
+            $f->{severity}, $f->{flag}, $f->{detail};
+    }
+
+    # Gate an automated report on HIGH level only
+    if ($risk->{level} eq 'HIGH') {
+        send_abuse_report($analyser->abuse_report_text());
+    }
+
+    # Collect only HIGH and MEDIUM flags for a summary
+    my @significant = grep { $_->{severity} =~ /^(?:HIGH|MEDIUM)$/ }
+                      @{ $risk->{flags} };
+
+    # Check for a specific flag
+    my ($flag) = grep { $_->{flag} eq 'recently_registered_domain' }
+                 @{ $risk->{flags} };
+    warn "Phishing domain suspected\n" if $flag;
+
+    # INFO level means no actionable red flags
+    if ($risk->{level} eq 'INFO') {
+        print "No significant red flags detected.\n";
+    }
+
+### Arguments
+
+None.  `parse_email()` must have been called first.
+
+### Returns
 
 Returns a hashref with an overall risk level and a list of specific
 red flags found in the message:
@@ -1545,6 +1779,275 @@ red flags found in the message:
               detail => 'bit.ly used - real destination hidden' },
             ...
         ],
+    }
+
+A hashref with exactly three keys, all always present:
+
+- `level` (string)
+
+    The overall risk classification, determined by the weighted score:
+
+        Score >= 9  =>  'HIGH'
+        Score >= 5  =>  'MEDIUM'
+        Score >= 2  =>  'LOW'
+        Score <  2  =>  'INFO'
+
+    `'INFO'` means either no flags were raised or only zero-weight (INFO
+    severity) flags were raised.  It does not mean the message is definitely
+    legitimate; it means no significant heuristic evidence of spam was found.
+
+- `score` (integer)
+
+    The sum of the weights of all flags raised.  Weights by severity:
+
+        HIGH   => 3
+        MEDIUM => 2
+        LOW    => 1
+        INFO   => 0
+
+    The score is a non-negative integer.  Multiple flags of the same severity
+    each contribute their full weight independently; there is no cap on the
+    score.
+
+- `flags` (arrayref of hashrefs)
+
+    A reference to a list of flag hashrefs, one per red flag raised, in the
+    order they were detected.  Each hashref contains exactly three keys:
+
+    - `severity` (string)
+
+        One of `'HIGH'`, `'MEDIUM'`, `'LOW'`, or `'INFO'`.
+
+    - `flag` (string)
+
+        A lower-cased, underscore-separated machine-readable identifier.  See the
+        Algorithm section for the full list of possible flag names.
+
+    - `detail` (string)
+
+        A human-readable sentence describing the specific finding, including the
+        values from the message that triggered the flag (domain name, IP address,
+        header value, etc.).  Suitable for inclusion in an abuse report or log.
+
+    The arrayref is empty (`[]`) when no flags are raised.
+
+### Side Effects
+
+The first call triggers `originating_ip()`, `embedded_urls()`, and
+`mailto_domains()` if they have not already run on the current message.
+Each of those methods may perform network I/O as documented in their own
+entries.  Specifically:
+
+- `originating_ip()` performs a PTR lookup and RDAP/WHOIS for the
+sending IP.
+- `embedded_urls()` performs an A lookup and RDAP/WHOIS for each
+unique URL hostname.
+- `mailto_domains()` performs A, MX, NS, and WHOIS queries for
+each unique contact domain.
+
+All results are cached.  Subsequent calls to `risk_assessment()` on the
+same object return the cached hashref immediately.  The cache is invalidated
+by `parse_email()`.
+
+### Algorithm: flags and scoring
+
+The following flags may be raised.  They are evaluated in five groups, in
+the order shown.  The same flag name is never raised more than once per
+message.
+
+**Group 1 -- Originating IP** (requires `originating_ip()` to return a
+result):
+
+- `residential_sending_ip` (HIGH, weight 3)
+
+    The rDNS of the sending IP matches patterns associated with residential
+    broadband or dynamically-assigned addresses: an embedded dotted-quad, or
+    any of the substrings `dsl`, `adsl`, `cable`, `broad`, `dial`,
+    `dynamic`, `dhcp`, `ppp`, `residential`, `cust`, `home`, `pool`,
+    `client`, `user`, `staticN`, or `hostN`.
+
+- `no_reverse_dns` (HIGH, weight 3)
+
+    The sending IP has no PTR record, or the PTR lookup returned the sentinel
+    `'(no reverse DNS)'`.  Legitimate mail servers invariably have rDNS.
+
+- `low_confidence_origin` (MEDIUM, weight 2)
+
+    The originating IP was taken from an unverified header (`X-Originating-IP`)
+    rather than from the `Received:` chain.  Confidence level is `'low'`.
+
+- `high_spam_country` (INFO, weight 0)
+
+    The sending IP's country code is one of: `CN` (China), `RU` (Russia),
+    `NG` (Nigeria), `VN` (Vietnam), `IN` (India), `PK` (Pakistan),
+    `BD` (Bangladesh).  Informational only; does not contribute to the score.
+
+**Group 2 -- Email authentication** (from `Authentication-Results:` header):
+
+- `spf_fail` (HIGH, weight 3)
+
+    SPF result is `fail`, `permerror`, `temperror`, `none`, or any value
+    other than `pass` or `softfail`.  The sending IP is not authorised by
+    the domain's SPF record.
+
+- `spf_softfail` (MEDIUM, weight 2)
+
+    SPF result is `softfail` (`~all`).  The sending IP is not explicitly
+    authorised but the domain policy does not hard-fail it.
+
+- `dkim_fail` (HIGH, weight 3)
+
+    DKIM result is present and is any value other than `pass`.
+
+- `dmarc_fail` (HIGH, weight 3)
+
+    DMARC result is present and is any value other than `pass`.
+
+- `dkim_domain_mismatch` (INFO or MEDIUM, weight 0 or 2)
+
+    The DKIM signing domain (`d=` tag) differs from the registrable domain
+    of the `From:` address.  Raised at INFO (weight 0) when DKIM passes --
+    this is normal for bulk senders using ESPs such as SendGrid or Mailchimp.
+    Raised at MEDIUM (weight 2) when DKIM fails or is absent -- a differing
+    domain combined with a failed signature is more suspicious.
+
+**Group 3 -- Date: header**:
+
+- `missing_date` (MEDIUM, weight 2)
+
+    No `Date:` header is present, or it contains only whitespace.  Violates
+    RFC 5322; common in programmatically-generated spam.
+
+- `suspicious_date` (LOW, weight 1)
+
+    The `Date:` header is present but more than 7 days in the past or more
+    than 7 days in the future relative to the time of analysis.  Timezone
+    offsets are ignored during comparison (maximum error: approximately 14
+    hours, well within the 7-day window).
+
+**Group 4 -- Header identity and consistency**:
+
+- `display_name_domain_spoof` (HIGH, weight 3)
+
+    The `From:` display name contains a domain name (matched against the
+    suffixes `.com`, `.net`, `.org`, `.io`, `.co`, `.uk`, `.au`,
+    `.gov`, `.edu`) that differs at the registrable level from the actual
+    `From:` address domain.  Example: `"PayPal paypal.com" <phish@evil.example>`.
+
+- `free_webmail_sender` (MEDIUM, weight 2)
+
+    The `From:` address belongs to a free webmail provider: Gmail, Yahoo,
+    Hotmail, Outlook, Live, AOL, ProtonMail, Yandex, or mail.ru.
+
+- `reply_to_differs_from_from` (MEDIUM, weight 2)
+
+    A `Reply-To:` header is present and its email address differs from the
+    `From:` address (case-insensitive comparison).  Replies will be harvested
+    by a different address than the apparent sender.
+
+- `undisclosed_recipients` (MEDIUM, weight 2)
+
+    The `To:` header is absent, empty, contains the string `undisclosed`, or
+    matches the group-syntax sentinel `:;`.
+
+- `encoded_subject` (LOW, weight 1)
+
+    The `Subject:` header contains a MIME encoded-word sequence
+    (`=?charset?encoding?text?=`).  Often used to evade keyword filters.
+
+**Group 5 -- URLs and domains** (from `embedded_urls()` and
+`mailto_domains()`):
+
+- `url_shortener` (MEDIUM, weight 2)
+
+    At least one URL hostname is in the built-in URL shortener list (over 25
+    services including `bit.ly`, `tinyurl.com`, `t.co`, `ow.ly`, etc.).
+    Raised at most once per unique shortener hostname per message.
+
+- `http_not_https` (LOW, weight 1)
+
+    At least one URL uses the plain `http://` scheme rather than `https://`.
+    Raised at most once per unique hostname.
+
+- `recently_registered_domain` (HIGH, weight 3)
+
+    At least one contact domain was registered less than 180 days before the
+    time of analysis.
+
+- `domain_expires_soon` (HIGH, weight 3)
+
+    At least one contact domain expires within the next 30 days.  Suggests a
+    throwaway domain.
+
+- `domain_expired` (HIGH, weight 3)
+
+    At least one contact domain has already passed its expiry date.
+
+- `lookalike_domain` (HIGH, weight 3)
+
+    At least one contact domain contains the name of a well-known brand
+    (`paypal`, `apple`, `google`, `amazon`, `microsoft`, `netflix`,
+    `ebay`, `instagram`, `facebook`, `twitter`, `linkedin`,
+    `bankofamerica`, `wellsfargo`, `chase`, `barclays`, `hsbc`,
+    `lloyds`, `santander`) but is not the brand's own canonical domain
+    (e.g. `paypal.com`, `paypal.co.uk`).
+
+### Notes
+
+- The `flags` arrayref is a reference to the module's internal list.
+Callers must not modify it.  To iterate safely, use `@{ $risk->{flags} }`.
+- Flags are not deduplicated across categories.  If `spf_fail` and
+`dkim_fail` both apply, both appear in the list and both contribute to
+the score.
+- `high_spam_country` and `dkim_domain_mismatch` (when DKIM passes)
+contribute zero to the score.  Their presence does not change the level
+classification, but they appear in the `flags` list so callers can
+include them in reports.
+- The level thresholds are fixed constants: HIGH >= 9, MEDIUM >= 5, LOW >= 2,
+INFO < 2.  They are not configurable.
+- `risk_assessment()` does not directly raise flags for domains found only
+in URLs (`embedded_urls()` hosts); domain checks in Group 5 apply only
+to domains from `mailto_domains()`.  URL hostname checks (shorteners,
+HTTP) use the `embedded_urls()` list.
+- If `parse_email()` has not been called, or was called with an empty or
+malformed message, `risk_assessment()` returns a valid hashref with
+`level => 'INFO'`, `score => 0`, and `flags => []`.
+
+### API Specification
+
+#### Input
+
+    # Params::Validate::Strict compatible specification
+    # No arguments.
+    []
+
+#### Output
+
+    # Return::Set compatible specification
+    {
+        type => HASHREF,
+        keys => {
+            level => {
+                type  => SCALAR,
+                regex => qr/^(?:HIGH|MEDIUM|LOW|INFO)$/,
+            },
+            score => {
+                type  => SCALAR,
+                regex => qr/^\d+$/,  # non-negative integer
+            },
+            flags => {
+                type => ARRAYREF,
+                # Reference to a list (possibly empty) of hashrefs:
+                # [
+                #   {
+                #     severity => qr/^(?:HIGH|MEDIUM|LOW|INFO)$/,
+                #     flag     => qr/^[a-z][a-z0-9_]+$/,
+                #     detail   => SCALAR,  # human-readable string
+                #   },
+                #   ...
+                # ]
+            },
+        },
     }
 
 ## abuse\_report\_text()

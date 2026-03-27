@@ -34,7 +34,8 @@ use POSIX             qw( strftime );
 
 use FindBin qw( $Bin );
 use lib "$Bin/../lib", "$Bin/..";
-use Mail::Message::Abuse;
+
+use_ok('Mail::Message::Abuse');
 
 # ---------------------------------------------------------------------------
 # Network stub infrastructure
@@ -174,7 +175,7 @@ WHOIS
         },
     );
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = new_ok('Mail::Message::Abuse');
     $a->parse_email(make_raw_email(
         received => 'from badactor (badactor [91.198.174.42]) by mx.test',
         from     => 'Deals <deals@spamsite.example>',
