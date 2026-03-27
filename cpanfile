@@ -16,6 +16,7 @@ on 'test' => sub {
 	requires 'MIME::QuotedPrint';
 	requires 'POSIX';
 	requires 'Scalar::Util';
+	requires 'Test::DescribeMe';
 	requires 'Test::Most';
 };
 on 'develop' => sub {

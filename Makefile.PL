@@ -37,6 +37,7 @@ WriteMakefile(
 		'MIME::QuotedPrint' => 0,
 		'POSIX' => 0,
 		'Scalar::Util' => 0,
+		'Test::DescribeMe' => 0,
 		'Test::Most' => 0,
 	}, dist => $dist,
 	clean		=> { FILES => 'Mail-Message-Abuse-*' },

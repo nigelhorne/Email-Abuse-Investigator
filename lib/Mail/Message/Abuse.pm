@@ -21,7 +21,7 @@ BEGIN { $HAS_LWP = eval { require LWP::UserAgent; 1 } }
 my $HAS_HTML_LINKEXTOR;
 BEGIN { $HAS_HTML_LINKEXTOR = eval { require HTML::LinkExtor; 1 } }
 
-our $VERSION = '2.00';
+our $VERSION = '0.01';
 
 =head1 NAME
 
