@@ -68,8 +68,6 @@ All are available from CPAN.
 
 # METHODS
 
-# METHODS
-
 ## new( %options )
 
 ### Purpose
@@ -209,9 +207,153 @@ timeout on affected platforms.
 
 ## parse\_email( $text )
 
-Feed the raw RFC 2822 source to the analyser.  Accepts a scalar or
-scalar-ref.  Handles `multipart`, `quoted-printable`, and `base64`
-bodies automatically.
+### Purpose
+
+Feeds a raw RFC 2822 email message to the analyser and prepares it for
+subsequent interrogation.  This is the only method that must be called
+before any other public method; all analysis is driven by the message
+supplied here.
+
+If the same object is used for a second message, calling `parse_email()`
+again completely replaces all state from the first message.  No trace of
+the previous email survives.
+
+### Usage
+
+    # From a scalar
+    my $raw = do { local $/; <STDIN> };
+    $analyser->parse_email($raw);
+
+    # From a scalar reference (avoids copying large messages)
+    $analyser->parse_email(\$raw);
+
+    # Chained with new()
+    my $analyser = Mail::Message::Abuse->new()->parse_email($raw);
+
+    # Re-use the same object for multiple messages
+    while (my $msg = $queue->next()) {
+        $analyser->parse_email($msg->raw_text());
+        my $risk = $analyser->risk_assessment();
+        report_if_spam($analyser) if $risk->{level} ne 'INFO';
+    }
+
+### Arguments
+
+- `$text` (scalar or scalar reference, required)
+
+    The complete raw source of the email message as it arrived at your MTA,
+    including all headers and the body, exactly as transferred over the wire.
+    Both LF-only and CRLF line endings are accepted and handled transparently.
+
+    A scalar reference is accepted as an alternative to a plain scalar.  The
+    referent is dereferenced internally; the original variable is not modified.
+
+    The following body encodings are decoded automatically:
+
+    - `quoted-printable` (Content-Transfer-Encoding: quoted-printable)
+    - `base64` (Content-Transfer-Encoding: base64)
+    - `7bit` / `8bit` / `binary` (passed through as-is)
+
+    Multipart messages (`multipart/alternative`, `multipart/mixed`, etc.)
+    are split on their boundary and each text part decoded according to its
+    own Content-Transfer-Encoding.  Non-text parts (attachments, inline images)
+    are silently skipped.
+
+### Returns
+
+The object itself (`$self`), allowing method chaining:
+
+    my $origin = Mail::Message::Abuse->new()->parse_email($raw)->originating_ip();
+
+### Side Effects
+
+The following work is performed synchronously, with no network I/O:
+
+- Header parsing
+
+    All RFC 2822 headers are parsed into an internal list.  Folded (multi-line)
+    header values are unfolded per RFC 2822 section 2.2.3.  The `Received:`
+    chain is extracted separately for origin analysis.  Header names are
+    normalised to lower-case.  When duplicate headers are present, all copies
+    are retained; accessor methods return the first occurrence.
+
+- Body decoding
+
+    The message body is decoded according to its Content-Transfer-Encoding and
+    stored as plain text (`_body_plain`) and/or HTML (`_body_html`).
+    Multipart messages have each qualifying part appended in order.
+
+- Sending software extraction
+
+    The headers `X-Mailer`, `User-Agent`, `X-PHP-Originating-Script`,
+    `X-Source`, `X-Source-Args`, and `X-Source-Host` are extracted if
+    present and stored for retrieval via `sending_software()`.
+
+- Received chain tracking data
+
+    Each `Received:` header is scanned for an IP address, an envelope
+    recipient (`for <addr@domain.com>`), and a server tracking ID
+    (`id token`).  Results are stored for retrieval via `received_trail()`,
+    ordered oldest hop first.
+
+- Cache invalidation
+
+    All lazily-computed results from a previous call to `parse_email()` on
+    the same object are discarded: `originating_ip()`, `embedded_urls()`,
+    `mailto_domains()`, `risk_assessment()`, and the authentication-results
+    cache are all reset to `undef` so the next call to any of them analyses
+    the new message from scratch.
+
+All network I/O (DNS lookups, WHOIS/RDAP queries) is deferred; it occurs
+only when a caller first invokes `originating_ip()`, `embedded_urls()`,
+or `mailto_domains()`.
+
+### Notes
+
+- If `$text` is an empty string, contains only whitespace, or contains no
+header/body separator, the method returns `$self` without populating any
+internal state.  All public methods will return empty lists, `undef`, or
+safe zero-value results rather than dying.
+- The raw text is stored verbatim (in `_raw`) and is reproduced in the
+output of `abuse_report_text()`.  For very large messages this doubles
+the memory used.  If memory is a concern, supply a scalar reference so at
+least the method argument does not copy the string on the call stack.
+- HTML bodies are stored separately from plain-text bodies.  URL and
+email-address extraction runs across both.  A URL that appears only in the
+HTML part and not in the plain-text part is still reported.
+- Decoding errors in base64 or quoted-printable payloads are silenced; the
+partially-decoded or raw bytes are used in place of correct output.  This
+prevents malformed spam from causing exceptions during analysis.
+
+### API Specification
+
+#### Input
+
+    # Params::Validate::Strict compatible specification
+    # (positional argument, not named)
+    [
+        {
+            type => SCALAR | SCALARREF,
+            # SCALAR:    the complete raw email text
+            # SCALARREF: reference to the complete raw email text;
+            #            the referent must be a defined string
+            # Both LF and CRLF line endings are accepted.
+        },
+    ]
+
+#### Output
+
+    # Return::Set compatible specification
+    {
+        type => 'Mail::Message::Abuse',  # the invocant, returned for chaining
+        isa  => 'Mail::Message::Abuse',
+
+        # Guaranteed post-conditions on the returned object:
+        #   sending_software()  returns a (possibly empty) list
+        #   received_trail()    returns a (possibly empty) list
+        #   All lazy-analysis caches are reset (undef or empty)
+        #   _raw contains the verbatim input text
+    }
 
 ## originating\_ip()
 

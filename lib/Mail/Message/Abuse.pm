@@ -241,8 +241,6 @@ my %PROVIDER_ABUSE = (
 
 =head1 METHODS
 
-=head1 METHODS
-
 =head2 new( %options )
 
 =head3 Purpose
@@ -406,36 +404,204 @@ timeout on affected platforms.
 
 =cut
 
-
 sub new {
-    my ($class, %opts) = @_;
-    return bless {
-        timeout        => $opts{timeout}        // 10,
-        trusted_relays => $opts{trusted_relays} // [],
-        verbose        => $opts{verbose}        // 0,
-        _raw           => '',
-        _headers       => [],
-        _body_plain    => '',
-        _body_html     => '',
-        _received      => [],
-        _origin        => undef,
-        _urls          => undef,    # lazy
-        _mailto_domains=> undef,    # lazy
-        _domain_info   => {},       # cache: domain -> hashref
-        _sending_sw    => [],       # X-Mailer / X-PHP-Originating-Script etc.
-        _rcvd_tracking => [],       # per-hop tracking IDs from Received: headers
-    }, $class;
+	my ($class, %opts) = @_;
+	return bless {
+		timeout        => $opts{timeout}        // 10,
+		trusted_relays => $opts{trusted_relays} // [],
+		verbose        => $opts{verbose}        // 0,
+		_raw           => '',
+		_headers       => [],
+		_body_plain    => '',
+		_body_html     => '',
+		_received      => [],
+		_origin        => undef,
+		_urls          => undef,    # lazy
+		_mailto_domains=> undef,    # lazy
+		_domain_info   => {},       # cache: domain -> hashref
+		_sending_sw    => [],       # X-Mailer / X-PHP-Originating-Script etc.
+		_rcvd_tracking => [],       # per-hop tracking IDs from Received: headers
+	}, $class;
 }
-
-# -----------------------------------------------------------------------
-# Public: parse
-# -----------------------------------------------------------------------
 
 =head2 parse_email( $text )
 
-Feed the raw RFC 2822 source to the analyser.  Accepts a scalar or
-scalar-ref.  Handles C<multipart>, C<quoted-printable>, and C<base64>
-bodies automatically.
+=head3 Purpose
+
+Feeds a raw RFC 2822 email message to the analyser and prepares it for
+subsequent interrogation.  This is the only method that must be called
+before any other public method; all analysis is driven by the message
+supplied here.
+
+If the same object is used for a second message, calling C<parse_email()>
+again completely replaces all state from the first message.  No trace of
+the previous email survives.
+
+=head3 Usage
+
+    # From a scalar
+    my $raw = do { local $/; <STDIN> };
+    $analyser->parse_email($raw);
+
+    # From a scalar reference (avoids copying large messages)
+    $analyser->parse_email(\$raw);
+
+    # Chained with new()
+    my $analyser = Mail::Message::Abuse->new()->parse_email($raw);
+
+    # Re-use the same object for multiple messages
+    while (my $msg = $queue->next()) {
+        $analyser->parse_email($msg->raw_text());
+        my $risk = $analyser->risk_assessment();
+        report_if_spam($analyser) if $risk->{level} ne 'INFO';
+    }
+
+=head3 Arguments
+
+=over 4
+
+=item C<$text> (scalar or scalar reference, required)
+
+The complete raw source of the email message as it arrived at your MTA,
+including all headers and the body, exactly as transferred over the wire.
+Both LF-only and CRLF line endings are accepted and handled transparently.
+
+A scalar reference is accepted as an alternative to a plain scalar.  The
+referent is dereferenced internally; the original variable is not modified.
+
+The following body encodings are decoded automatically:
+
+=over 8
+
+=item * C<quoted-printable> (Content-Transfer-Encoding: quoted-printable)
+
+=item * C<base64> (Content-Transfer-Encoding: base64)
+
+=item * C<7bit> / C<8bit> / C<binary> (passed through as-is)
+
+=back
+
+Multipart messages (C<multipart/alternative>, C<multipart/mixed>, etc.)
+are split on their boundary and each text part decoded according to its
+own Content-Transfer-Encoding.  Non-text parts (attachments, inline images)
+are silently skipped.
+
+=back
+
+=head3 Returns
+
+The object itself (C<$self>), allowing method chaining:
+
+    my $origin = Mail::Message::Abuse->new()->parse_email($raw)->originating_ip();
+
+=head3 Side Effects
+
+The following work is performed synchronously, with no network I/O:
+
+=over 4
+
+=item * Header parsing
+
+All RFC 2822 headers are parsed into an internal list.  Folded (multi-line)
+header values are unfolded per RFC 2822 section 2.2.3.  The C<Received:>
+chain is extracted separately for origin analysis.  Header names are
+normalised to lower-case.  When duplicate headers are present, all copies
+are retained; accessor methods return the first occurrence.
+
+=item * Body decoding
+
+The message body is decoded according to its Content-Transfer-Encoding and
+stored as plain text (C<_body_plain>) and/or HTML (C<_body_html>).
+Multipart messages have each qualifying part appended in order.
+
+=item * Sending software extraction
+
+The headers C<X-Mailer>, C<User-Agent>, C<X-PHP-Originating-Script>,
+C<X-Source>, C<X-Source-Args>, and C<X-Source-Host> are extracted if
+present and stored for retrieval via C<sending_software()>.
+
+=item * Received chain tracking data
+
+Each C<Received:> header is scanned for an IP address, an envelope
+recipient (C<for E<lt>addr@domain.comE<gt>>), and a server tracking ID
+(C<id token>).  Results are stored for retrieval via C<received_trail()>,
+ordered oldest hop first.
+
+=item * Cache invalidation
+
+All lazily-computed results from a previous call to C<parse_email()> on
+the same object are discarded: C<originating_ip()>, C<embedded_urls()>,
+C<mailto_domains()>, C<risk_assessment()>, and the authentication-results
+cache are all reset to C<undef> so the next call to any of them analyses
+the new message from scratch.
+
+=back
+
+All network I/O (DNS lookups, WHOIS/RDAP queries) is deferred; it occurs
+only when a caller first invokes C<originating_ip()>, C<embedded_urls()>,
+or C<mailto_domains()>.
+
+=head3 Notes
+
+=over 4
+
+=item *
+
+If C<$text> is an empty string, contains only whitespace, or contains no
+header/body separator, the method returns C<$self> without populating any
+internal state.  All public methods will return empty lists, C<undef>, or
+safe zero-value results rather than dying.
+
+=item *
+
+The raw text is stored verbatim (in C<_raw>) and is reproduced in the
+output of C<abuse_report_text()>.  For very large messages this doubles
+the memory used.  If memory is a concern, supply a scalar reference so at
+least the method argument does not copy the string on the call stack.
+
+=item *
+
+HTML bodies are stored separately from plain-text bodies.  URL and
+email-address extraction runs across both.  A URL that appears only in the
+HTML part and not in the plain-text part is still reported.
+
+=item *
+
+Decoding errors in base64 or quoted-printable payloads are silenced; the
+partially-decoded or raw bytes are used in place of correct output.  This
+prevents malformed spam from causing exceptions during analysis.
+
+=back
+
+=head3 API Specification
+
+=head4 Input
+
+    # Params::Validate::Strict compatible specification
+    # (positional argument, not named)
+    [
+        {
+            type => SCALAR | SCALARREF,
+            # SCALAR:    the complete raw email text
+            # SCALARREF: reference to the complete raw email text;
+            #            the referent must be a defined string
+            # Both LF and CRLF line endings are accepted.
+        },
+    ]
+
+=head4 Output
+
+    # Return::Set compatible specification
+    {
+        type => 'Mail::Message::Abuse',  # the invocant, returned for chaining
+        isa  => 'Mail::Message::Abuse',
+
+        # Guaranteed post-conditions on the returned object:
+        #   sending_software()  returns a (possibly empty) list
+        #   received_trail()    returns a (possibly empty) list
+        #   All lazy-analysis caches are reset (undef or empty)
+        #   _raw contains the verbatim input text
+    }
 
 =cut
 
@@ -455,10 +621,6 @@ sub parse_email {
     $self->_split_message($text);
     return $self;
 }
-
-# -----------------------------------------------------------------------
-# Public: originating host
-# -----------------------------------------------------------------------
 
 =head2 originating_ip()
 
