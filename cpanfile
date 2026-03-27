@@ -7,6 +7,7 @@ requires 'MIME::Base64';
 requires 'MIME::QuotedPrint';
 requires 'Object::Configure';
 requires 'Params::Get';
+requires 'Params::Validate::Strict';
 requires 'Socket';
 
 on 'configure' => sub {

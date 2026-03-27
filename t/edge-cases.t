@@ -22,7 +22,7 @@
 use strict;
 use warnings;
 
-use Test::More;
+use Test::Most;
 use MIME::Base64      qw( encode_base64 );
 use MIME::QuotedPrint qw( encode_qp );
 use POSIX             qw( strftime );
@@ -61,13 +61,13 @@ sub restore_net {
 }
 
 # lives_ok: succeeds if the code block does not throw an exception
-sub lives_ok (&;$) {
-    my ($code, $name) = @_;
-    my $ok = eval { $code->(); 1 };
-    ok $ok, $name // 'lives';
-    diag "Exception: $@" if !$ok && $@;
-    return $ok;
-}
+# sub lives_ok (&;$) {
+    # my ($code, $name) = @_;
+    # my $ok = eval { $code->(); 1 };
+    # ok $ok, $name // 'lives';
+    # diag "Exception: $@" if !$ok && $@;
+    # return $ok;
+# }
 
 sub bare_email {
     my ($hdrs, $body) = @_;
@@ -88,10 +88,8 @@ subtest 'new() -- timeout=>0 stored correctly (// not ||)' => sub {
 
 subtest 'new() -- unknown options silently ignored' => sub {
     restore_net();
-    my $a;
-    lives_ok { $a = Mail::Message::Abuse->new(no_such_option => 42) }
-        'unknown constructor option does not die';
-    ok blessed($a), 'object still created despite unknown option';
+
+    dies_ok { my $a = Mail::Message::Abuse->new(no_such_option => 42) } 'unknown constructor option dies';
 };
 
 subtest 'new() -- verbose flag only enables debug, does not alter analysis' => sub {

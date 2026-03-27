@@ -8,6 +8,7 @@ use MIME::QuotedPrint qw( decode_qp );
 use MIME::Base64      qw( decode_base64 );
 use Object::Configure;
 use Params::Get;
+use Params::Validate::Strict;
 use Socket          qw( inet_aton inet_ntoa );
 
 # Optional - gracefully degraded
@@ -395,7 +396,22 @@ sub new {
 	my $class = shift;
 
 	# Handle hash or hashref arguments
-	my $params = Params::Get::get_params(undef, \@_) || {};
+	my $params = Params::Validate::Strict::validate_strict({
+		args => Params::Get::get_params(undef, \@_) || {},
+		schema => {
+			timeout => {
+				'type' => 'integer',
+				'optional' => 1,
+				'min' => 0
+			}, trusted_relays => {
+				'type' => 'arrayref',
+				'optional' => 1,
+			}, verbose => {
+				'type' => 'boolean',
+				'optional' => 1,
+			}
+		}
+	});
 
 	# Load the configuration from a config file, if provided
 	$params = Object::Configure::configure($class, $params);
