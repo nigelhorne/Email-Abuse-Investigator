@@ -1252,7 +1252,7 @@ sub _extract_http_urls {
 
     my %seen;
     my @all = grep { !$seen{$_}++ } @urls;
-    s/[.,;:!?\)>\]]+$// for @all;
+    @all = map { (my $u = $_) =~ s/[.,;:!?\)>\]]+$//; $u } @all;
     return @all;
 }
 
@@ -1405,7 +1405,7 @@ sub _analyse_domain {
             qr/Creation Date:\s*(\S+)/i,
             qr/Created(?:\s+On)?:\s*(\S+)/i,
             qr/Registration Time:\s*(\S+)/i,
-            qr/registered:\s*(\S+)/i,
+	    qr/^registered:\s*(\S+)/im,
         ) {
             if (!$info{registered} && $domain_whois =~ $pat) {
                 ($info{registered} = $1) =~ s/[TZ].*//;
@@ -1548,7 +1548,7 @@ sub _raw_whois {
         while (my $line = <$sock>) { $response .= $line }
         alarm(0);
     };
-    alarm(0);
+    alarm(0);	# FIXME, not good in mod_perl or on Windows
     close $sock;
     return $response || undef;
 }
@@ -1612,6 +1612,7 @@ sub _ip_in_cidr {
     my ($self, $ip, $cidr) = @_;
     return $ip eq $cidr unless $cidr =~ m{/};
     my ($net_addr, $prefix) = split m{/}, $cidr;
+    return 0 unless defined $prefix && $prefix =~ /^\d+$/ && $prefix <= 32;
     my $mask  = ~0 << (32 - $prefix);
     my $net_n = unpack 'N', (inet_aton($net_addr) // return 0);
     my $ip_n  = unpack 'N', (inet_aton($ip)       // return 0);
