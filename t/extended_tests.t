@@ -1276,7 +1276,6 @@ subtest 'risk_assessment -- missing_date raised when no Date: header' => sub {
     restore_net();
 };
 
-
 # =============================================================================
 # 29. Recipient domain exclusion -- To: domain must never be reported
 # =============================================================================
@@ -1290,8 +1289,8 @@ subtest 'mailto_domains -- To: domain excluded (recipient is the victim, not sen
     $a->parse_email(make_email(
         from        => 'Bulk Sender <info@campaign.spammer.example>',
         return_path => '<bounce@bounce.spammer.example>',
-        to          => '<victim@vainc.com>',
-        body        => "This email was sent to victim\@vainc.com
+        to          => '<victim@nigelhorne.com>',
+        body        => "This email was sent to victim\@nigelhorne.com
 Visit http://click.spammer.example/",
     ));
     {
@@ -1299,8 +1298,8 @@ Visit http://click.spammer.example/",
         local *Email::Abuse::Investigator::_resolve_host = sub { undef };
         local *Email::Abuse::Investigator::_domain_whois = sub { undef };
         my @domains = map { $_->{domain} } $a->mailto_domains();
-        ok !scalar(grep { /vainc/ } @domains),
-            'vainc.com (To: recipient domain) not included in mailto_domains';
+        ok !scalar(grep { /nigelhorne/ } @domains),
+            'nigelhorne.com (To: recipient domain) not included in mailto_domains';
         ok scalar(grep { /spammer/ } @domains),
             'spammer.example (sender domain) still captured';
     }
@@ -1331,22 +1330,253 @@ subtest 'mailto_domains -- Cc: domain also excluded' => sub {
 };
 
 subtest 'mailto_domains -- subdomain of recipient domain also excluded' => sub {
-    # If To: is victim\@vainc.com, sub.vainc.com appearing in body is also excluded
+    # If To: is victim\@nigelhorne.com, sub.nigelhorne.com appearing in body is also excluded
     null_net();
     my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email(make_email(
         from        => 'Spammer <spam@spammer.example>',
         return_path => '<bounce@spammer.example>',
-        to          => '<victim@vainc.com>',
-        body        => "Your account at webmail.vainc.com has been updated",
+        to          => '<victim@nigelhorne.com>',
+        body        => "Your account at webmail.nigelhorne.com has been updated",
     ));
     {
         no warnings 'redefine';
         local *Email::Abuse::Investigator::_resolve_host = sub { undef };
         local *Email::Abuse::Investigator::_domain_whois = sub { undef };
         my @domains = map { $_->{domain} } $a->mailto_domains();
-        ok !scalar(grep { /vainc/ } @domains),
-            'webmail.vainc.com (subdomain of To: recipient) also excluded';
+        ok !scalar(grep { /nigelhorne/ } @domains),
+            'webmail.nigelhorne.com (subdomain of To: recipient) also excluded';
+    }
+    restore_net();
+};
+
+
+# =============================================================================
+# 30. Regression: Salesforce Marketing Cloud / ExactTarget in provider table
+#     (fix 1 of 3 in 0.03 -- "no abuse contacts" from Salesforce bulk mail)
+# =============================================================================
+
+subtest '_provider_abuse_for_host -- salesforce.com returns abuse address' => sub {
+    my $a = new_ok('Email::Abuse::Investigator');
+    my $r = $a->_provider_abuse_for_host('salesforce.com');
+    ok defined $r,                             'salesforce.com found in provider table';
+    is $r->{email}, 'abuse@salesforce.com',    'correct abuse address';
+    like $r->{note}, qr/salesforce/i,          'note mentions Salesforce';
+};
+
+subtest '_provider_abuse_for_host -- mc.salesforce.com subdomain strips to match' => sub {
+    my $a = new_ok('Email::Abuse::Investigator');
+    # s13.y.mc.salesforce.com is the real DKIM d= value seen in the wild
+    my $r = $a->_provider_abuse_for_host('s13.y.mc.salesforce.com');
+    ok defined $r,                             's13.y.mc.salesforce.com resolves via subdomain stripping';
+    is $r->{email}, 'abuse@salesforce.com',    'resolves to Salesforce abuse address';
+};
+
+subtest '_provider_abuse_for_host -- exacttarget.com returns Salesforce address' => sub {
+    my $a = new_ok('Email::Abuse::Investigator');
+    my $r = $a->_provider_abuse_for_host('exacttarget.com');
+    ok defined $r,                             'exacttarget.com found in provider table';
+    is $r->{email}, 'abuse@salesforce.com',    'ExactTarget maps to Salesforce abuse address';
+};
+
+subtest 'abuse_contacts -- Salesforce DKIM signer produces contact' => sub {
+    # Full end-to-end: a message with a Salesforce DKIM-Signature d= tag
+    # should yield abuse@salesforce.com in abuse_contacts() even when
+    # all network calls are mocked out (no WHOIS available).
+    null_net();
+    my $a = new_ok('Email::Abuse::Investigator');
+    $a->parse_email(make_email(
+        from        => '"Bulk Sender" <info@campaign.spammer.example>',
+        return_path => '<bounce@bounce.spammer.example>',
+        to          => '<victim@bandsman.co.uk>',
+        auth        => 'mx.test; spf=pass; dkim=pass header.d=campaign.spammer.example;'
+                     . ' dkim=pass header.d=s13.y.mc.salesforce.com; dmarc=pass',
+        body        => 'Buy now',
+    ));
+    # Inject both DKIM-Signature headers as would appear in a real Salesforce email
+    push @{ $a->{_headers} },
+        { name => 'dkim-signature',
+          value => 'v=1; a=rsa-sha256; d=campaign.spammer.example; s=s1; b=xxx' },
+        { name => 'dkim-signature',
+          value => 'v=1; a=rsa-sha256; d=s13.y.mc.salesforce.com; s=fbldkim13; b=xxx' };
+    $a->{_auth_results}   = undef;   # force re-parse to pick up injected headers
+    $a->{_mailto_domains} = undef;
+    my @contacts = $a->abuse_contacts();
+    my @addresses = map { lc $_->{address} } @contacts;
+    ok scalar(grep { $_ eq 'abuse@salesforce.com' } @addresses),
+        'abuse@salesforce.com present in contacts when Salesforce is DKIM signer';
+    restore_net();
+};
+
+# =============================================================================
+# 31. Regression: non-routable hostnames filtered from domain pipeline
+#     (fix 2 of 3 in 0.03 -- iad4s13mta756.xt.local from Message-ID)
+# =============================================================================
+
+subtest 'mailto_domains -- .local hostname filtered out' => sub {
+    null_net();
+    my $a = new_ok('Email::Abuse::Investigator');
+    $a->parse_email(make_email(
+        from        => 'Spammer <spam@spammer.example>',
+        return_path => '<bounce@spammer.example>',
+        message_id  => '<abc123@mta756.xt.local>',
+        body        => 'test',
+    ));
+    {
+        no warnings 'redefine';
+        local *Email::Abuse::Investigator::_resolve_host = sub { undef };
+        local *Email::Abuse::Investigator::_domain_whois = sub { undef };
+        my @domains = map { $_->{domain} } $a->mailto_domains();
+        ok !scalar(grep { /\.local$/i } @domains),
+            '.local Message-ID hostname excluded from mailto_domains';
+        ok scalar(grep { /spammer/ } @domains),
+            'legitimate sender domain still captured';
+    }
+    restore_net();
+};
+
+subtest 'mailto_domains -- .internal hostname filtered out' => sub {
+    null_net();
+    my $a = new_ok('Email::Abuse::Investigator');
+    $a->parse_email(make_email(
+        from        => 'Spammer <spam@spammer.example>',
+        return_path => '<bounce@spammer.example>',
+        message_id  => '<msg001@relay.corp.internal>',
+        body        => 'test',
+    ));
+    {
+        no warnings 'redefine';
+        local *Email::Abuse::Investigator::_resolve_host = sub { undef };
+        local *Email::Abuse::Investigator::_domain_whois = sub { undef };
+        my @domains = map { $_->{domain} } $a->mailto_domains();
+        ok !scalar(grep { /\.internal$/i } @domains),
+            '.internal Message-ID hostname excluded from mailto_domains';
+    }
+    restore_net();
+};
+
+subtest 'mailto_domains -- single-label hostname filtered out' => sub {
+    null_net();
+    my $a = new_ok('Email::Abuse::Investigator');
+    $a->parse_email(make_email(
+        from        => 'Spammer <spam@spammer.example>',
+        return_path => '<bounce@spammer.example>',
+        message_id  => '<msg001@localhost>',
+        body        => 'test',
+    ));
+    {
+        no warnings 'redefine';
+        local *Email::Abuse::Investigator::_resolve_host = sub { undef };
+        local *Email::Abuse::Investigator::_domain_whois = sub { undef };
+        my @domains = map { $_->{domain} } $a->mailto_domains();
+        ok !scalar(grep { $_ eq 'localhost' } @domains),
+            'bare localhost hostname excluded from mailto_domains';
+    }
+    restore_net();
+};
+
+subtest 'mailto_domains -- routable domain in Message-ID still included' => sub {
+    # Confirm the filter does not over-reject legitimate Message-ID domains
+    null_net();
+    my $a = new_ok('Email::Abuse::Investigator');
+    $a->parse_email(make_email(
+        from        => 'Spammer <spam@spammer.example>',
+        return_path => '<bounce@spammer.example>',
+        message_id  => '<msg001@mta.bulkplatform.example>',
+        body        => 'test',
+    ));
+    {
+        no warnings 'redefine';
+        local *Email::Abuse::Investigator::_resolve_host = sub { undef };
+        local *Email::Abuse::Investigator::_domain_whois = sub { undef };
+        my @domains = map { $_->{domain} } $a->mailto_domains();
+        ok scalar(grep { /bulkplatform/ } @domains),
+            'routable Message-ID domain still included after non-routable filter';
+    }
+    restore_net();
+};
+
+# =============================================================================
+# 32. Regression: all DKIM d= domains collected; ESP preferred over customer
+#     (fix 3 of 3 in 0.03 -- Salesforce second DKIM-Signature ignored)
+# =============================================================================
+
+subtest '_parse_auth_results_cached -- collects all DKIM d= domains' => sub {
+    my $a = new_ok('Email::Abuse::Investigator');
+    $a->parse_email(make_email(
+        from => 'Sender <info@customer.example>',
+        auth => 'mx.test; dkim=pass header.d=customer.example',
+        body => 'test',
+    ));
+    push @{ $a->{_headers} },
+        { name => 'dkim-signature', value => 'v=1; d=customer.example; s=s1; b=xxx' },
+        { name => 'dkim-signature', value => 'v=1; d=s13.y.mc.salesforce.com; s=s2; b=xxx' };
+    $a->{_auth_results} = undef;
+    my $auth = $a->_parse_auth_results_cached();
+    ok defined $auth->{dkim_domains},         'dkim_domains arrayref populated';
+    is scalar @{ $auth->{dkim_domains} }, 2,  'both DKIM d= domains collected';
+    ok scalar(grep { $_ eq 'customer.example'         } @{ $auth->{dkim_domains} }),
+        'customer domain in dkim_domains';
+    ok scalar(grep { $_ eq 's13.y.mc.salesforce.com' } @{ $auth->{dkim_domains} }),
+        'Salesforce ESP domain in dkim_domains';
+};
+
+subtest '_parse_auth_results_cached -- prefers provider-table domain as dkim_domain' => sub {
+    # When one DKIM d= matches the provider table, it becomes dkim_domain
+    # regardless of its position in the header order.
+    my $a = new_ok('Email::Abuse::Investigator');
+    $a->parse_email(make_email(
+        from => 'Sender <info@customer.example>',
+        body => 'test',
+    ));
+    # Customer domain first, Salesforce second -- Salesforce should win
+    push @{ $a->{_headers} },
+        { name => 'dkim-signature', value => 'v=1; d=customer.example; s=s1; b=xxx' },
+        { name => 'dkim-signature', value => 'v=1; d=s13.y.mc.salesforce.com; s=s2; b=xxx' };
+    $a->{_auth_results} = undef;
+    my $auth = $a->_parse_auth_results_cached();
+    is $auth->{dkim_domain}, 's13.y.mc.salesforce.com',
+        'ESP domain preferred over customer domain when ESP is in provider table';
+};
+
+subtest '_parse_auth_results_cached -- falls back to first domain when none in provider table' => sub {
+    my $a = new_ok('Email::Abuse::Investigator');
+    $a->parse_email(make_email(
+        from => 'Sender <info@customer.example>',
+        body => 'test',
+    ));
+    push @{ $a->{_headers} },
+        { name => 'dkim-signature', value => 'v=1; d=first.unknown.example; s=s1; b=xxx' },
+        { name => 'dkim-signature', value => 'v=1; d=second.unknown.example; s=s2; b=xxx' };
+    $a->{_auth_results} = undef;
+    my $auth = $a->_parse_auth_results_cached();
+    is $auth->{dkim_domain}, 'first.unknown.example',
+        'first domain used when none match the provider table';
+};
+
+subtest 'mailto_domains -- all DKIM domains fed into domain pipeline' => sub {
+    # Both d= domains should appear in mailto_domains(), not just the primary
+    null_net();
+    my $a = new_ok('Email::Abuse::Investigator');
+    $a->parse_email(make_email(
+        from        => 'Sender <info@customer.example>',
+        return_path => '<bounce@customer.example>',
+        body        => 'test',
+    ));
+    push @{ $a->{_headers} },
+        { name => 'dkim-signature', value => 'v=1; d=customer.example; s=s1; b=xxx' },
+        { name => 'dkim-signature', value => 'v=1; d=mta.bulkplatform.example; s=s2; b=xxx' };
+    $a->{_auth_results}   = undef;
+    $a->{_mailto_domains} = undef;
+    {
+        no warnings 'redefine';
+        local *Email::Abuse::Investigator::_resolve_host = sub { undef };
+        local *Email::Abuse::Investigator::_domain_whois = sub { undef };
+        my @names = map { $_->{domain} } $a->mailto_domains();
+        ok scalar(grep { $_ eq 'customer.example'       } @names),
+            'first DKIM domain in mailto_domains';
+        ok scalar(grep { $_ eq 'mta.bulkplatform.example' } @names),
+            'second DKIM domain also in mailto_domains';
     }
     restore_net();
 };

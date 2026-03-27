@@ -138,6 +138,13 @@ my %PROVIDER_ABUSE = (
     'mailgun.org'         => { email => 'abuse@mailgun.com',       note => 'Mailgun sending infrastructure' },
     # Postmark
     'postmarkapp.com'     => { email => 'abuse@postmarkapp.com',   note => 'ESP abuse' },
+        # Salesforce Marketing Cloud (ExactTarget)
+    # Sending infrastructure domains follow the pattern *.mc.salesforce.com,
+    # *.exacttarget.com, and customer subdomains routed through their MTAs.
+    'salesforce.com'      => { email => 'abuse@salesforce.com',    note => 'Salesforce Marketing Cloud / ExactTarget ESP' },
+    'mc.salesforce.com'   => { email => 'abuse@salesforce.com',    note => 'Salesforce Marketing Cloud sending infrastructure' },
+    'exacttarget.com'     => { email => 'abuse@salesforce.com',    note => 'ExactTarget / Salesforce Marketing Cloud ESP' },
+    'et.exacttarget.com'  => { email => 'abuse@salesforce.com',    note => 'ExactTarget sending infrastructure' },
     # Vultr
     'vultr.com'           => { email => 'abuse@vultr.com',         note => 'Vultr hosting' },
     # Contabo
@@ -159,11 +166,11 @@ hosted URLs, and suspicious domains
 
 =head1 VERSION
 
-Version 0.02
+Version 0.03
 
 =cut
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 =head1 SYNOPSIS
 
@@ -4354,16 +4361,16 @@ sub _extract_http_urls {
         push @urls, $1;
     }
 
-    my %seen;
-    my @all = grep { !$seen{$_}++ } @urls;
-    s/[.,;:!?\)>\]]+$// for @all;
-    return @all;
+	my %seen;
+	my @all = grep { !$seen{$_}++ } @urls;
+	s/[.,;:!?\)>\]]+$// for @all;
+	return @all;
 }
 
 sub _extract_and_analyse_domains {
-    my ($self) = @_;
-    my %seen;
-    my @domains_with_source;
+	my $self = $_[0];
+	my %seen;
+	my @domains_with_source;
 
     # Build a set of recipient domains to exclude from analysis.
     # The To: and Cc: headers identify the message recipients -- the victims,
@@ -4398,6 +4405,15 @@ sub _extract_and_analyse_domains {
         return if $TRUSTED_DOMAINS{$dom};
         return if $recipient_domains{$dom};
         return if $recipient_domains{ _registrable($dom) // $dom };
+
+	# Discard non-routable hostnames: single-label names (no dot),
+	# .local / .internal / .lan / .arpa pseudo-TLDs, and anything
+	# without at least one alphabetic-only TLD of 2+ characters.
+	# These are MTA-internal identifiers that have no WHOIS record
+	# and no actionable abuse contact (e.g. iad4s13mta756.xt.local).
+	return unless $dom =~ /\.[a-zA-Z]{2,}$/;
+	return if $dom =~ /\.(?:local|internal|lan|localdomain|arpa)$/i;
+
         return if $seen{$dom}++;
         push @domains_with_source, { domain => $dom, source => $source };
     };
@@ -4427,11 +4443,12 @@ sub _extract_and_analyse_domains {
             unless $TRUSTED_DOMAINS{$mid_dom} || $TRUSTED_DOMAINS{$mid_reg};
     }
 
-    # DKIM signing domain — the organisation that vouches for the message
-    my $auth = $self->_parse_auth_results_cached();
-    if ($auth->{dkim_domain}) {
-        $record->($auth->{dkim_domain}, 'DKIM-Signature: d= (signing domain)');
-    }
+	# DKIM signing domain(s) -- the organisation(s) that vouch for the message.
+	# All d= domains are recorded; dkim_domain is the preferred (ESP) one.
+	my $auth = $self->_parse_auth_results_cached();
+	for my $dkim_d (@{ $auth->{dkim_domains} // [] }) {
+		$record->($dkim_d, 'DKIM-Signature: d= (signing domain)');
+	}
 
     # List-Unsubscribe domain — identifies the ESP / bulk sender
     my $unsub = $self->_header_value('list-unsubscribe');
@@ -4933,8 +4950,10 @@ sub _decode_ew {
 }
 
 sub _parse_auth_results_cached {
-    my ($self) = @_;
+	my $self = $_[0];
+
     return $self->{_auth_results} if $self->{_auth_results};
+
     my %auth;
     my $raw = join('; ',
         map { $_->{value} }
@@ -4950,13 +4969,31 @@ sub _parse_auth_results_cached {
         $auth{$k} =~ s/[;,\s]+$// if defined $auth{$k};
     }
 
-    # Extract DKIM signing domain from DKIM-Signature: d= tag
-    # There may be multiple signatures; take the first passing one, else the first
+        # Extract DKIM signing domains from all DKIM-Signature: d= tags.
+    # Multiple signatures are common: the first is usually the customer
+    # domain, the second the ESP infrastructure domain (e.g. Salesforce,
+    # SendGrid).  Prefer the first domain whose registrable parent is in
+    # the provider table (it identifies the actionable ESP); fall back to
+    # the first domain found.  All domains are stored in dkim_domains (an
+    # arrayref) for use by the domain pipeline; dkim_domain holds the
+    # primary one for risk_assessment and abuse_contacts.
+    my @dkim_domains;
     for my $h (grep { $_->{name} eq 'dkim-signature' } @{ $self->{_headers} }) {
         if ($h->{value} =~ /\bd=([^;,\s]+)/) {
-            $auth{dkim_domain} = lc $1;
-            last;
+            push @dkim_domains, lc $1;
         }
+    }
+    if (@dkim_domains) {
+        # Prefer a domain that matches the provider table (the ESP)
+        my $preferred;
+        for my $d (@dkim_domains) {
+            if ($self->_provider_abuse_for_host($d)) {
+                $preferred = $d;
+                last;
+            }
+        }
+        $auth{dkim_domain}  = $preferred // $dkim_domains[0];
+        $auth{dkim_domains} = \@dkim_domains;
     }
 
     $self->{_auth_results} = \%auth;

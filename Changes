@@ -1,6 +1,9 @@
 Revision history for Email-Abuse-Investigator
 
-0.03
+0.03	Fri Mar 27 19:54:32 EDT 2026
+
+  Bug fixes
+
   - Fixed spurious abuse reports being sent to the registrar or ISP of the
     message recipient.  Bulk mailers routinely embed the recipient's email
     address in the message body (personalisation footers, unsubscribe
@@ -11,6 +14,32 @@ Revision history for Email-Abuse-Investigator
     envelope-recipient domains are now built into an exclusion set --
     including their registrable eTLD+1 parents -- before any body or header
     scanning takes place.
+
+  - Fixed "no abuse contacts could be determined" when analysing email
+    sent via Salesforce Marketing Cloud (ExactTarget).  Three separate
+    causes were identified and corrected:
+
+    1. Salesforce Marketing Cloud was absent from the built-in provider
+       table.  Added salesforce.com, mc.salesforce.com, exacttarget.com,
+       and et.exacttarget.com, all mapping to abuse@salesforce.com.
+
+    2. Non-routable hostnames such as iad4s13mta756.xt.local (injected
+       by Salesforce's MTA into the Message-ID) were passing through the
+       domain collection pipeline and consuming a WHOIS lookup slot that
+       could never return an actionable result.  The $record closure in
+       _extract_and_analyse_domains() now rejects any domain whose TLD is
+       not at least two alphabetic characters, and explicitly rejects the
+       pseudo-TLDs .local, .internal, .lan, .localdomain, and .arpa.
+
+    3. When a message carries multiple DKIM-Signature headers (common
+       with ESPs: the first signs for the customer domain, the second
+       for the ESP infrastructure), _parse_auth_results_cached() took
+       only the first d= tag and stopped.  It now collects all d= domains
+       and sets dkim_domain to whichever one has a hit in the provider
+       table -- identifying the actionable ESP -- falling back to the
+       first if none match.  All collected domains are fed into the
+       domain analysis pipeline via the new dkim_domains arrayref in the
+       auth results hashref.
 
   - The --dry-run output of submit_abuse_report.pl now appends a compact
     recipient summary at the foot of the report:
@@ -24,6 +53,15 @@ Revision history for Email-Abuse-Investigator
     confirm at a glance who would receive reports without scrolling back
     through the full numbered table.
 
+  - submit_abuse_report now produces fully RFC 5965 (ARF) compliant
+    messages.  The MIME structure changed from multipart/mixed (two parts)
+    to multipart/report; report-type=feedback-report (three parts):
+      Part 1  text/plain                 human-readable abuse report
+      Part 2  message/feedback-report    ARF machine-readable metadata
+      Part 3  message/rfc822             original spam message verbatim
+    The feedback-report part includes Feedback-Type, Version, User-Agent,
+    Source-IP, Original-Mail-From, Original-Rcpt-To, Arrival-Date,
+    Reported-Domain, Reported-Uri (one per URL), and Authentication-Results.
 
 0.02	Fri Mar 27 19:04:37 EDT 2026
   - Added bin/submit_abuse_report
