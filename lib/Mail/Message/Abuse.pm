@@ -227,7 +227,7 @@ sub new {
 
     return bless {
         timeout        => $opts{timeout}        // 10,
-        trusted_relays => $opts{trusted_relays} || [],
+        trusted_relays => $opts{trusted_relays} // [],
         verbose        => $opts{verbose}        || 0,
         _raw           => '',
         _headers       => [],
@@ -632,7 +632,8 @@ sub _parse_auth_results_cached {
         grep { $_->{name} eq 'authentication-results' }
         @{ $self->{_headers} }
     );
-    $auth{spf}   = $1 if $raw =~ /\bspf=(\S+)/i;
+    $auth{spf} = $1 if $raw =~ /\bspf=(\S+)/i;
+	$auth{spf} =~ s/[;,\s]+$// if defined $auth{spf};
     $auth{dkim}  = $1 if $raw =~ /\bdkim=(\S+)/i;
     $auth{dmarc} = $1 if $raw =~ /\bdmarc=(\S+)/i;
     $auth{arc}   = $1 if $raw =~ /\barc=(\S+)/i;
