@@ -1,11 +1,11 @@
 #!/usr/bin/env perl
 # -----------------------------------------------------------------------
-# submit_abuse_report -- analyse a spam/phishing email and send abuse
+# submit_abuse_report.pl -- analyse a spam/phishing email and send abuse
 #                           reports to all relevant parties.
 #
 # Usage:
-#   submit_abuse_report [options] spam.eml
-#   submit_abuse_report [options] < spam.eml
+#   submit_abuse_report.pl [options] spam.eml
+#   submit_abuse_report.pl [options] < spam.eml
 #
 # Options:
 #   --dry-run              Show what would be sent and to whom; do not
@@ -21,13 +21,13 @@
 #
 # Examples:
 #   # Dry run -- see what would be sent without sending anything
-#   submit_abuse_report --dry-run spam.eml
+#   submit_abuse_report.pl --dry-run spam.eml
 #
 #   # Send reports via the local MTA
-#   submit_abuse_report --from postmaster@myisp.example spam.eml
+#   submit_abuse_report.pl --from postmaster@myisp.example spam.eml
 #
 #   # Send via a specific SMTP relay, skipping our own outbound IP
-#   submit_abuse_report \
+#   submit_abuse_report.pl \
 #       --from abuse-reporter@example.com \
 #       --smtp mail.example.com:587 \
 #       --trusted 203.0.113.0/24 \
@@ -36,7 +36,6 @@
 use 5.010;
 use strict;
 use warnings;
-use autodie qw(:all);
 use utf8;
 use open qw(:std :encoding(UTF-8));
 
@@ -72,11 +71,12 @@ GetOptions(
 pod2usage( -exitval => 0, -verbose => 2 ) if $help;
 
 unless ($dry_run || $from) {
-	die basename($0), ": --from ADDRESS is required unless --dry-run is used.\nRun with --help for usage.";
+    die basename($0) . ": --from ADDRESS is required unless --dry-run is used.\n"
+      . "Run with --help for usage.\n";
 }
 
 if ($from && $from !~ /\@/) {
-	die basename($0), ": --from value '$from' does not look like an email address.";
+    die basename($0) . ": --from value '$from' does not look like an email address.\n";
 }
 
 my ($smtp_host, $smtp_port) = split /:/, $smtp_arg, 2;
@@ -86,8 +86,9 @@ $smtp_port //= 25;
 # Read the raw email
 # -----------------------------------------------------------------------
 my $raw;
-if (@ARGV) {
-    open my $fh, '<:raw', $ARGV[0] or die basename($0) . ": cannot open '$ARGV[0]': $!";
+if (@ARGV && -f $ARGV[0]) {
+    open my $fh, '<:raw', $ARGV[0]
+        or die basename($0) . ": cannot open '$ARGV[0]': $!\n";
     local $/;
     $raw = <$fh>;
     close $fh;
@@ -97,7 +98,8 @@ if (@ARGV) {
     $raw = <STDIN>;
 }
 
-die basename($0), ': no email data supplied' unless defined $raw && length $raw;
+die basename($0) . ": no email data supplied.\n"
+    unless defined $raw && length $raw;
 
 # -----------------------------------------------------------------------
 # Analyse
@@ -119,6 +121,18 @@ unless (@contacts) {
 }
 
 my $report_text = $inv->abuse_report_text();
+
+# Append a note to the human-readable part so recipients know the
+# original message is attached and why.
+$report_text .= join("\n",
+    "",
+    "-" x 72,
+    "The original spam/phishing message is attached below as a",
+    "message/rfc822 MIME part.  Please use the full Received: headers",
+    "to locate the relevant SMTP session in your mail logs.",
+    "-" x 72,
+    "");
+
 my $orig        = $inv->originating_ip();
 my $risk        = $inv->risk_assessment();
 
@@ -129,7 +143,7 @@ my $subject = _build_subject($orig, $risk);
 # Dry run: describe what would be sent
 # -----------------------------------------------------------------------
 if ($dry_run) {
-    _dry_run_report(\@contacts, $subject, $report_text);
+    _dry_run_report(\@contacts, $subject, $report_text, \$raw);
     exit 0;
 }
 
@@ -152,6 +166,7 @@ for my $contact (@contacts) {
         to          => $to,
         subject     => $subject,
         body        => $report_text,
+        original    => \$raw,
         timeout     => $timeout,
     );
 
@@ -168,12 +183,12 @@ printf "\nDone: %d sent, %d failed.\n", $sent, $failed;
 exit( $failed ? 1 : 0 );
 
 # -----------------------------------------------------------------------
-# _dry_run_report( \@contacts, $subject, $report_text )
+# _dry_run_report( \@contacts, $subject, $report_text, \$raw )
 #
 # Print a full description of what would be sent without sending anything.
 # -----------------------------------------------------------------------
 sub _dry_run_report {
-    my ($contacts, $subject, $body) = @_;
+    my ($contacts, $subject, $body, $raw_ref) = @_;
 
     my $bar = '=' x 72;
     print "$bar\n";
@@ -194,9 +209,28 @@ sub _dry_run_report {
     }
 
     print "$bar\n";
-    print "  REPORT BODY (identical text sent to every recipient above)\n";
+    print "  PART 1: REPORT BODY (text/plain)\n";
+    print "  (identical text sent to every recipient above)\n";
     print "$bar\n\n";
     print $body;
+
+    # Show a preview of the attached original
+    print "\n$bar\n";
+    print "  PART 2: ORIGINAL MESSAGE (message/rfc822 attachment)\n";
+    print "$bar\n";
+    if (defined $raw_ref && length $$raw_ref) {
+        # Print first 20 lines of the original as a preview
+        my @lines = split /\r?\n/, $$raw_ref;
+        my $preview_lines = 20;
+        my $total = scalar @lines;
+        printf "  [Showing first %d of %d lines]\n\n",
+            ($total < $preview_lines ? $total : $preview_lines), $total;
+        print "  $_\n" for @lines[ 0 .. ($total < $preview_lines ? $total - 1 : $preview_lines - 1) ];
+        print "  ...\n" if $total > $preview_lines;
+    } else {
+        print "  (no original message available)\n";
+    }
+
     print "\n$bar\n";
     printf "  Total: %d recipient%s\n", scalar @{$contacts},
         @{$contacts} == 1 ? '' : 's';
@@ -206,8 +240,13 @@ sub _dry_run_report {
 # -----------------------------------------------------------------------
 # _send_report( %args ) -> bool
 #
-# Send a single abuse report via SMTP.  Returns 1 on success, 0 on failure.
-# Errors are printed to STDERR; the script continues to the next recipient.
+# Send a single abuse report via SMTP as a multipart/mixed message with
+# two parts:
+#   Part 1 -- text/plain   : the human-readable abuse report
+#   Part 2 -- message/rfc822: the original spam message verbatim
+#
+# Returns 1 on success, 0 on failure.
+# Errors are printed to STDERR; the caller continues to the next recipient.
 # -----------------------------------------------------------------------
 sub _send_report {
     my (%a) = @_;
@@ -218,19 +257,15 @@ sub _send_report {
         $$,
         do { (my $h = $a{from}) =~ s/.*\@//; $h };
 
-    # Build a minimal but valid RFC 2822 message
-    my $mail = join "\r\n",
-        "Date: $date",
-        "From: $a{from}",
-        "To: $a{to}",
-        "Subject: $a{subject}",
-        "Message-ID: $msg_id",
-        "MIME-Version: 1.0",
-        "Content-Type: text/plain; charset=UTF-8",
-        "Content-Transfer-Encoding: 8bit",
-        "X-Mailer: Email::Abuse::Investigator submit_abuse_report",
-        '',
-        $a{body};
+    my $mail = _build_mime_message(
+        date    => $date,
+        from    => $a{from},
+        to      => $a{to},
+        subject => $a{subject},
+        msg_id  => $msg_id,
+        body    => $a{body},
+        original => $a{original},
+    );
 
     my $smtp = eval {
         Net::SMTP->new(
@@ -241,28 +276,100 @@ sub _send_report {
     };
 
     unless ($smtp) {
-        warn "SMTP connect to $a{smtp_host}:$a{smtp_port} failed: $@";
+        warn "SMTP connect to $a{smtp_host}:$a{smtp_port} failed: $@\n";
         return 0;
     }
 
     my $ok = eval {
-        $smtp->mail( $a{from} )       or die "MAIL FROM failed";
-        $smtp->to(   $a{to}   )       or die "RCPT TO failed";
-        $smtp->data()                 or die "DATA failed";
-        $smtp->datasend($mail)        or die "datasend failed";
-        $smtp->dataend()              or die "dataend failed";
+        $smtp->mail( $a{from} )       or die "MAIL FROM failed\n";
+        $smtp->to(   $a{to}   )       or die "RCPT TO failed\n";
+        $smtp->data()                 or die "DATA failed\n";
+        $smtp->datasend($mail)        or die "datasend failed\n";
+        $smtp->dataend()              or die "dataend failed\n";
         $smtp->quit();
         1;
     };
 
-	unless ($ok) {
-		my $err = $@ || 'unknown SMTP error';
-		$err =~ s/\s+$//;
-		warn "SMTP error sending to $a{to}: $err";
-		return 0;
-	}
+    unless ($ok) {
+        my $err = $@ || 'unknown SMTP error';
+        $err =~ s/\s+$//;
+        warn "SMTP error sending to $a{to}: $err\n";
+        return 0;
+    }
 
-	return 1;
+    return 1;
+}
+
+# -----------------------------------------------------------------------
+# _build_mime_message( %args ) -> string
+#
+# Constructs a multipart/mixed MIME message string suitable for
+# transmission via Net::SMTP->datasend().
+#
+# The message has two parts:
+#   Part 1  text/plain; charset=UTF-8     -- the abuse report text
+#   Part 2  message/rfc822               -- the original spam message
+#
+# All line endings in the returned string are CRLF (\r\n) as required
+# by RFC 2822 for transmission.  The original message part is transmitted
+# verbatim (its own internal line endings are normalised to CRLF).
+# -----------------------------------------------------------------------
+sub _build_mime_message {
+    my (%a) = @_;
+
+    # A boundary that is extremely unlikely to appear in the content.
+    # Uses the PID and a timestamp for uniqueness.
+    my $boundary = sprintf 'abuse_report_%s_%d',
+        strftime('%Y%m%d%H%M%S', gmtime), $$;
+
+    # Normalise the original message to CRLF line endings for MIME
+    my $original_crlf = '';
+    if (defined $a{original} && length ${ $a{original} }) {
+        ($original_crlf = ${ $a{original} }) =~ s/\r?\n/\r\n/g;
+    }
+
+    # Normalise the report body to CRLF
+    (my $body_crlf = $a{body}) =~ s/\r?\n/\r\n/g;
+
+    # Build the outer headers
+    my @msg;
+    push @msg, "Date: $a{date}";
+    push @msg, "From: $a{from}";
+    push @msg, "To: $a{to}";
+    push @msg, "Subject: $a{subject}";
+    push @msg, "Message-ID: $a{msg_id}";
+    push @msg, "MIME-Version: 1.0";
+    push @msg, "Content-Type: multipart/mixed;";
+    push @msg, "    boundary=\"$boundary\"";
+    push @msg, "X-Mailer: Email::Abuse::Investigator submit_abuse_report.pl";
+    push @msg, "";  # end of headers
+
+    # Preamble (shown by non-MIME clients)
+    push @msg, "This is a MIME multipart abuse report.";
+    push @msg, "";
+
+    # ---- Part 1: human-readable report (text/plain) ----
+    push @msg, "--$boundary";
+    push @msg, "Content-Type: text/plain; charset=UTF-8";
+    push @msg, "Content-Transfer-Encoding: 8bit";
+    push @msg, "Content-Disposition: inline";
+    push @msg, "";
+    push @msg, $body_crlf;
+
+    # ---- Part 2: original spam message (message/rfc822) ----
+    push @msg, "--$boundary";
+    push @msg, "Content-Type: message/rfc822";
+    push @msg, "Content-Disposition: attachment;";
+    push @msg, "    filename=\"original_message.eml\"";
+    push @msg, "Content-Description: Original spam/phishing message";
+    push @msg, "";
+    push @msg, $original_crlf;
+
+    # Closing boundary
+    push @msg, "--${boundary}--";
+    push @msg, "";
+
+    return join("\r\n", @msg);
 }
 
 # -----------------------------------------------------------------------
@@ -284,13 +391,13 @@ __END__
 
 =head1 NAME
 
-submit_abuse_report -- analyse a spam/phishing email and send abuse
+submit_abuse_report.pl -- analyse a spam/phishing email and send abuse
 reports to all relevant parties
 
 =head1 SYNOPSIS
 
-    submit_abuse_report [options] spam.eml
-    submit_abuse_report [options] < spam.eml
+    submit_abuse_report.pl [options] spam.eml
+    submit_abuse_report.pl [options] < spam.eml
 
 =head1 OPTIONS
 
@@ -342,12 +449,63 @@ analyses it using C<Email::Abuse::Investigator>, and sends an abuse
 report to each identified contact: the sending ISP, URL hosts, domain
 registrars, account providers, DKIM signers, and ESPs.
 
-All recipients receive identical report text generated by
-C<Email::Abuse::Investigator::abuse_report_text()>.  The subject line
-includes the risk level and originating IP for easy triage.
+Each outgoing report is a C<multipart/mixed> MIME message containing
+two parts:
 
-Use B<--dry-run> first to review the analysis and confirm the recipients
-before sending.
+=over 4
+
+=item Part 1 -- C<text/plain>
+
+The human-readable abuse report generated by
+C<Email::Abuse::Investigator::abuse_report_text()>, including risk level,
+red flags, originating IP, and a list of all abuse contacts found.
+
+=item Part 2 -- C<message/rfc822>
+
+The original spam or phishing message verbatim, as an attachment named
+C<original_message.eml>.  ISP abuse teams require the original headers
+to locate the relevant SMTP session in their logs; without them a report
+is rarely actionable.
+
+=back
+
+All recipients receive identical report text.  The subject line includes
+the risk level and originating IP for easy triage.
+
+Use B<--dry-run> first to review the analysis, confirm the recipients,
+and preview the first 20 lines of the original message attachment before
+committing to sending.
+
+=head1 RELATIONSHIP TO RFC 5965 (ARF)
+
+RFC 5965 defines the Abuse Reporting Format (ARF), the IETF standard for
+machine-readable abuse reports.  A fully compliant ARF message is a
+C<multipart/report> with three parts: a human-readable C<text/plain>
+summary, a C<message/feedback-report> part carrying structured metadata
+(feedback type, reported domain, source IP, etc.), and the original
+message as C<message/rfc822>.
+
+This script produces a simpler C<multipart/mixed> message that includes
+the human-readable summary (Part 1) and the original message verbatim
+(Part 2), but omits the C<message/feedback-report> metadata part.  This
+means the output is B<not> fully ARF-compliant and will not be parsed
+automatically by ARF-aware abuse desk systems.
+
+It is nonetheless accepted by the large majority of ISP and registrar
+abuse desks, which process reports by human review.  If you need full
+ARF compliance -- for example, to report to a feedback loop that requires
+it -- replace the C<multipart/mixed> envelope in C<_build_mime_message()>
+with C<multipart/report; report-type=feedback-report> and add a second
+part of type C<message/feedback-report> containing at minimum:
+
+    Feedback-Type: abuse
+    User-Agent: Email::Abuse::Investigator/2.10
+    Version: 1
+    Source-IP: <originating IP>
+    Reported-Domain: <primary contact domain>
+
+See L<https://datatracker.ietf.org/doc/html/rfc5965> for the full
+specification.
 
 =head1 EXIT STATUS
 
@@ -366,5 +524,8 @@ before sending.
 =head1 SEE ALSO
 
 L<Email::Abuse::Investigator>
+
+RFC 5965 -- An Extensible Format for Email Feedback Reports (ARF):
+L<https://datatracker.ietf.org/doc/html/rfc5965>
 
 =cut
