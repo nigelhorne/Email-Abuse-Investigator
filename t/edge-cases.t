@@ -251,13 +251,14 @@ subtest 'Received: -- 0.0.0.0 excluded as this-network address' => sub {
     restore_net();
 };
 
-subtest 'Received: -- 255.255.255.255 passes through (no broadcast exclusion)' => sub {
+subtest 'Received: -- 255.255.255.255 excluded as broadcast (qr/^255./ range)' => sub {
     null_net();
     my $a = new_ok('Mail::Message::Abuse');
     $a->parse_email(bare_email(
         "Received: from bc [255.255.255.255] by mx\nFrom: x\@y.com\n"));
     my $orig = $a->originating_ip();
-    ok defined $orig, '255.255.255.255 not excluded (no broadcast filter in module)';
+    is $orig, undef,
+        '255.255.255.255 excluded by qr/^255./ PRIVATE_RANGES entry';
     restore_net();
 };
 
@@ -372,8 +373,8 @@ subtest '_ip_in_cidr -- /32 matches exactly one host' => sub {
 subtest '_ip_in_cidr -- network and broadcast addresses included in /24' => sub {
     my $a = new_ok('Mail::Message::Abuse');
     ok  $a->_ip_in_cidr('62.105.128.0',   '62.105.128.0/24'), 'network address in /24';
-    ok !$a->_ip_in_cidr('203.0.113.255', '62.105.128.0/24'), 'broadcast in /24';
-    ok !$a->_ip_in_cidr('203.0.114.0',   '62.105.128.0/24'), 'next block out of /24';
+    ok  $a->_ip_in_cidr('62.105.128.255', '62.105.128.0/24'), 'broadcast in /24';
+    ok !$a->_ip_in_cidr('62.105.129.0',   '62.105.128.0/24'), 'next block out of /24';
 };
 
 subtest '_ip_in_cidr -- /16 straddles correctly' => sub {

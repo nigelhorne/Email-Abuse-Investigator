@@ -540,12 +540,10 @@ subtest 'risk_assessment -- free_webmail_sender: aol.com' => sub {
     restore_net();
 };
 
-subtest 'risk_assessment -- free_webmail_sender: mail.ru (module gap)' => sub {
-    # The free-webmail regex is: /@(gmail|yahoo|...|mail\.ru|...)\.$/i
-    # This requires a dot AFTER the provider token. For gmail.com the dot is
-    # between 'gmail' and 'com'. But mail.ru ends the address with no trailing
-    # dot, so the regex never matches @mail.ru addresses. This is a module gap.
-    # We document the actual behaviour here so the test suite is honest.
+subtest 'risk_assessment -- free_webmail_sender: mail.ru' => sub {
+    # The regex was fixed to handle TLD-based providers that have no subdomain:
+    # mail.ru is now matched via a separate branch that does not require a
+    # trailing dot after the provider token.
     null_net();
     my $a = new_ok('Mail::Message::Abuse');
     $a->parse_email(make_email(
@@ -555,9 +553,8 @@ subtest 'risk_assessment -- free_webmail_sender: mail.ru (module gap)' => sub {
                       org=>'X', abuse=>'a@b', note=>'', country=>undef };
     $a->{_urls} = []; $a->{_mailto_domains} = [];
     my $risk = $a->risk_assessment();
-    # Document the gap: @mail.ru does NOT trigger free_webmail_sender
-    ok !scalar(grep { $_->{flag} eq 'free_webmail_sender' } @{ $risk->{flags} }),
-        '@mail.ru does NOT raise free_webmail_sender (regex requires dot after token -- module gap)';
+    ok scalar(grep { $_->{flag} eq 'free_webmail_sender' } @{ $risk->{flags} }),
+        'free_webmail_sender raised for @mail.ru sender (regex fix applied)';
     restore_net();
 };
 

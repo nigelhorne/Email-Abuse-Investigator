@@ -108,15 +108,21 @@ All are available from CPAN.
 # -----------------------------------------------------------------------
 
 my @PRIVATE_RANGES = (
-	qr/^0\.0\.0\.0$/,
-	qr/^127\./,
-	qr/^10\./,
-	qr/^192\.168\./,
-	qr/^172\.(?:1[6-9]|2\d|3[01])\./,
-	qr/^169\.254\./,
-	qr/^::1$/,
-	qr/^fc/i,
-	qr/^fd/i,
+    qr/^0\./,                          # 0.0.0.0/8  this-network (RFC 1122)
+    qr/^127\./,                        # 127.0.0.0/8 loopback
+    qr/^10\./,                         # 10.0.0.0/8  RFC 1918
+    qr/^192\.168\./,                   # 192.168.0.0/16 RFC 1918
+    qr/^172\.(?:1[6-9]|2\d|3[01])\./,  # 172.16.0.0/12  RFC 1918
+    qr/^169\.254\./,                   # 169.254.0.0/16 link-local
+    qr/^100\.(?:6[4-9]|[7-9]\d|1(?:[01]\d|2[0-7]))\./,  # 100.64.0.0/10 shared (RFC 6598)
+    qr/^192\.0\.0\./,                  # 192.0.0.0/24  IETF protocol (RFC 6890)
+    qr/^192\.0\.2\./,                  # 192.0.2.0/24  TEST-NET-1 (RFC 5737)
+    qr/^198\.51\.100\./,               # 198.51.100.0/24 TEST-NET-2 (RFC 5737)
+    qr/^203\.0\.113\./,                # 203.0.113.0/24 TEST-NET-3 (RFC 5737)
+    qr/^255\./,                        # 255.0.0.0/8 broadcast
+    qr/^::1$/,                         # IPv6 loopback
+    qr/^fc/i,                          # IPv6 ULA fc00::/7
+    qr/^fd/i,                          # IPv6 ULA fd00::/8
 );
 
 my @RECEIVED_IP_RE = (
@@ -521,7 +527,9 @@ sub risk_assessment {
     }
 
     # From: is a free webmail provider
-    if ($from_raw =~ /\@(gmail|yahoo|hotmail|outlook|live|aol|mail\.ru|protonmail|yandex)\./i) {
+ # mail.ru matched separately without requiring trailing dot
+if ($from_raw =~ /\@(gmail|yahoo|hotmail|outlook|live|aol|protonmail|yandex)\./i
+ || $from_raw =~ /\@mail\.ru(?:[\s>]|$)/i) {
         $flag->('MEDIUM', 'free_webmail_sender',
             "Message sent from free webmail address ($from_raw) — no corporate mail infrastructure");
     }

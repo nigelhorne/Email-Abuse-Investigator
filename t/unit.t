@@ -33,7 +33,7 @@ use Mail::Message::Abuse;
 sub make_email {
     my (%h) = @_;
     my $received = $h{received}
-        // 'from ext.example.com (ext.example.com [198.51.100.42])'
+        // 'from ext.example.com (ext.example.com [91.198.174.42])'
          . ' by mx.bandsman.co.uk (Postfix); Mon, 01 Jan 2024 00:00:00 +0000';
     my $from        = $h{from}        // 'Sender <sender@spamsite.example>';
     my $reply_to    = $h{reply_to};
@@ -124,12 +124,12 @@ subtest 'new() — constructor API' => sub {
     my $b = Mail::Message::Abuse->new(
         timeout        => 30,
         verbose        => 1,
-        trusted_relays => ['203.0.113.0/24', '198.51.100.5'],
+        trusted_relays => ['62.105.128.0/24', '91.198.174.5'],
     );
     is $b->{timeout}, 30, 'custom timeout stored';
     is $b->{verbose},  1, 'custom verbose stored';
     is_deeply $b->{trusted_relays},
-        ['203.0.113.0/24', '198.51.100.5'],
+        ['62.105.128.0/24', '91.198.174.5'],
         'custom trusted_relays stored';
 };
 
@@ -212,7 +212,7 @@ subtest 'originating_ip() — documented hashref structure' => sub {
 
     my $a = Mail::Message::Abuse->new();
     $a->parse_email(make_email(
-        received => 'from spammer (spammer [198.51.100.42]) by mx'));
+        received => 'from spammer (spammer [91.198.174.42]) by mx'));
     my $orig = $a->originating_ip();
 
     # Must be a hashref
@@ -242,13 +242,13 @@ subtest 'originating_ip() — confidence levels per POD' => sub {
     # single external hop → medium
     my $a = Mail::Message::Abuse->new();
     $a->parse_email(make_email(
-        received => 'from spammer (spammer [198.51.100.1]) by mx'));
+        received => 'from spammer (spammer [91.198.174.1]) by mx'));
     is $a->originating_ip()->{confidence}, 'medium',
        'single external hop yields medium confidence';
 
     # two external hops → high
-    my $raw2 = "Received: from r1 (r1 [198.51.100.2]) by r2\n"
-             . "Received: from r2 (r2 [198.51.100.3]) by mx\n"
+    my $raw2 = "Received: from r1 (r1 [91.198.174.2]) by r2\n"
+             . "Received: from r2 (r2 [91.198.174.3]) by mx\n"
              . "From: x\@y.com\nSubject: s\n\nbody";
     my $b = Mail::Message::Abuse->new();
     $b->parse_email($raw2);
@@ -259,7 +259,7 @@ subtest 'originating_ip() — confidence levels per POD' => sub {
     my $c = Mail::Message::Abuse->new();
     $c->parse_email(make_email(
         received => 'from localhost [127.0.0.1] by mx',
-        xoip     => '203.0.113.99',
+        xoip     => '62.105.128.99',
     ));
     is $c->originating_ip()->{confidence}, 'low',
        'X-Originating-IP fallback yields low confidence';
@@ -288,7 +288,7 @@ subtest 'originating_ip() — result is cached between calls' => sub {
 # embedded_urls()
 # =============================================================================
 subtest 'embedded_urls() — documented hashref structure' => sub {
-    stub_net(resolve => '198.51.100.7', org => 'Dodgy Hosting Ltd',
+    stub_net(resolve => '91.198.174.7', org => 'Dodgy Hosting Ltd',
              abuse => 'abuse@dodgy.example');
 
     my $a = Mail::Message::Abuse->new();
@@ -629,7 +629,7 @@ subtest 'risk_assessment() — each flag hashref has severity, flag, detail' => 
 
     my $a = Mail::Message::Abuse->new();
     $a->parse_email(make_email(
-        received => 'from dsl-host (dsl-host [198.51.100.1]) by mx'));
+        received => 'from dsl-host (dsl-host [91.198.174.1]) by mx'));
     my $risk  = $a->risk_assessment();
     my @flags = @{ $risk->{flags} };
 
@@ -663,7 +663,7 @@ subtest 'risk_assessment() — score threshold boundaries match POD' => sub {
     ));
     # Manually inject clean origin (no rDNS issues)
     $a->{_origin} = {
-        ip         => '198.51.100.1',
+        ip         => '91.198.174.1',
         rdns       => 'mail.corp.example',
         org        => 'Corp ISP',
         abuse      => 'abuse@corp.example',
@@ -721,13 +721,13 @@ subtest 'abuse_report_text() — contains all documented sections' => sub {
 
     my $a = Mail::Message::Abuse->new();
     $a->parse_email(make_email(
-        received => 'from spammer (spammer [198.51.100.42]) by mx',
+        received => 'from spammer (spammer [91.198.174.42]) by mx',
         body     => 'Buy at https://scam.example/now',
     ));
 
     {
         no warnings 'redefine';
-        local *Mail::Message::Abuse::_resolve_host = sub { '198.51.100.99' };
+        local *Mail::Message::Abuse::_resolve_host = sub { '91.198.174.99' };
         local *Mail::Message::Abuse::_whois_ip     = sub {
             { org => 'Scam Host', abuse => 'abuse@scam.example' }
         };
@@ -756,7 +756,7 @@ subtest 'abuse_report_text() — RED FLAGS section present when flags exist' => 
 
     my $a = Mail::Message::Abuse->new();
     $a->parse_email(make_email(
-        received => 'from dsl (dsl [198.51.100.1]) by mx'));
+        received => 'from dsl (dsl [91.198.174.1]) by mx'));
     my $text = $a->abuse_report_text();
     like $text, qr/RED FLAGS IDENTIFIED/, 'RED FLAGS section present when flags exist';
 
@@ -883,7 +883,7 @@ subtest 'abuse_contacts() — produces Sending ISP contact from originating IP' 
 
     my $a = Mail::Message::Abuse->new();
     $a->parse_email(make_email(
-        received => 'from sender (sender [198.51.100.42]) by mx',
+        received => 'from sender (sender [91.198.174.42]) by mx',
     ));
     $a->{_urls}           = [];
     $a->{_mailto_domains} = [];
@@ -936,7 +936,7 @@ subtest 'abuse_contacts() — (unknown) abuse addresses are never included' => s
 
     my $a = Mail::Message::Abuse->new();
     $a->parse_email(make_email(
-        received => 'from s (s [198.51.100.1]) by mx',
+        received => 'from s (s [91.198.174.1]) by mx',
         from     => 'x@noprovider.example',   # not in provider table
     ));
     $a->{_urls}           = [];
@@ -1201,7 +1201,7 @@ subtest 'parse_email() re-invocation clears all public-method caches' => sub {
     $a->parse_email(make_email(
         body     => 'https://first.example/page',
         from     => 'x@first.example',
-        received => 'from first (first [198.51.100.1]) by mx',
+        received => 'from first (first [91.198.174.1]) by mx',
     ));
     my @urls1  = $a->embedded_urls();
     my @mdoms1 = $a->mailto_domains();
@@ -1217,7 +1217,7 @@ subtest 'parse_email() re-invocation clears all public-method caches' => sub {
     $a->parse_email(make_email(
         body     => 'No links at all.',
         from     => 'clean@verifiedcorp.example',
-        received => 'from clean (clean [198.51.100.2]) by mx',
+        received => 'from clean (clean [91.198.174.2]) by mx',
     ));
 
     my @urls2  = $a->embedded_urls();
@@ -1227,7 +1227,7 @@ subtest 'parse_email() re-invocation clears all public-method caches' => sub {
 
     # Origin should now reflect the new email's IP
     my $orig2 = $a->originating_ip();
-    ok !defined($orig2) || $orig2->{ip} ne '198.51.100.1',
+    ok !defined($orig2) || $orig2->{ip} ne '91.198.174.1',
        're-parse: origin cache refreshed';
 
     restore_net();
