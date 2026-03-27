@@ -1,6 +1,6 @@
 # NAME
 
-Mail::Message::Abuse - Analyse spam email to identify originating hosts,
+Email::Abuse::Investigator - Analyse spam email to identify originating hosts,
 hosted URLs, and suspicious domains
 
 # VERSION
@@ -9,9 +9,9 @@ Version 0.01
 
 # SYNOPSIS
 
-    use Mail::Message::Abuse;
+    use Email::Abuse::Investigator;
 
-    my $analyser = Mail::Message::Abuse->new( verbose => 1 );
+    my $analyser = Email::Abuse::Investigator->new( verbose => 1 );
     $analyser->parse_email($raw_email_text);
 
     # Originating IP and its network owner
@@ -31,7 +31,7 @@ Version 0.01
 
 # DESCRIPTION
 
-`Mail::Message::Abuse` examines the raw source of a spam/phishing e-mail
+`Email::Abuse::Investigator` examines the raw source of a spam/phishing e-mail
 and answers the questions abuse investigators ask:
 
 - 1. Where did the message really come from?
@@ -64,7 +64,7 @@ and answers the questions abuse investigators ask:
 
 ### Purpose
 
-Constructs and returns a new `Mail::Message::Abuse` analyser object.  The
+Constructs and returns a new `Email::Abuse::Investigator` analyser object.  The
 object is stateless until `parse_email()` is called; all analysis results
 are stored on the object and retrieved via the public accessor methods
 documented below.
@@ -75,10 +75,10 @@ again: all cached state from the previous message is discarded automatically.
 ### Usage
 
     # Minimal -- all options take safe defaults
-    my $analyser = Mail::Message::Abuse->new();
+    my $analyser = Email::Abuse::Investigator->new();
 
     # With options
-    my $analyser = Mail::Message::Abuse->new(
+    my $analyser = Email::Abuse::Investigator->new(
         timeout        => 15,
         trusted_relays => ['203.0.113.0/24', '10.0.0.0/8'],
         verbose        => 0,
@@ -125,14 +125,14 @@ All arguments are optional named parameters passed as a flat key-value list.
 - `verbose` (boolean, default 0)
 
     When true, diagnostic messages are written to STDERR as the object
-    processes each email.  Messages are prefixed with `[Mail::Message::Abuse]`
+    processes each email.  Messages are prefixed with `[Email::Abuse::Investigator]`
     and describe each major analysis step (header parsing, DNS resolution,
     WHOIS queries, etc.).  Intended for development and debugging; leave false
     in production.
 
 ### Returns
 
-A blessed `Mail::Message::Abuse` object.  The object is immediately usable;
+A blessed `Email::Abuse::Investigator` object.  The object is immediately usable;
 no network I/O is performed during construction.
 
 ### Side Effects
@@ -147,7 +147,7 @@ until the first call to a method that requires it (`originating_ip()`,
 stored correctly as zero.  All other constructor options also use `//`.
 - Unknown option keys are silently ignored.
 - The object is not thread-safe.  If you process multiple emails
-concurrently, construct a separate `Mail::Message::Abuse` object per
+concurrently, construct a separate `Email::Abuse::Investigator` object per
 thread or per-request.
 - The `alarm()` mechanism used by the raw WHOIS client is not reliable on
 Windows or inside threaded Perl interpreters.  All other functionality
@@ -185,8 +185,8 @@ timeout on affected platforms.
 
     # Return::Set compatible specification
     {
-        type  => 'Mail::Message::Abuse',  # blessed object
-        isa   => 'Mail::Message::Abuse',
+        type  => 'Email::Abuse::Investigator',  # blessed object
+        isa   => 'Email::Abuse::Investigator',
 
         # Guaranteed slots on the returned object (public API):
         #   timeout        => non-negative integer
@@ -220,7 +220,7 @@ the previous email survives.
     $analyser->parse_email(\$raw);
 
     # Chained with new()
-    my $analyser = Mail::Message::Abuse->new()->parse_email($raw);
+    my $analyser = Email::Abuse::Investigator->new()->parse_email($raw);
 
     # Re-use the same object for multiple messages
     while (my $msg = $queue->next()) {
@@ -255,7 +255,7 @@ the previous email survives.
 
 The object itself (`$self`), allowing method chaining:
 
-    my $origin = Mail::Message::Abuse->new()->parse_email($raw)->originating_ip();
+    my $origin = Email::Abuse::Investigator->new()->parse_email($raw)->originating_ip();
 
 ### Side Effects
 
@@ -337,8 +337,8 @@ prevents malformed spam from causing exceptions during analysis.
 
     # Return::Set compatible specification
     {
-        type => 'Mail::Message::Abuse',  # the invocant, returned for chaining
-        isa  => 'Mail::Message::Abuse',
+        type => 'Email::Abuse::Investigator',  # the invocant, returned for chaining
+        isa  => 'Email::Abuse::Investigator',
 
         # Guaranteed post-conditions on the returned object:
         #   sending_software()  returns a (possibly empty) list
@@ -532,7 +532,7 @@ for the unknown case: `$orig->{abuse} eq '(unknown)'`.
 #### Input
 
     # Params::Validate::Strict compatible specification
-    # No arguments; invocant must be a Mail::Message::Abuse object
+    # No arguments; invocant must be a Email::Abuse::Investigator object
     # on which parse_email() has previously been called.
     []
 
@@ -2102,7 +2102,7 @@ The report is structured as follows, in order:
 
     Two fixed lines:
 
-        This is an automated abuse report generated by Mail::Message::Abuse.
+        This is an automated abuse report generated by Email::Abuse::Investigator.
         Please investigate the following spam/phishing message.
 
 - 2. Risk level
@@ -2528,7 +2528,7 @@ this fixed order:
 - 1. Banner
 
         ========================================================================
-          Mail::Message::Abuse Report  (vX.XX)
+          Email::Abuse::Investigator Report  (vX.XX)
         ========================================================================
 
     A row of 72 equals signs, the module name and version number, and a
@@ -2689,7 +2689,7 @@ available via `received_trail()`.
 are entirely omitted -- no heading, no placeholder text -- when no relevant
 headers are present.  All other sections always appear, using a
 `(none found)` or equivalent placeholder when their data is empty.
-- The version number in the banner is the value of `$Mail::Message::Abuse::VERSION`
+- The version number in the banner is the value of `$Email::Abuse::Investigator::VERSION`
 at the time `report()` is called.
 
 ### API Specification
@@ -2769,15 +2769,15 @@ less than 180 days ago with `recently_registered => 1`.
 
 # REPOSITORY
 
-[https://github.com/nigelhorne/Mail-Message-Abuse](https://github.com/nigelhorne/Mail-Message-Abuse)
+[https://github.com/nigelhorne/Email-Abuse-Investigator](https://github.com/nigelhorne/Email-Abuse-Investigator)
 
 # SUPPORT
 
 This module is provided as-is without any warranty.
 
-Please report any bugs or feature requests to `bug-mail-message-abuse at rt.cpan.org`,
+Please report any bugs or feature requests to `bug-email-abuse-investigator at rt.cpan.org`,
 or through the web interface at
-[http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Mail-Message-Abuse](http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Mail-Message-Abuse)
+[http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Email-Abuse-Investigator](http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Email-Abuse-Investigator)
 I will be notified, and then you'll
 automatically be notified of progress on your bug as I make changes.
 
@@ -2789,15 +2789,15 @@ You can also look for information at:
 
 - MetaCPAN
 
-    [https://metacpan.org/dist/Mail-Message-Abuse](https://metacpan.org/dist/Mail-Message-Abuse)
+    [https://metacpan.org/dist/Email-Abuse-Investigator](https://metacpan.org/dist/Email-Abuse-Investigator)
 
 - RT: CPAN's request tracker
 
-    [https://rt.cpan.org/NoAuth/Bugs.html?Dist=Mail-Message-Abuse](https://rt.cpan.org/NoAuth/Bugs.html?Dist=Mail-Message-Abuse)
+    [https://rt.cpan.org/NoAuth/Bugs.html?Dist=Email-Abuse-Investigator](https://rt.cpan.org/NoAuth/Bugs.html?Dist=Email-Abuse-Investigator)
 
 - CPAN Testers' Matrix
 
-    [http://matrix.cpantesters.org/?dist=Mail-Message-Abuse](http://matrix.cpantesters.org/?dist=Mail-Message-Abuse)
+    [http://matrix.cpantesters.org/?dist=Email-Abuse-Investigator](http://matrix.cpantesters.org/?dist=Email-Abuse-Investigator)
 
 - CPAN Testers Dependencies
 

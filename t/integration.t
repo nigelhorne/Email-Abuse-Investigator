@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 # =============================================================================
 # t/integration.t  —  Black-box, end-to-end integration tests for
-#                     Mail::Message::Abuse
+#                     Email::Abuse::Investigator
 #
 # Philosophy
 # ----------
@@ -35,7 +35,7 @@ use POSIX             qw( strftime );
 use FindBin qw( $Bin );
 use lib "$Bin/../lib", "$Bin/..";
 
-use_ok('Mail::Message::Abuse');
+use_ok('Email::Abuse::Investigator');
 
 # ---------------------------------------------------------------------------
 # Network stub infrastructure
@@ -51,7 +51,7 @@ BEGIN {
         _domain_whois _raw_whois     _rdap_lookup
     )) {
         no strict 'refs';
-        $_ORIGINAL{$fn} = \&{ "Mail::Message::Abuse::$fn" };
+        $_ORIGINAL{$fn} = \&{ "Email::Abuse::Investigator::$fn" };
     }
 }
 
@@ -59,7 +59,7 @@ sub restore_stubs {
     no warnings 'redefine';
     for my $fn (keys %_ORIGINAL) {
         no strict 'refs';
-        *{ "Mail::Message::Abuse::$fn" } = $_ORIGINAL{$fn};
+        *{ "Email::Abuse::Investigator::$fn" } = $_ORIGINAL{$fn};
     }
 }
 
@@ -73,11 +73,11 @@ sub install_stubs {
     my (%ov) = @_;
     no warnings 'redefine';
 
-    *Mail::Message::Abuse::_reverse_dns = ref($ov{rdns}) eq 'CODE'
+    *Email::Abuse::Investigator::_reverse_dns = ref($ov{rdns}) eq 'CODE'
         ? $ov{rdns}
         : sub { $ov{rdns} // undef };
 
-    *Mail::Message::Abuse::_resolve_host = ref($ov{resolve}) eq 'CODE'
+    *Email::Abuse::Investigator::_resolve_host = ref($ov{resolve}) eq 'CODE'
         ? $ov{resolve}
         : sub {
             my (undef, $host) = @_;
@@ -87,7 +87,7 @@ sub install_stubs {
             return ref $r eq 'HASH' ? ($r->{$host} // undef) : $r;
         };
 
-    *Mail::Message::Abuse::_whois_ip = ref($ov{whois_ip}) eq 'CODE'
+    *Email::Abuse::Investigator::_whois_ip = ref($ov{whois_ip}) eq 'CODE'
         ? $ov{whois_ip}
         : sub {
             my (undef, $ip) = @_;
@@ -96,13 +96,13 @@ sub install_stubs {
             return ref $w eq 'HASH' ? $w : {};
         };
 
-    *Mail::Message::Abuse::_domain_whois = ref($ov{domain_whois}) eq 'CODE'
+    *Email::Abuse::Investigator::_domain_whois = ref($ov{domain_whois}) eq 'CODE'
         ? $ov{domain_whois}
         : sub { $ov{domain_whois} // undef };
 
     # These are never needed in integration tests (covered by the above)
-    *Mail::Message::Abuse::_raw_whois  = sub { undef };
-    *Mail::Message::Abuse::_rdap_lookup = sub { {} };
+    *Email::Abuse::Investigator::_raw_whois  = sub { undef };
+    *Email::Abuse::Investigator::_rdap_lookup = sub { {} };
 }
 
 # ---------------------------------------------------------------------------
@@ -175,7 +175,7 @@ WHOIS
         },
     );
 
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email(make_raw_email(
         received => 'from badactor (badactor [91.198.174.42]) by mx.test',
         from     => 'Deals <deals@spamsite.example>',
@@ -282,7 +282,7 @@ subtest 'Scenario 2: Gmail-sent spam through internal relays' => sub {
         domain_whois => undef,
     );
 
-    my $a = Mail::Message::Abuse->new(
+    my $a = Email::Abuse::Investigator->new(
         trusted_relays => ['172.31.0.0/16'],   # simulate internal AWS relay
     );
     $a->parse_email(make_raw_email(
@@ -349,7 +349,7 @@ subtest 'Scenario 3: display-name spoofing and reply-to misdirection' => sub {
         domain_whois => undef,
     );
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_raw_email(
         received  => 'from phishhost (phishhost [91.198.174.77]) by mx.test',
         from      => '"PayPal Security paypal.com" <noreply@ph1sh-paypal.example>',
@@ -407,7 +407,7 @@ subtest 'Scenario 4: residential broadband sender triggers risk flags' => sub {
         domain_whois => undef,
     );
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_raw_email(
         received => 'from 120-88-161-249.tpgi.com.au (120.88.161.249) by mx.test',
         from     => '"eharmony Partner" <peacelight@firmluminary.example>',
@@ -460,7 +460,7 @@ subtest 'Scenario 5: URL shortener hides real destination' => sub {
         domain_whois => undef,
     );
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_raw_email(
         received => 'from sender (sender [91.198.174.1]) by mx.test',
         body     => 'Click https://bit.ly/abc123 or https://bit.ly/xyz789 '
@@ -480,7 +480,7 @@ subtest 'Scenario 5: URL shortener hides real destination' => sub {
     my $whois_calls = 0;
     {
         no warnings 'redefine';
-        local *Mail::Message::Abuse::_whois_ip = sub {
+        local *Email::Abuse::Investigator::_whois_ip = sub {
             $whois_calls++;
             return { org => 'Test', abuse => 'a@b' };
         };
@@ -557,7 +557,7 @@ WHOIS
             . 'Onboarding@sminvestmentsupplychain.example</a>'
             . "\r\n--$bnd--\r\n";
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_raw_email(
         received => 'from mail-ej1-f67.google.com (mail-ej1-f67.google.com [209.85.218.67]) by mx.test',
         auth     => 'mx.test; spf=pass; dkim=pass header.d=gmail.com',
@@ -623,7 +623,7 @@ subtest 'Scenario 7: authentication failures — SPF, DKIM, DMARC all fail' => s
         domain_whois => undef,
     );
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_raw_email(
         received => 'from forged (forged [91.198.174.5]) by mx.test',
         auth     => 'mx.test; spf=fail; dkim=fail; dmarc=fail action=reject',
@@ -679,7 +679,7 @@ subtest 'Scenario 8: trusted relay excluded; two external hops give high confide
         domain_whois => undef,
     );
 
-    my $a = Mail::Message::Abuse->new(
+    my $a = Email::Abuse::Investigator->new(
         trusted_relays => ['62.105.128.0/24'],  # our own relay
     );
     $a->parse_email(make_raw_email(
@@ -730,7 +730,7 @@ subtest 'Scenario 9: MIME-encoded From: and Subject: decoded in report' => sub {
     my $enc_from = '=?UTF-8?B?' . encode_base64('eharmony Partner', '') . '?=';
     my $enc_subj = '=?UTF-8?B?' . encode_base64('Ready to Find Someone Special?', '') . '?=';
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_raw_email(
         received => 'from sender (sender [91.198.174.1]) by mx.test',
         from     => qq{"$enc_from" <peacelight\@firmluminary.example>},
@@ -800,7 +800,7 @@ WHOIS
     # We need Net::DNS to be available for MX/NS lookups; if it isn't,
     # the domain info simply won't have mx_host/ns_host.
     # Inject the full domain info directly so this test works without Net::DNS.
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_raw_email(
         received => 'from sender (sender [91.198.174.1]) by mx.test',
         from     => 'Spammer <spam@spamdom.example>',
@@ -872,7 +872,7 @@ subtest 'Scenario 11: re-parsing replaces all state — no leakage between email
         domain_whois => undef,
     );
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
 
     # First email: has URL, high-risk sender
     $a->parse_email(make_raw_email(
@@ -938,7 +938,7 @@ subtest 'Scenario 12: clean legitimate email scores INFO — no false positives'
         domain_whois => undef,
     );
 
-    my $a = Mail::Message::Abuse->new(
+    my $a = Email::Abuse::Investigator->new(
         trusted_relays => ['62.105.128.0/24'],
     );
     $a->parse_email(make_raw_email(
@@ -987,7 +987,7 @@ subtest 'Scenario 12: clean legitimate email scores INFO — no false positives'
 # ---------------------------------------------------------------------------
 subtest 'Scenario 13: abuse_contacts() deduplication across all discovery routes' => sub {
     restore_stubs();  # defensive reset in case prior subtest exited early
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_raw_email(
         from => 'x@example.org',
         body => 'https://cf-site.example/page',
@@ -1053,7 +1053,7 @@ subtest 'Scenario 14: report() and abuse_report_text() consistent on same object
         domain_whois => undef,
     );
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_raw_email(
         received => 'from spam (spam [91.198.174.55]) by mx.test',
         from     => 'Offers <offers@spammer.example>',
@@ -1129,7 +1129,7 @@ subtest 'Scenario 15: multipart HTML spam — tracking pixel, click link, unsubs
            . encode_qp($html_raw, '')
            . "\r\n--$bnd--\r\n";
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_raw_email(
         received => 'from 120-88-161-249.tpgi.com.au (120.88.161.249) by mx.test',
         from     => '"eharmony Partner" <peacelight@firmluminary.example>',
@@ -1174,7 +1174,7 @@ subtest 'Scenario 16: webmail origin — X-Originating-IP fallback at low confid
         domain_whois => undef,
     );
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_raw_email(
         received => [
             'from webmail.bigprovider.example (webmail.bigprovider.example [10.0.0.1]) by mx.test',
@@ -1220,7 +1220,7 @@ subtest 'Scenario 17: all_domains() triggers both pipelines regardless of call o
         domain_whois => undef,
     );
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_raw_email(
         from => 'x@mailhost.example',
         body => 'Visit https://urlhost.example/page and contact info@mailhost.example',

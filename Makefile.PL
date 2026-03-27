@@ -12,10 +12,10 @@ if($^O eq 'darwin') {
 }
 
 WriteMakefile(
-	NAME		=> 'Mail::Message::Abuse',
+	NAME		=> 'Email::Abuse::Investigator',
 	AUTHOR		=> q{Nigel Horne <njh@nigelhorne.com>},
-	VERSION_FROM	=> 'lib/Mail/Message/Abuse.pm',
-	ABSTRACT_FROM	=> 'lib/Mail/Message/Abuse.pm',
+	VERSION_FROM	=> 'lib/Email/Abuse/Investigator.pm',
+	ABSTRACT_FROM	=> 'lib/Email/Abuse/Investigator.pm',
 	((defined($ExtUtils::MakeMaker::VERSION) && ($ExtUtils::MakeMaker::VERSION >= 6.3002))
 		? ('LICENSE'=> 'GPL')
 		: ()),
@@ -35,6 +35,10 @@ WriteMakefile(
 		'Params::Validate::Strict' => 0,
 		'Params::Validate::Strict' => 0,
 		'Socket' => 0,
+	# }, RECOMMENDED => {
+		# 'Net::DNS' => 0,
+		# 'LWP::UserAgent' => 0,
+		# 'HTML::LinkExtor' => 0
 	}, TEST_REQUIRES => {
 		'FindBin' => 0,
 		'MIME::Base64' => 0,
@@ -44,28 +48,28 @@ WriteMakefile(
 		'Test::DescribeMe' => 0,
 		'Test::Most' => 0,
 	}, dist => $dist,
-	clean		=> { FILES => 'Mail-Message-Abuse-*' },
+	clean		=> { FILES => 'Email-Abuse-Investigator-*' },
 	# META_ADD => {
 		# provides => {}
 	# },
 	META_MERGE => {	# https://perldoc.perl.org/CPAN::Meta::Spec
 		'meta-spec' => { version => 2 },
 		resources => {
-			homepage => 'https://metacpan.org/pod/Mail::Message::Abuse',
+			homepage => 'https://metacpan.org/pod/Email::Abuse::Investigator',
 			repository => {
-				repository => 'https://github.com/nigelhorne/Mail-Message-Abuse',
+				repository => 'https://github.com/nigelhorne/Email-Abuse-Investigator',
 				type => 'git',
-				url => 'git://github.com/nigelhorne/Mail-Message-Abuse.git',
-				web => 'https://github.com/nigelhorne/Mail-Message-Abuse',
+				url => 'git://github.com/nigelhorne/Email-Abuse-Investigator.git',
+				web => 'https://github.com/nigelhorne/Email-Abuse-Investigator',
 				# license => 'http://dev.perl.org/licenses/',
 			}, bugtracker => {
-				web => 'https://rt.cpan.org/Public/Dist/Display.html?Name=Mail-Message-Abuse',
-				url => 'https://rt.cpan.org/Public/Dist/Display.html?Name=Mail-Message-Abuse',
-				# web => 'https://github.com/nigelhorne/Mail-Message-Abuse/issues',
-				# url => 'https://github.com/nigelhorne/Mail-Message-Abuse/issues',
-				mailto => 'bug-Mail-Message-Abuse@rt.cpan.org'
+				web => 'https://rt.cpan.org/Public/Dist/Display.html?Name=Email-Abuse-Investigator',
+				url => 'https://rt.cpan.org/Public/Dist/Display.html?Name=Email-Abuse-Investigator',
+				# web => 'https://github.com/nigelhorne/Email-Abuse-Investigator/issues',
+				# url => 'https://github.com/nigelhorne/Email-Abuse-Investigator/issues',
+				mailto => 'bug-Email-Abuse-Investigator@rt.cpan.org'
 			}
 		},
 	},
-	MIN_PERL_VERSION	=> '5.008'
+	MIN_PERL_VERSION	=> '5.010'
 );

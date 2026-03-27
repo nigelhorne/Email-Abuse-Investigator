@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # =============================================================================
-# t/unit.t  —  Contract tests for every public method of Mail::Message::Abuse
+# t/unit.t  —  Contract tests for every public method of Email::Abuse::Investigator
 #
 # Each subtest maps 1-to-1 with a POD-documented method.  Tests verify:
 #   • Return type and structure exactly match the documented API
@@ -23,7 +23,7 @@ use POSIX        qw( strftime );
 
 use FindBin qw( $Bin );
 use lib "$Bin/../lib", "$Bin/..";
-use Mail::Message::Abuse;
+use Email::Abuse::Investigator;
 
 # ---------------------------------------------------------------------------
 # Shared helpers
@@ -70,22 +70,22 @@ sub make_email {
 sub stub_net {
     my (%ov) = @_;
     no warnings 'redefine';
-    *Mail::Message::Abuse::_reverse_dns  = sub { $ov{rdns}  // 'mail.stub.example' };
-    *Mail::Message::Abuse::_resolve_host = sub {
+    *Email::Abuse::Investigator::_reverse_dns  = sub { $ov{rdns}  // 'mail.stub.example' };
+    *Email::Abuse::Investigator::_resolve_host = sub {
         my (undef, $h) = @_;
         return $h if $h =~ /^\d{1,3}(?:\.\d{1,3}){3}$/;
         my $map = $ov{resolve};
         return undef unless defined $map;
         return ref $map eq 'HASH' ? $map->{$h} : $map;
     };
-    *Mail::Message::Abuse::_whois_ip = sub {
+    *Email::Abuse::Investigator::_whois_ip = sub {
         { org     => ($ov{org}     // 'Stub ISP'),
           abuse   => ($ov{abuse}   // 'abuse@stub.example'),
           country => ($ov{country} // undef) }
     };
-    *Mail::Message::Abuse::_domain_whois = sub { $ov{domain_whois} // undef };
-    *Mail::Message::Abuse::_raw_whois    = sub { undef };
-    *Mail::Message::Abuse::_rdap_lookup  = sub { {} };
+    *Email::Abuse::Investigator::_domain_whois = sub { $ov{domain_whois} // undef };
+    *Email::Abuse::Investigator::_raw_whois    = sub { undef };
+    *Email::Abuse::Investigator::_rdap_lookup  = sub { {} };
 }
 
 # Restore stubs to originals after each subtest (saves leaking between subtests).
@@ -94,14 +94,14 @@ BEGIN {
     for my $m (qw( _reverse_dns _resolve_host _whois_ip
                    _domain_whois _raw_whois _rdap_lookup )) {
         no strict 'refs';
-        $_orig{$m} = \&{ "Mail::Message::Abuse::$m" };
+        $_orig{$m} = \&{ "Email::Abuse::Investigator::$m" };
     }
 }
 sub restore_net {
     no warnings 'redefine';
     for my $m (keys %_orig) {
         no strict 'refs';
-        *{ "Mail::Message::Abuse::$m" } = $_orig{$m};
+        *{ "Email::Abuse::Investigator::$m" } = $_orig{$m};
     }
 }
 
@@ -110,10 +110,10 @@ sub restore_net {
 # =============================================================================
 subtest 'new() — constructor API' => sub {
     # Returns a blessed reference of the correct class
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     ok defined $a,              'new() returns a value';
     ok blessed($a),             'return value is blessed';
-    is blessed($a), 'Mail::Message::Abuse', 'blessed into correct class';
+    is blessed($a), 'Email::Abuse::Investigator', 'blessed into correct class';
 
     # Default option values (as documented)
     is $a->{timeout}, 10, 'default timeout is 10';
@@ -121,7 +121,7 @@ subtest 'new() — constructor API' => sub {
     is_deeply $a->{trusted_relays}, [], 'default trusted_relays is []';
 
     # Custom option values stored correctly
-    my $b = Mail::Message::Abuse->new(
+    my $b = Email::Abuse::Investigator->new(
         timeout        => 30,
         verbose        => 1,
         trusted_relays => ['62.105.128.0/24', '91.198.174.5'],
@@ -140,12 +140,12 @@ subtest 'parse_email() — accepts scalar and scalar-ref; returns $self' => sub 
     my $raw = make_email();
 
     # Accepts a plain scalar
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     my $ret = $a->parse_email($raw);
     is $ret, $a, 'parse_email returns $self (scalar input)';
 
     # Accepts a scalar reference (documented alternative)
-    my $b = Mail::Message::Abuse->new();
+    my $b = Email::Abuse::Investigator->new();
     my $ret2 = $b->parse_email(\$raw);
     is $ret2, $b, 'parse_email returns $self (scalar-ref input)';
 
@@ -157,14 +157,14 @@ subtest 'parse_email() — accepts scalar and scalar-ref; returns $self' => sub 
 subtest 'parse_email() — handles multipart, quoted-printable, base64 bodies' => sub {
     # QP body
     my $qp_body = "Caf=C3=A9 au lait";
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(ct => 'text/plain', cte => 'quoted-printable',
                                body => $qp_body));
     like $a->{_body_plain}, qr/Caf/, 'QP body decoded';
 
     # base64 body
     my $b64_body = encode_base64("Base64 encoded content here");
-    my $b = Mail::Message::Abuse->new();
+    my $b = Email::Abuse::Investigator->new();
     $b->parse_email(make_email(ct => 'text/plain', cte => 'base64',
                                body => $b64_body));
     like $b->{_body_plain}, qr/Base64 encoded content/, 'base64 body decoded';
@@ -174,7 +174,7 @@ subtest 'parse_email() — handles multipart, quoted-printable, base64 bodies' =
     my $mp  = "--$bnd\r\nContent-Type: text/plain\r\n\r\nplain text here\r\n"
             . "--$bnd\r\nContent-Type: text/html\r\n\r\n<b>html here</b>\r\n"
             . "--$bnd--\r\n";
-    my $c = Mail::Message::Abuse->new();
+    my $c = Email::Abuse::Investigator->new();
     $c->parse_email(make_email(
         ct   => qq{multipart/alternative; boundary="$bnd"},
         body => $mp,
@@ -184,7 +184,7 @@ subtest 'parse_email() — handles multipart, quoted-printable, base64 bodies' =
 };
 
 subtest 'parse_email() — re-parse resets all lazy caches' => sub {
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email());
 
     # Inject stale cached state
@@ -210,7 +210,7 @@ subtest 'originating_ip() — documented hashref structure' => sub {
     stub_net(rdns => 'mail.spammer.example', org => 'Bad ISP',
              abuse => 'abuse@bad-isp.example', country => 'US');
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(
         received => 'from spammer (spammer [91.198.174.42]) by mx'));
     my $orig = $a->originating_ip();
@@ -240,7 +240,7 @@ subtest 'originating_ip() — confidence levels per POD' => sub {
     stub_net();
 
     # single external hop → medium
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(
         received => 'from spammer (spammer [91.198.174.1]) by mx'));
     is $a->originating_ip()->{confidence}, 'medium',
@@ -250,13 +250,13 @@ subtest 'originating_ip() — confidence levels per POD' => sub {
     my $raw2 = "Received: from r1 (r1 [91.198.174.2]) by r2\n"
              . "Received: from r2 (r2 [91.198.174.3]) by mx\n"
              . "From: x\@y.com\nSubject: s\n\nbody";
-    my $b = Mail::Message::Abuse->new();
+    my $b = Email::Abuse::Investigator->new();
     $b->parse_email($raw2);
     is $b->originating_ip()->{confidence}, 'high',
        'two external hops yields high confidence';
 
     # X-Originating-IP only → low
-    my $c = Mail::Message::Abuse->new();
+    my $c = Email::Abuse::Investigator->new();
     $c->parse_email(make_email(
         received => 'from localhost [127.0.0.1] by mx',
         xoip     => '62.105.128.99',
@@ -268,7 +268,7 @@ subtest 'originating_ip() — confidence levels per POD' => sub {
 };
 
 subtest 'originating_ip() — returns undef when no IP can be determined' => sub {
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email("From: x\@y.com\nSubject: s\n\nbody");
     is $a->originating_ip(), undef,
        'undef returned when no Received: header and no X-Originating-IP';
@@ -276,7 +276,7 @@ subtest 'originating_ip() — returns undef when no IP can be determined' => sub
 
 subtest 'originating_ip() — result is cached between calls' => sub {
     stub_net();
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email());
     my $first  = $a->originating_ip();
     my $second = $a->originating_ip();
@@ -291,7 +291,7 @@ subtest 'embedded_urls() — documented hashref structure' => sub {
     stub_net(resolve => '91.198.174.7', org => 'Dodgy Hosting Ltd',
              abuse => 'abuse@dodgy.example');
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(
         body => 'Visit https://spamsite.example/offer to buy now.'));
     my @urls = $a->embedded_urls();
@@ -320,7 +320,7 @@ subtest 'embedded_urls() — documented hashref structure' => sub {
 };
 
 subtest 'embedded_urls() — returns empty list when body has no URLs' => sub {
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(body => 'No links here at all.'));
     my @urls = $a->embedded_urls();
     is scalar @urls, 0, 'empty list returned when no URLs present';
@@ -335,7 +335,7 @@ subtest 'embedded_urls() — extracts from both plain and HTML parts' => sub {
             . "--$bnd\r\nContent-Type: text/html\r\n\r\n"
             . '<a href="https://html.example/path">click</a>'
             . "\r\n--$bnd--\r\n";
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(
         ct   => qq{multipart/alternative; boundary="$bnd"},
         body => $mp,
@@ -350,7 +350,7 @@ subtest 'embedded_urls() — extracts from both plain and HTML parts' => sub {
 
 subtest 'embedded_urls() — result is cached between calls' => sub {
     stub_net(resolve => '1.2.3.4');
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(body => 'https://cache.example/test'));
     my @first  = $a->embedded_urls();
     my @second = $a->embedded_urls();
@@ -363,9 +363,9 @@ subtest 'embedded_urls() — WHOIS queried once per unique host, not per URL' =>
     stub_net(resolve => '1.2.3.4');
     my $whois_call_count = 0;
     no warnings 'redefine';
-    local *Mail::Message::Abuse::_whois_ip = sub { $whois_call_count++; {} };
+    local *Email::Abuse::Investigator::_whois_ip = sub { $whois_call_count++; {} };
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(
         body => 'https://samehost.example/a and https://samehost.example/b '
               . 'and https://samehost.example/c'));
@@ -382,7 +382,7 @@ subtest 'mailto_domains() — documented hashref structure' => sub {
     stub_net(resolve => '104.21.30.10', org => 'Cloudflare Inc',
              abuse => 'abuse@cloudflare.com');
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(
         from => 'Spammer <spammer@spamco.example>',
         body => 'Contact mailto:info@spamco.example for details',
@@ -426,7 +426,7 @@ subtest 'mailto_domains() — documented hashref structure' => sub {
 subtest 'mailto_domains() — collects from From:, Reply-To:, Return-Path:' => sub {
     stub_net();
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(
         from        => 'A <a@from-domain.example>',
         reply_to    => 'B <b@replyto-domain.example>',
@@ -449,7 +449,7 @@ subtest 'mailto_domains() — collects from From:, Reply-To:, Return-Path:' => s
 subtest 'mailto_domains() — collects from mailto: links and bare addresses in body' => sub {
     stub_net();
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(
         from => 'x@trusted-infra.example',
         body => 'Contact mailto:sales@bodylink.example or info@bareaddr.example',
@@ -467,7 +467,7 @@ subtest 'mailto_domains() — collects from mailto: links and bare addresses in 
 subtest 'mailto_domains() — infrastructure domains are excluded' => sub {
     stub_net();
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(
         from => 'Spammer <spammer@gmail.com>',
         body => 'Visit our site info@yahoo.com',
@@ -483,7 +483,7 @@ subtest 'mailto_domains() — infrastructure domains are excluded' => sub {
 subtest 'mailto_domains() — each domain appears only once (deduplicated)' => sub {
     stub_net();
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     # Same domain in From:, body mailto:, and bare address
     $a->parse_email(make_email(
         from => 'A <a@dup.example>',
@@ -498,7 +498,7 @@ subtest 'mailto_domains() — each domain appears only once (deduplicated)' => s
 
 subtest 'mailto_domains() — recently_registered flag for domains < 180 days old' => sub {
     # Inject a pre-built domain result with a recent registration date
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(body => 'contact info@newdomain.example'));
 
     # Bypass network and WHOIS entirely by pre-populating the cache
@@ -511,7 +511,7 @@ subtest 'mailto_domains() — recently_registered flag for domains < 180 days ol
 
     stub_net(resolve => undef);
     no warnings 'redefine';
-    local *Mail::Message::Abuse::_domain_whois = sub { undef };
+    local *Email::Abuse::Investigator::_domain_whois = sub { undef };
 
     my @doms = $a->mailto_domains();
     my ($nd) = grep { $_->{domain} eq 'newdomain.example' } @doms;
@@ -523,10 +523,10 @@ subtest 'mailto_domains() — recently_registered flag for domains < 180 days ol
 
 subtest 'mailto_domains() — result is cached between calls' => sub {
     stub_net();
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(body => 'contact info@cached.example'));
     no warnings 'redefine';
-    local *Mail::Message::Abuse::_domain_whois = sub { undef };
+    local *Email::Abuse::Investigator::_domain_whois = sub { undef };
     my @first  = $a->mailto_domains();
     my @second = $a->mailto_domains();
     is scalar @second, scalar @first, 'same count on second call';
@@ -540,9 +540,9 @@ subtest 'mailto_domains() — result is cached between calls' => sub {
 subtest 'all_domains() — returns union of URL hosts and mailto domains' => sub {
     stub_net(resolve => '1.2.3.4');
     no warnings 'redefine';
-    local *Mail::Message::Abuse::_domain_whois = sub { undef };
+    local *Email::Abuse::Investigator::_domain_whois = sub { undef };
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(
         from => 'x@maildom.example',
         body => 'https://urldom.example/page and info@maildom.example',
@@ -558,9 +558,9 @@ subtest 'all_domains() — returns union of URL hosts and mailto domains' => sub
 subtest 'all_domains() — no duplicates across sources' => sub {
     stub_net(resolve => '1.2.3.4');
     no warnings 'redefine';
-    local *Mail::Message::Abuse::_domain_whois = sub { undef };
+    local *Email::Abuse::Investigator::_domain_whois = sub { undef };
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     # Same registrable domain in both URL and mailto
     $a->parse_email(make_email(
         from => 'x@shared.example',
@@ -577,9 +577,9 @@ subtest 'all_domains() — no duplicates across sources' => sub {
 subtest 'all_domains() — returns plain list of strings' => sub {
     stub_net(resolve => '1.2.3.4');
     no warnings 'redefine';
-    local *Mail::Message::Abuse::_domain_whois = sub { undef };
+    local *Email::Abuse::Investigator::_domain_whois = sub { undef };
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(body => 'https://stringtest.example/x'));
     my @all = $a->all_domains();
     for my $item (@all) {
@@ -595,9 +595,9 @@ subtest 'all_domains() — returns plain list of strings' => sub {
 subtest 'risk_assessment() — documented top-level hashref structure' => sub {
     stub_net();
     no warnings 'redefine';
-    local *Mail::Message::Abuse::_domain_whois = sub { undef };
+    local *Email::Abuse::Investigator::_domain_whois = sub { undef };
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email());
     my $risk = $a->risk_assessment();
 
@@ -625,9 +625,9 @@ subtest 'risk_assessment() — documented top-level hashref structure' => sub {
 subtest 'risk_assessment() — each flag hashref has severity, flag, detail' => sub {
     stub_net(rdns => '1-2-3-4.dsl.isp.example');  # triggers residential flag
     no warnings 'redefine';
-    local *Mail::Message::Abuse::_domain_whois = sub { undef };
+    local *Email::Abuse::Investigator::_domain_whois = sub { undef };
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(
         received => 'from dsl-host (dsl-host [91.198.174.1]) by mx'));
     my $risk  = $a->risk_assessment();
@@ -652,10 +652,10 @@ subtest 'risk_assessment() — score threshold boundaries match POD' => sub {
     # POD: HIGH >= 9, MEDIUM >= 5, LOW >= 2, INFO otherwise
     stub_net();
     no warnings 'redefine';
-    local *Mail::Message::Abuse::_domain_whois = sub { undef };
+    local *Email::Abuse::Investigator::_domain_whois = sub { undef };
 
     # INFO: clean message, no flags expected → score 0 → INFO
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(
         auth    => 'mx; spf=pass; dkim=pass; dmarc=pass',
         from    => 'Clean <clean@corp.example>',
@@ -683,9 +683,9 @@ subtest 'risk_assessment() — score threshold boundaries match POD' => sub {
 subtest 'risk_assessment() — result is cached' => sub {
     stub_net();
     no warnings 'redefine';
-    local *Mail::Message::Abuse::_domain_whois = sub { undef };
+    local *Email::Abuse::Investigator::_domain_whois = sub { undef };
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email());
     my $r1 = $a->risk_assessment();
     my $r2 = $a->risk_assessment();
@@ -700,9 +700,9 @@ subtest 'risk_assessment() — result is cached' => sub {
 subtest 'abuse_report_text() — returns a non-empty string' => sub {
     stub_net();
     no warnings 'redefine';
-    local *Mail::Message::Abuse::_domain_whois = sub { undef };
+    local *Email::Abuse::Investigator::_domain_whois = sub { undef };
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email());
     my $text = $a->abuse_report_text();
 
@@ -717,9 +717,9 @@ subtest 'abuse_report_text() — contains all documented sections' => sub {
     stub_net(rdns => 'mail.spammer.example', org => 'Bad ISP',
              abuse => 'abuse@bad-isp.example');
     no warnings 'redefine';
-    local *Mail::Message::Abuse::_domain_whois = sub { undef };
+    local *Email::Abuse::Investigator::_domain_whois = sub { undef };
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(
         received => 'from spammer (spammer [91.198.174.42]) by mx',
         body     => 'Buy at https://scam.example/now',
@@ -727,8 +727,8 @@ subtest 'abuse_report_text() — contains all documented sections' => sub {
 
     {
         no warnings 'redefine';
-        local *Mail::Message::Abuse::_resolve_host = sub { '91.198.174.99' };
-        local *Mail::Message::Abuse::_whois_ip     = sub {
+        local *Email::Abuse::Investigator::_resolve_host = sub { '91.198.174.99' };
+        local *Email::Abuse::Investigator::_whois_ip     = sub {
             { org => 'Scam Host', abuse => 'abuse@scam.example' }
         };
 
@@ -752,9 +752,9 @@ subtest 'abuse_report_text() — contains all documented sections' => sub {
 subtest 'abuse_report_text() — RED FLAGS section present when flags exist' => sub {
     stub_net(rdns => '1-2-3-4.dsl.example');  # triggers residential flag
     no warnings 'redefine';
-    local *Mail::Message::Abuse::_domain_whois = sub { undef };
+    local *Email::Abuse::Investigator::_domain_whois = sub { undef };
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(
         received => 'from dsl (dsl [91.198.174.1]) by mx'));
     my $text = $a->abuse_report_text();
@@ -766,10 +766,10 @@ subtest 'abuse_report_text() — RED FLAGS section present when flags exist' => 
 subtest 'abuse_report_text() — ABUSE CONTACTS section present when contacts available' => sub {
     stub_net(rdns => 'mail-ej1.gmail.com');  # rDNS points to known provider
     no warnings 'redefine';
-    local *Mail::Message::Abuse::_domain_whois = sub { undef };
-    local *Mail::Message::Abuse::_resolve_host = sub { undef };
+    local *Email::Abuse::Investigator::_domain_whois = sub { undef };
+    local *Email::Abuse::Investigator::_resolve_host = sub { undef };
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(
         from     => 'Spammer <spammer@gmail.com>',
         received => 'from google (google [209.85.218.67]) by mx',
@@ -787,9 +787,9 @@ subtest 'abuse_report_text() — suitable for emailing to abuse_contacts() addre
     # and that both succeed on the same object.
     stub_net();
     no warnings 'redefine';
-    local *Mail::Message::Abuse::_domain_whois = sub { undef };
+    local *Email::Abuse::Investigator::_domain_whois = sub { undef };
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(
         from => 'x@gmail.com',
         received => 'from g (g [209.85.218.67]) by mx',
@@ -812,9 +812,9 @@ subtest 'abuse_contacts() — documented hashref structure' => sub {
     stub_net(rdns => 'mail-ej1.google.com', org => 'Google LLC',
              abuse => 'network-abuse@google.com');
     no warnings 'redefine';
-    local *Mail::Message::Abuse::_domain_whois = sub { undef };
+    local *Email::Abuse::Investigator::_domain_whois = sub { undef };
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(
         from     => 'Spammer <spammer@gmail.com>',
         received => 'from google (google [209.85.218.67]) by mx',
@@ -846,7 +846,7 @@ subtest 'abuse_contacts() — documented hashref structure' => sub {
 subtest 'abuse_contacts() — addresses are deduplicated across routes' => sub {
     # Inject a scenario where the same abuse address is discoverable from
     # multiple routes (URL host and MX host both resolving to Cloudflare)
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(
         from => 'x@example.org',
         body => 'https://cf-hosted.example/page',
@@ -879,9 +879,9 @@ subtest 'abuse_contacts() — addresses are deduplicated across routes' => sub {
 subtest 'abuse_contacts() — produces Sending ISP contact from originating IP' => sub {
     stub_net(org => 'Sending Corp', abuse => 'abuse@sending-corp.example');
     no warnings 'redefine';
-    local *Mail::Message::Abuse::_domain_whois = sub { undef };
+    local *Email::Abuse::Investigator::_domain_whois = sub { undef };
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(
         received => 'from sender (sender [91.198.174.42]) by mx',
     ));
@@ -897,7 +897,7 @@ subtest 'abuse_contacts() — produces Sending ISP contact from originating IP' 
 };
 
 subtest 'abuse_contacts() — produces Account provider contact for known From: domain' => sub {
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(from => 'Spammer <spammer@gmail.com>'));
     $a->{_origin}         = undef;
     $a->{_urls}           = [];
@@ -911,7 +911,7 @@ subtest 'abuse_contacts() — produces Account provider contact for known From: 
 };
 
 subtest 'abuse_contacts() — produces Domain registrar contact' => sub {
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(from => 'x@example.org'));
     $a->{_origin}         = undef;
     $a->{_urls}           = [];
@@ -932,9 +932,9 @@ subtest 'abuse_contacts() — produces Domain registrar contact' => sub {
 subtest 'abuse_contacts() — (unknown) abuse addresses are never included' => sub {
     stub_net(abuse => '(unknown)');
     no warnings 'redefine';
-    local *Mail::Message::Abuse::_domain_whois = sub { undef };
+    local *Email::Abuse::Investigator::_domain_whois = sub { undef };
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(
         received => 'from s (s [91.198.174.1]) by mx',
         from     => 'x@noprovider.example',   # not in provider table
@@ -949,7 +949,7 @@ subtest 'abuse_contacts() — (unknown) abuse addresses are never included' => s
 };
 
 subtest 'abuse_contacts() — returns empty list when no contacts determinable' => sub {
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(
         from     => 'x@noprovider.example',
         received => 'from localhost [127.0.0.1] by mx',
@@ -969,9 +969,9 @@ subtest 'abuse_contacts() — returns empty list when no contacts determinable' 
 subtest 'report() — returns a non-empty plain string' => sub {
     stub_net();
     no warnings 'redefine';
-    local *Mail::Message::Abuse::_domain_whois = sub { undef };
+    local *Email::Abuse::Investigator::_domain_whois = sub { undef };
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email());
     my $r = $a->report();
 
@@ -985,24 +985,24 @@ subtest 'report() — returns a non-empty plain string' => sub {
 subtest 'report() — contains all expected section headings' => sub {
     stub_net();
     no warnings 'redefine';
-    local *Mail::Message::Abuse::_domain_whois = sub { undef };
+    local *Email::Abuse::Investigator::_domain_whois = sub { undef };
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(
         body => 'https://spamsite.example/buy and info@spamsite.example',
         from => 'Bad <bad@gmail.com>',
     ));
     {
         no warnings 'redefine';
-        local *Mail::Message::Abuse::_resolve_host = sub { '1.2.3.4' };
-        local *Mail::Message::Abuse::_whois_ip     = sub {
+        local *Email::Abuse::Investigator::_resolve_host = sub { '1.2.3.4' };
+        local *Email::Abuse::Investigator::_whois_ip     = sub {
             { org => 'Test Org', abuse => 'abuse@testorg.example', country => 'US' }
         };
-        local *Mail::Message::Abuse::_domain_whois = sub { undef };
+        local *Email::Abuse::Investigator::_domain_whois = sub { undef };
 
         my $r = $a->report();
 
-        like $r, qr/Mail::Message::Abuse Report/, 'report title present';
+        like $r, qr/Email::Abuse::Investigator Report/, 'report title present';
         like $r, qr/RISK ASSESSMENT/,             'RISK ASSESSMENT section present';
         like $r, qr/ORIGINATING HOST/,            'ORIGINATING HOST section present';
         like $r, qr/EMBEDDED HTTP\/HTTPS URLs/,   'EMBEDDED HTTP/HTTPS URLs section present';
@@ -1016,14 +1016,14 @@ subtest 'report() — contains all expected section headings' => sub {
 subtest 'report() — envelope headers are decoded and displayed' => sub {
     stub_net();
     no warnings 'redefine';
-    local *Mail::Message::Abuse::_domain_whois = sub { undef };
-    local *Mail::Message::Abuse::_resolve_host = sub { undef };
+    local *Email::Abuse::Investigator::_domain_whois = sub { undef };
+    local *Email::Abuse::Investigator::_resolve_host = sub { undef };
 
     # Use a base64-encoded From: display name (as in the firmluminary spam)
     my $enc_from = '=?UTF-8?B?' . encode_base64('eharmony Partner', '') . '?=';
     my $enc_subj = '=?UTF-8?B?' . encode_base64('Ready to Find Love', '') . '?=';
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(
         from    => qq{"$enc_from" <peacelight\@firmluminary.com>},
         subject => $enc_subj,
@@ -1037,7 +1037,7 @@ subtest 'report() — envelope headers are decoded and displayed' => sub {
 };
 
 subtest 'report() — originating IP section shows (could not determine) when undef' => sub {
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email("From: x\@y.com\nSubject: s\n\nbody");
     $a->{_origin}         = undef;
     $a->{_urls}           = [];
@@ -1049,7 +1049,7 @@ subtest 'report() — originating IP section shows (could not determine) when un
 };
 
 subtest 'report() — URL section shows "(none found)" when no URLs present' => sub {
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(body => 'No links here.'));
     $a->{_origin}         = undef;
     $a->{_urls}           = [];
@@ -1062,9 +1062,9 @@ subtest 'report() — URL section shows "(none found)" when no URLs present' => 
 subtest 'report() — URL section groups multiple paths under single host' => sub {
     stub_net(resolve => '1.2.3.4');
     no warnings 'redefine';
-    local *Mail::Message::Abuse::_domain_whois = sub { undef };
+    local *Email::Abuse::Investigator::_domain_whois = sub { undef };
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(
         body => 'https://multi.example/a https://multi.example/b https://multi.example/c'));
     $a->{_origin} = {
@@ -1073,8 +1073,8 @@ subtest 'report() — URL section groups multiple paths under single host' => su
     };
     {
         no warnings 'redefine';
-        local *Mail::Message::Abuse::_resolve_host = sub { '1.2.3.4' };
-        local *Mail::Message::Abuse::_whois_ip     = sub { { org=>'T', abuse=>'a@b' } };
+        local *Email::Abuse::Investigator::_resolve_host = sub { '1.2.3.4' };
+        local *Email::Abuse::Investigator::_whois_ip     = sub { { org=>'T', abuse=>'a@b' } };
 
         my $r = $a->report();
         like $r, qr/URLs \(3\)/, 'three URLs under same host shown as grouped count';
@@ -1090,9 +1090,9 @@ subtest 'report() — URL section groups multiple paths under single host' => su
 subtest 'report() — URL shortener flagged inline in URL section' => sub {
     stub_net(resolve => '1.2.3.4');
     no warnings 'redefine';
-    local *Mail::Message::Abuse::_domain_whois = sub { undef };
+    local *Email::Abuse::Investigator::_domain_whois = sub { undef };
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(body => 'Click https://bit.ly/abc123 now'));
     $a->{_origin} = {
         ip => '1.2.3.4', rdns => 'mail.ok', confidence => 'high',
@@ -1100,8 +1100,8 @@ subtest 'report() — URL shortener flagged inline in URL section' => sub {
     };
     {
         no warnings 'redefine';
-        local *Mail::Message::Abuse::_resolve_host = sub { '67.199.248.10' };
-        local *Mail::Message::Abuse::_whois_ip     = sub { { org=>'Bitly', abuse=>'a@b' } };
+        local *Email::Abuse::Investigator::_resolve_host = sub { '67.199.248.10' };
+        local *Email::Abuse::Investigator::_whois_ip     = sub { { org=>'Bitly', abuse=>'a@b' } };
 
         my $r = $a->report();
         like $r, qr/URL SHORTENER/, 'URL shortener warning appears in report';
@@ -1111,7 +1111,7 @@ subtest 'report() — URL shortener flagged inline in URL section' => sub {
 };
 
 subtest 'report() — recently registered domain warning shown in domains section' => sub {
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(from => 'x@example.org'));
     $a->{_origin}         = undef;
     $a->{_urls}           = [];
@@ -1129,7 +1129,7 @@ subtest 'report() — recently registered domain warning shown in domains sectio
 };
 
 subtest 'report() — abuse contacts section shows "(no contacts)" when empty' => sub {
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
     $a->parse_email(make_email(
         from     => 'x@noprovider.example',
         received => 'from localhost [127.0.0.1] by mx',
@@ -1149,7 +1149,7 @@ subtest 'report() — abuse contacts section shows "(no contacts)" when empty' =
 subtest 'lazy evaluation — methods succeed in any call order' => sub {
     stub_net(resolve => '1.2.3.4');
     no warnings 'redefine';
-    local *Mail::Message::Abuse::_domain_whois = sub { undef };
+    local *Email::Abuse::Investigator::_domain_whois = sub { undef };
 
     my $raw = make_email(
         body => 'https://lazy.example/page and info@lazy.example',
@@ -1158,7 +1158,7 @@ subtest 'lazy evaluation — methods succeed in any call order' => sub {
 
     # Call order 1: risk → urls → domains → origin
     {
-        my $a = Mail::Message::Abuse->new();
+        my $a = Email::Abuse::Investigator->new();
         $a->parse_email($raw);
         $a->{_origin} = { ip=>'1.2.3.4', rdns=>'mail.ok',
                           confidence=>'high', org=>'X', abuse=>'a@b',
@@ -1174,7 +1174,7 @@ subtest 'lazy evaluation — methods succeed in any call order' => sub {
 
     # Call order 2: report first (triggers everything lazily)
     {
-        my $b = Mail::Message::Abuse->new();
+        my $b = Email::Abuse::Investigator->new();
         $b->parse_email($raw);
         $b->{_origin} = { ip=>'1.2.3.4', rdns=>'mail.ok',
                           confidence=>'high', org=>'X', abuse=>'a@b',
@@ -1193,9 +1193,9 @@ subtest 'lazy evaluation — methods succeed in any call order' => sub {
 subtest 'parse_email() re-invocation clears all public-method caches' => sub {
     stub_net(resolve => '1.2.3.4');
     no warnings 'redefine';
-    local *Mail::Message::Abuse::_domain_whois = sub { undef };
+    local *Email::Abuse::Investigator::_domain_whois = sub { undef };
 
-    my $a = Mail::Message::Abuse->new();
+    my $a = Email::Abuse::Investigator->new();
 
     # First parse — populate all caches
     $a->parse_email(make_email(

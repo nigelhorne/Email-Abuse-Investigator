@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 # =============================================================================
 # t/edge-cases.t  -- Destructive, pathological and boundary-condition tests
-#                    for Mail::Message::Abuse
+#                    for Email::Abuse::Investigator
 #
 # Philosophy
 # ----------
@@ -30,7 +30,7 @@ use Scalar::Util      qw( blessed );
 
 use FindBin qw( $Bin );
 use lib "$Bin/../lib", "$Bin/..";
-use_ok('Mail::Message::Abuse');
+use_ok('Email::Abuse::Investigator');
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -40,23 +40,23 @@ BEGIN {
     for my $fn (qw(_reverse_dns _resolve_host _whois_ip
                    _domain_whois _raw_whois _rdap_lookup)) {
         no strict 'refs';
-        $_ORIG{$fn} = \&{ "Mail::Message::Abuse::$fn" };
+        $_ORIG{$fn} = \&{ "Email::Abuse::Investigator::$fn" };
     }
 }
 sub null_net {
     no warnings 'redefine';
-    *Mail::Message::Abuse::_reverse_dns  = sub { undef };
-    *Mail::Message::Abuse::_resolve_host = sub { undef };
-    *Mail::Message::Abuse::_whois_ip     = sub { {} };
-    *Mail::Message::Abuse::_domain_whois = sub { undef };
-    *Mail::Message::Abuse::_raw_whois    = sub { undef };
-    *Mail::Message::Abuse::_rdap_lookup  = sub { {} };
+    *Email::Abuse::Investigator::_reverse_dns  = sub { undef };
+    *Email::Abuse::Investigator::_resolve_host = sub { undef };
+    *Email::Abuse::Investigator::_whois_ip     = sub { {} };
+    *Email::Abuse::Investigator::_domain_whois = sub { undef };
+    *Email::Abuse::Investigator::_raw_whois    = sub { undef };
+    *Email::Abuse::Investigator::_rdap_lookup  = sub { {} };
 }
 sub restore_net {
     no warnings 'redefine';
     for my $fn (keys %_ORIG) {
         no strict 'refs';
-        *{ "Mail::Message::Abuse::$fn" } = $_ORIG{$fn};
+        *{ "Email::Abuse::Investigator::$fn" } = $_ORIG{$fn};
     }
 }
 
@@ -82,20 +82,20 @@ sub bare_email {
 subtest 'new() -- timeout=>0 stored correctly (// not ||)' => sub {
     restore_net();
     # // treats only undef as false, so 0 is stored as-is
-    my $a = new_ok('Mail::Message::Abuse', [timeout => 0]);
+    my $a = new_ok('Email::Abuse::Investigator', [timeout => 0]);
     is $a->{timeout}, 0, 'timeout=>0 stored correctly via // operator';
 };
 
 subtest 'new() -- unknown options silently ignored' => sub {
     restore_net();
 
-    dies_ok { my $a = Mail::Message::Abuse->new(no_such_option => 42) } 'unknown constructor option dies';
+    dies_ok { my $a = Email::Abuse::Investigator->new(no_such_option => 42) } 'unknown constructor option dies';
 };
 
 subtest 'new() -- verbose flag only enables debug, does not alter analysis' => sub {
     null_net();
-    my $silent  = new_ok('Mail::Message::Abuse', [verbose => 0]);
-    my $noisy   = new_ok('Mail::Message::Abuse', [verbose => 1]);
+    my $silent  = new_ok('Email::Abuse::Investigator', [verbose => 0]);
+    my $noisy   = new_ok('Email::Abuse::Investigator', [verbose => 1]);
     my $raw = "Received: from h [91.198.174.1] by mx\nFrom: x\@y.com\n\nbody";
     $silent->parse_email($raw);
     # Capture STDERR from the verbose object
@@ -104,7 +104,7 @@ subtest 'new() -- verbose flag only enables debug, does not alter analysis' => s
     $noisy->parse_email($raw);
     $noisy->originating_ip();
     close STDERR; open STDERR, '>&', $save or die $!;
-    like $captured, qr/Mail::Message::Abuse/, 'verbose=1 writes to STDERR';
+    like $captured, qr/Email::Abuse::Investigator/, 'verbose=1 writes to STDERR';
     is $silent->originating_ip()->{ip}, $noisy->originating_ip()->{ip},
         'verbose flag does not alter analysis results';
     restore_net();
@@ -116,7 +116,7 @@ subtest 'new() -- verbose flag only enables debug, does not alter analysis' => s
 
 subtest 'parse_email -- empty string' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     lives_ok { $a->parse_email('') } 'empty string does not die';
     is   $a->originating_ip(),  undef, 'empty email: no origin';
     is scalar($a->embedded_urls()), 0, 'empty email: no URLs';
@@ -125,14 +125,14 @@ subtest 'parse_email -- empty string' => sub {
 
 subtest 'parse_email -- only whitespace' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     lives_ok { $a->parse_email("   \n\t\n   ") } 'whitespace-only does not die';
     restore_net();
 };
 
 subtest 'parse_email -- no blank line between headers and body' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     lives_ok { $a->parse_email("From: x\@y.com\nSubject: s\nBody text here") }
         'missing header/body separator does not die';
     restore_net();
@@ -140,7 +140,7 @@ subtest 'parse_email -- no blank line between headers and body' => sub {
 
 subtest 'parse_email -- body only, no headers' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     lives_ok { $a->parse_email("\nJust body text") } 'body-only email does not die';
     is $a->originating_ip(), undef, 'no origin when no headers';
     restore_net();
@@ -148,7 +148,7 @@ subtest 'parse_email -- body only, no headers' => sub {
 
 subtest 'parse_email -- 64 KB single header value' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $long = 'x' x 65536;
     lives_ok { $a->parse_email("Subject: $long\nFrom: x\@y.com\n\nbody") }
         '64 KB header value does not die';
@@ -157,7 +157,7 @@ subtest 'parse_email -- 64 KB single header value' => sub {
 
 subtest 'parse_email -- 1000 Received: headers (chain bomb)' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $hdrs = join '', map {
         "Received: from h$_ (h$_ [10.0.0.${\($_%256)}]) by next\n"
     } 1..1000;
@@ -170,7 +170,7 @@ subtest 'parse_email -- 1000 Received: headers (chain bomb)' => sub {
 
 subtest 'parse_email -- NUL bytes in body' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $body = "Normal\x00NUL\x00more";
     lives_ok { $a->parse_email(bare_email("From: x\@y.com\n", $body)) }
         'NUL bytes in body do not die';
@@ -179,7 +179,7 @@ subtest 'parse_email -- NUL bytes in body' => sub {
 
 subtest 'parse_email -- CRLF line endings throughout' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $raw = "Received: from ext (ext [91.198.174.1]) by mx\r\n"
             . "From: x\@y.com\r\nSubject: s\r\n\r\nBody\r\n";
     lives_ok { $a->parse_email($raw) } 'CRLF line endings do not die';
@@ -190,7 +190,7 @@ subtest 'parse_email -- CRLF line endings throughout' => sub {
 
 subtest 'parse_email -- mixed CRLF and LF' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $raw = "Received: from ext (ext [91.198.174.2]) by mx\r\n"
             . "From: x\@y.com\n\r\n"
             . "body\r\n";
@@ -200,7 +200,7 @@ subtest 'parse_email -- mixed CRLF and LF' => sub {
 
 subtest 'parse_email -- binary high-byte body' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $body = join '', map { chr $_ } 0x80..0xFF;
     lives_ok { $a->parse_email(bare_email("From: x\@y.com\n", $body)) }
         'high-byte binary body does not die';
@@ -209,7 +209,7 @@ subtest 'parse_email -- binary high-byte body' => sub {
 
 subtest 'parse_email -- header with no value after colon' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $raw = "From:\nSubject:\nReceived: from ext [91.198.174.3] by mx\n\nbody";
     lives_ok { $a->parse_email($raw) } 'empty header values do not die';
     is $a->originating_ip()->{ip}, '91.198.174.3',
@@ -219,7 +219,7 @@ subtest 'parse_email -- header with no value after colon' => sub {
 
 subtest 'parse_email -- duplicate From: headers: first returned' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email("From: first\@a.com\nFrom: second\@b.com\n\nbody");
     is $a->_header_value('from'), 'first@a.com',
         '_header_value returns first of duplicate headers';
@@ -228,7 +228,7 @@ subtest 'parse_email -- duplicate From: headers: first returned' => sub {
 
 subtest 'parse_email -- folded header continuation' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $raw = "Subject: first part\n\tcontinued part\nFrom: x\@y.com\n\nbody";
     $a->parse_email($raw);
     like $a->_header_value('subject'), qr/first part.*continued part/s,
@@ -242,7 +242,7 @@ subtest 'parse_email -- folded header continuation' => sub {
 
 subtest 'Received: -- 0.0.0.0 excluded as this-network address' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email(bare_email("Received: from h [0.0.0.0] by mx\nFrom: x\@y.com\n"));
     is $a->originating_ip(), undef,
         '0.0.0.0 excluded via 0.x PRIVATE_RANGES entry (RFC 1122 this-network)';
@@ -251,7 +251,7 @@ subtest 'Received: -- 0.0.0.0 excluded as this-network address' => sub {
 
 subtest 'Received: -- 255.255.255.255 excluded as broadcast (qr/^255./ range)' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email(bare_email(
         "Received: from bc [255.255.255.255] by mx\nFrom: x\@y.com\n"));
     my $orig = $a->originating_ip();
@@ -264,7 +264,7 @@ subtest 'Received: -- all RFC-1918 range boundaries private' => sub {
     null_net();
     for my $ip (qw(10.0.0.0 10.255.255.255 172.16.0.0 172.31.255.255
                    192.168.0.0 192.168.255.255 169.254.0.0 169.254.255.255)) {
-        my $a = new_ok('Mail::Message::Abuse');
+        my $a = new_ok('Email::Abuse::Investigator');
         $a->parse_email(bare_email(
             "Received: from h [$ip] by mx\nFrom: x\@y.com\n"));
         is $a->originating_ip(), undef, "$ip excluded as private";
@@ -275,7 +275,7 @@ subtest 'Received: -- all RFC-1918 range boundaries private' => sub {
 subtest 'Received: -- 172.15.x and 172.32.x are NOT private' => sub {
     null_net();
     for my $ip (qw(172.15.255.255 172.32.0.0)) {
-        my $a = new_ok('Mail::Message::Abuse');
+        my $a = new_ok('Email::Abuse::Investigator');
         $a->parse_email(bare_email(
             "Received: from h [$ip] by mx\nFrom: x\@y.com\n"));
         ok defined $a->originating_ip(),
@@ -286,7 +286,7 @@ subtest 'Received: -- 172.15.x and 172.32.x are NOT private' => sub {
 
 subtest 'Received: -- octet > 255 rejected' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email(bare_email("Received: from h [256.1.2.3] by mx\nFrom: x\@y.com\n"));
     is $a->originating_ip(), undef, 'octet > 255 rejected';
     restore_net();
@@ -294,7 +294,7 @@ subtest 'Received: -- octet > 255 rejected' => sub {
 
 subtest 'Received: -- IPv6-only header does not die' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     lives_ok {
         $a->parse_email(bare_email(
             "Received: from host (host [2001:db8::1]) by mx\nFrom: x\@y.com\n"))
@@ -304,7 +304,7 @@ subtest 'Received: -- IPv6-only header does not die' => sub {
 
 subtest 'Received: -- /32 trusted relay: adjacent IP is origin' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse',
+    my $a = new_ok('Email::Abuse::Investigator',
                    [trusted_relays => ['91.198.174.5/32']]);
     $a->parse_email(bare_email(
         "Received: from t [91.198.174.5] by mx\n"
@@ -317,7 +317,7 @@ subtest 'Received: -- /32 trusted relay: adjacent IP is origin' => sub {
 
 subtest 'Received: -- /0 trusted relay: all IPs trusted, origin undef' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse',
+    my $a = new_ok('Email::Abuse::Investigator',
                    [trusted_relays => ['0.0.0.0/0']]);
     $a->parse_email(bare_email(
         "Received: from any [91.198.174.1] by mx\nFrom: x\@y.com\n"));
@@ -330,20 +330,20 @@ subtest 'Received: -- /0 trusted relay: all IPs trusted, origin undef' => sub {
 # =============================================================================
 
 subtest '_extract_ip_from_received -- bracketed IP takes priority over bare' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $ip = $a->_extract_ip_from_received(
         'from host [91.198.174.10] by mx also 62.105.128.1');
     is $ip, '91.198.174.10', 'bracketed IP wins over bare fallback';
 };
 
 subtest '_extract_ip_from_received -- whitespace inside brackets' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     is $a->_extract_ip_from_received('from h [ 91.198.174.1 ] by mx'),
        '91.198.174.1', 'whitespace inside brackets stripped';
 };
 
 subtest '_extract_ip_from_received -- empty string and no-IP string' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     is $a->_extract_ip_from_received(''),
        undef, 'empty string: undef';
     is $a->_extract_ip_from_received('from localhost by mx with LMTP id 1'),
@@ -355,28 +355,28 @@ subtest '_extract_ip_from_received -- empty string and no-IP string' => sub {
 # =============================================================================
 
 subtest '_ip_in_cidr -- /0 matches all addresses' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     ok  $a->_ip_in_cidr('1.2.3.4',       '0.0.0.0/0'), '/0 matches public';
     ok  $a->_ip_in_cidr('192.168.1.1',   '0.0.0.0/0'), '/0 matches private';
     ok  $a->_ip_in_cidr('255.255.255.255','0.0.0.0/0'), '/0 matches broadcast';
 };
 
 subtest '_ip_in_cidr -- /32 matches exactly one host' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     ok  $a->_ip_in_cidr('91.198.174.42', '91.198.174.42/32'), '/32 exact match';
     ok !$a->_ip_in_cidr('91.198.174.43', '91.198.174.42/32'), '/32 off-by-one miss';
     ok !$a->_ip_in_cidr('91.198.174.41', '91.198.174.42/32'), '/32 off-by-one below';
 };
 
 subtest '_ip_in_cidr -- network and broadcast addresses included in /24' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     ok  $a->_ip_in_cidr('62.105.128.0',   '62.105.128.0/24'), 'network address in /24';
     ok  $a->_ip_in_cidr('62.105.128.255', '62.105.128.0/24'), 'broadcast in /24';
     ok !$a->_ip_in_cidr('62.105.129.0',   '62.105.128.0/24'), 'next block out of /24';
 };
 
 subtest '_ip_in_cidr -- /16 straddles correctly' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     ok  $a->_ip_in_cidr('172.16.0.1',    '172.16.0.0/16'), '/16 low';
     ok  $a->_ip_in_cidr('172.16.255.254','172.16.0.0/16'), '/16 high';
     ok !$a->_ip_in_cidr('172.17.0.0',    '172.16.0.0/16'), '/16 next block';
@@ -387,32 +387,32 @@ subtest '_ip_in_cidr -- /16 straddles correctly' => sub {
 # =============================================================================
 
 subtest '_parse_date_to_epoch -- Unix epoch origin 1970-01-01' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $e = $a->_parse_date_to_epoch('1970-01-01');
     ok defined $e && $e >= 0, '1970-01-01 parses to >= 0';
 };
 
 subtest '_parse_date_to_epoch -- far future 2099-12-31' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $e = $a->_parse_date_to_epoch('2099-12-31');
     ok defined $e && $e > time(), 'far future date > now';
 };
 
 subtest '_parse_date_to_epoch -- leap year Feb 29 valid' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $e = $a->_parse_date_to_epoch('2024-02-29');
     ok defined $e, '2024-02-29 (valid leap day) parses';
 };
 
 subtest '_parse_date_to_epoch -- invalid Feb 29 in non-leap year does not die' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $e;
     lives_ok { $e = $a->_parse_date_to_epoch('2023-02-29') }
         '2023-02-29 (invalid leap day) does not die';
 };
 
 subtest '_parse_date_to_epoch -- year-end boundary Dec 31 vs Jan 1' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $e_dec = $a->_parse_date_to_epoch('2024-12-31');
     my $e_jan = $a->_parse_date_to_epoch('2025-01-01');
     ok defined $e_dec && defined $e_jan, 'both year-boundary dates parse';
@@ -420,7 +420,7 @@ subtest '_parse_date_to_epoch -- year-end boundary Dec 31 vs Jan 1' => sub {
 };
 
 subtest '_parse_date_to_epoch -- exactly 180 days ago is within window' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $boundary = strftime('%Y-%m-%d', gmtime(time() - 180 * 86400));
     my $e = $a->_parse_date_to_epoch($boundary);
     ok defined $e, '180-day boundary date parses';
@@ -429,7 +429,7 @@ subtest '_parse_date_to_epoch -- exactly 180 days ago is within window' => sub {
 };
 
 subtest '_parse_date_to_epoch -- 181 days ago is outside window' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $old = strftime('%Y-%m-%d', gmtime(time() - 181 * 86400));
     my $e   = $a->_parse_date_to_epoch($old);
     ok defined $e && (time() - $e) > 180 * 86400,
@@ -437,7 +437,7 @@ subtest '_parse_date_to_epoch -- 181 days ago is outside window' => sub {
 };
 
 subtest '_parse_date_to_epoch -- unknown DD-Mon-YYYY month returns undef' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     is $a->_parse_date_to_epoch('15-Xyz-2024'), undef,
         'unknown month abbreviation returns undef';
 };
@@ -447,7 +447,7 @@ subtest '_parse_date_to_epoch -- unknown DD-Mon-YYYY month returns undef' => sub
 # =============================================================================
 
 subtest '_decode_mime_words -- empty base64 payload' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $r;
     lives_ok { $r = $a->_decode_mime_words('=?UTF-8?B??=') }
         'empty base64 payload does not die';
@@ -455,7 +455,7 @@ subtest '_decode_mime_words -- empty base64 payload' => sub {
 };
 
 subtest '_decode_mime_words -- invalid base64 characters do not die' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $r;
     lives_ok { $r = $a->_decode_mime_words('=?UTF-8?B?not!!valid@@b64?=') }
         'invalid base64 does not die';
@@ -463,7 +463,7 @@ subtest '_decode_mime_words -- invalid base64 characters do not die' => sub {
 };
 
 subtest '_decode_mime_words -- 4 KB base64 payload' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $payload = encode_base64('A' x 4096, '');
     my $r;
     lives_ok { $r = $a->_decode_mime_words("=?UTF-8?B?${payload}?=") }
@@ -472,7 +472,7 @@ subtest '_decode_mime_words -- 4 KB base64 payload' => sub {
 };
 
 subtest '_decode_mime_words -- QP with truncated trailing =' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $r;
     lives_ok { $r = $a->_decode_mime_words('=?UTF-8?Q?Hello=?=') }
         'truncated QP does not die';
@@ -480,7 +480,7 @@ subtest '_decode_mime_words -- QP with truncated trailing =' => sub {
 };
 
 subtest '_decode_mime_words -- unknown charset does not die' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $r;
     lives_ok {
         $r = $a->_decode_mime_words(
@@ -490,7 +490,7 @@ subtest '_decode_mime_words -- unknown charset does not die' => sub {
 };
 
 subtest '_decode_mime_words -- multiple encoded-words in one string' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $s = '=?UTF-8?B?' . encode_base64('Hello', '') . '?= '
           . '=?UTF-8?B?' . encode_base64('World', '') . '?=';
     is $a->_decode_mime_words($s), 'Hello World', 'multiple words decoded';
@@ -502,7 +502,7 @@ subtest '_decode_mime_words -- multiple encoded-words in one string' => sub {
 
 subtest 'multipart -- boundary in Content-Type but absent from body' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     lives_ok {
         $a->parse_email(
             "Content-Type: multipart/alternative; boundary=\"MISSING\"\n\n"
@@ -513,7 +513,7 @@ subtest 'multipart -- boundary in Content-Type but absent from body' => sub {
 
 subtest 'multipart -- parts with no Content-Type header' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     lives_ok {
         $a->parse_email(
             "Content-Type: multipart/alternative; boundary=\"B\"\n\n"
@@ -526,7 +526,7 @@ subtest 'multipart -- parts with no Content-Type header' => sub {
 
 subtest 'multipart -- boundary containing regex metacharacters' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $bnd = 'b+o.u*n[d]a(r)y^$';
     lives_ok {
         $a->parse_email(
@@ -539,7 +539,7 @@ subtest 'multipart -- boundary containing regex metacharacters' => sub {
 
 subtest 'multipart -- empty sub-part body' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     lives_ok {
         $a->parse_email(
             "Content-Type: multipart/alternative; boundary=\"B\"\n\n"
@@ -556,7 +556,7 @@ subtest 'multipart -- empty sub-part body' => sub {
 
 subtest 'embedded_urls -- bare-host URL (no path)' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email("From: x\@y.com\n\nhttps://example.com");
     my @u = $a->embedded_urls();
     ok @u > 0,                         'bare-host URL extracted';
@@ -566,7 +566,7 @@ subtest 'embedded_urls -- bare-host URL (no path)' => sub {
 
 subtest 'embedded_urls -- URL with port number: port stripped from host' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email("From: x\@y.com\n\nhttps://evil.example:8443/path");
     my @u = $a->embedded_urls();
     ok @u > 0,                         'URL with port extracted';
@@ -576,7 +576,7 @@ subtest 'embedded_urls -- URL with port number: port stripped from host' => sub 
 
 subtest 'embedded_urls -- 500 identical URLs deduplicated to one' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email("From: x\@y.com\n\n" . ('https://spamhost.example/offer ' x 500));
     my @u = $a->embedded_urls();
     is scalar @u, 1, '500 identical URLs deduplicated to one';
@@ -586,14 +586,14 @@ subtest 'embedded_urls -- 500 identical URLs deduplicated to one' => sub {
 subtest 'embedded_urls -- 500 different paths on same host: WHOIS called once' => sub {
     my $wc = 0;
     { no warnings 'redefine';
-      *Mail::Message::Abuse::_reverse_dns  = sub { undef };
-      *Mail::Message::Abuse::_resolve_host = sub { '1.2.3.4' };
-      *Mail::Message::Abuse::_whois_ip     = sub { $wc++; {} };
-      *Mail::Message::Abuse::_domain_whois = sub { undef };
-      *Mail::Message::Abuse::_raw_whois    = sub { undef };
-      *Mail::Message::Abuse::_rdap_lookup  = sub { {} };
+      *Email::Abuse::Investigator::_reverse_dns  = sub { undef };
+      *Email::Abuse::Investigator::_resolve_host = sub { '1.2.3.4' };
+      *Email::Abuse::Investigator::_whois_ip     = sub { $wc++; {} };
+      *Email::Abuse::Investigator::_domain_whois = sub { undef };
+      *Email::Abuse::Investigator::_raw_whois    = sub { undef };
+      *Email::Abuse::Investigator::_rdap_lookup  = sub { {} };
     }
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $body = join ' ', map { "https://onehost.example/p$_" } 1..500;
     $a->parse_email("From: x\@y.com\n\n$body");
     my @u = $a->embedded_urls();
@@ -604,7 +604,7 @@ subtest 'embedded_urls -- 500 different paths on same host: WHOIS called once' =
 
 subtest 'embedded_urls -- 8 KB URL path does not die' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $path = 'a' x 8192;
     lives_ok { $a->parse_email("From: x\@y.com\n\nhttps://spam.example/$path") }
         '8 KB URL path does not die';
@@ -613,7 +613,7 @@ subtest 'embedded_urls -- 8 KB URL path does not die' => sub {
 
 subtest 'embedded_urls -- each trailing punctuation char stripped' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     for my $punct ('.', ',', ';', ':', '!', '?', ')', '>', ']') {
         $a->parse_email("From: x\@y.com\n\nhttps://spam.example/path$punct");
         my @u = $a->embedded_urls();
@@ -630,7 +630,7 @@ subtest 'embedded_urls -- each trailing punctuation char stripped' => sub {
 
 subtest 'embedded_urls -- uppercase scheme HTTP:// recognised' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email("From: x\@y.com\n\nHTTPS://SPAM.EXAMPLE/path");
     my @u = $a->embedded_urls();
     ok @u >= 1, 'uppercase HTTPS:// scheme URL extracted';
@@ -643,7 +643,7 @@ subtest 'embedded_urls -- uppercase scheme HTTP:// recognised' => sub {
 
 subtest 'mailto_domains -- single-label domain does not die' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email("From: user\@com\n\nbody");
     lives_ok { $a->mailto_domains() } 'single-label domain in From: does not die';
     restore_net();
@@ -651,7 +651,7 @@ subtest 'mailto_domains -- single-label domain does not die' => sub {
 
 subtest 'mailto_domains -- 200 distinct domains all extracted' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $body = join ' ', map { "info\@domain$_.example" } 1..200;
     # Use domain1.example in From/Return-Path so they don't add an extra domain
     $a->parse_email("From: x\@domain1.example\nReturn-Path: <x\@domain1.example>\n\n$body");
@@ -664,7 +664,7 @@ subtest 'mailto_domains -- 200 distinct domains all extracted' => sub {
 
 subtest 'mailto_domains -- all TRUSTED_DOMAINS variants excluded' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email(
         "From: x\@gmail.com\n"
       . "Return-Path: <y\@googlemail.com>\n\n"
@@ -678,7 +678,7 @@ subtest 'mailto_domains -- all TRUSTED_DOMAINS variants excluded' => sub {
 
 subtest 'mailto_domains -- domain object not mutated by abuse_contacts()' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email("From: x\@y.com\n\nbody");
     $a->{_origin}         = undef;
     $a->{_urls}           = [];
@@ -706,28 +706,28 @@ subtest 'mailto_domains -- domain object not mutated by abuse_contacts()' => sub
 # =============================================================================
 
 subtest '_registrable -- single label returns undef' => sub {
-    is Mail::Message::Abuse::_registrable('localhost'), undef, 'no dot: undef';
-    is Mail::Message::Abuse::_registrable('com'),       undef, 'tld-only: undef';
+    is Email::Abuse::Investigator::_registrable('localhost'), undef, 'no dot: undef';
+    is Email::Abuse::Investigator::_registrable('com'),       undef, 'tld-only: undef';
 };
 
 subtest '_registrable -- two labels returned unchanged' => sub {
-    is Mail::Message::Abuse::_registrable('example.com'), 'example.com',
+    is Email::Abuse::Investigator::_registrable('example.com'), 'example.com',
         'two labels unchanged';
 };
 
 subtest '_registrable -- ccTLD second-level variants' => sub {
-    is Mail::Message::Abuse::_registrable('sub.example.co.uk'),
+    is Email::Abuse::Investigator::_registrable('sub.example.co.uk'),
        'example.co.uk',  'co.uk ccTLD';
-    is Mail::Message::Abuse::_registrable('sub.example.com.au'),
+    is Email::Abuse::Investigator::_registrable('sub.example.com.au'),
        'example.com.au', 'com.au ccTLD';
-    is Mail::Message::Abuse::_registrable('sub.example.org.ph'),
+    is Email::Abuse::Investigator::_registrable('sub.example.org.ph'),
        'example.org.ph', 'org.ph ccTLD';
-    is Mail::Message::Abuse::_registrable('sub.example.ac.uk'),
+    is Email::Abuse::Investigator::_registrable('sub.example.ac.uk'),
        'example.ac.uk',  'ac.uk ccTLD';
 };
 
 subtest '_registrable -- non-ccTLD-pair two-char TLD' => sub {
-    is Mail::Message::Abuse::_registrable('sub.example.io'),
+    is Email::Abuse::Investigator::_registrable('sub.example.io'),
        'example.io', '.io without co/com prefix treated as simple TLD';
 };
 
@@ -737,7 +737,7 @@ subtest '_registrable -- non-ccTLD-pair two-char TLD' => sub {
 
 subtest 'risk_assessment -- score >= 9 is HIGH (three spf/dkim/dmarc fail)' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email(
         "Received: from h [91.198.174.1] by mx\n"
       . "Authentication-Results: mx; spf=fail; dkim=fail; dmarc=fail\n"
@@ -752,7 +752,7 @@ subtest 'risk_assessment -- score >= 9 is HIGH (three spf/dkim/dmarc fail)' => s
 
 subtest 'risk_assessment -- score 5..8 is MEDIUM' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email(
         "Received: from h (h [91.198.174.1]) by mx\n"
       . "From: x\@gmail.com\n"       # free_webmail MEDIUM(2)
@@ -776,7 +776,7 @@ subtest 'risk_assessment -- score 5..8 is MEDIUM' => sub {
 subtest 'risk_assessment -- score 2..4 is LOW' => sub {
     null_net();
     my $enc = '=?UTF-8?B?' . encode_base64('Buy now', '') . '?=';
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email(
         "Received: from h (h [91.198.174.1]) by mx\n"
       . "From: x\@verifiedcorp.example\n"
@@ -802,7 +802,7 @@ subtest 'risk_assessment -- score 2..4 is LOW' => sub {
 
 subtest 'risk_assessment -- score 0..1 is INFO' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $today = strftime('%a, %d %b %Y %H:%M:%S +0000', gmtime);
     $a->parse_email(
         "Received: from h (h [91.198.174.1]) by mx\n"
@@ -828,7 +828,7 @@ subtest 'risk_assessment -- score 0..1 is INFO' => sub {
 subtest 'risk_assessment -- domain expiry exactly now: at most one expiry flag' => sub {
     null_net();
     my $today = strftime('%Y-%m-%d', gmtime(time()));
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email("From: x\@y.com\n\nbody");
     $a->{_origin}         = undef;
     $a->{_urls}           = [];
@@ -848,7 +848,7 @@ subtest 'risk_assessment -- domain expiry exactly now: at most one expiry flag' 
 subtest 'risk_assessment -- 31 days to expiry: domain_expires_soon NOT raised' => sub {
     null_net();
     my $future = strftime('%Y-%m-%d', gmtime(time() + 31 * 86400));
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email("From: x\@y.com\n\nbody");
     $a->{_origin}         = undef;
     $a->{_urls}           = [];
@@ -864,7 +864,7 @@ subtest 'risk_assessment -- 31 days to expiry: domain_expires_soon NOT raised' =
 
 subtest 'risk_assessment -- cached result returned on second call' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email("From: x\@y.com\n\nbody");
     $a->{_urls} = []; $a->{_mailto_domains} = [];
     my $r1 = $a->risk_assessment();
@@ -879,7 +879,7 @@ subtest 'risk_assessment -- cached result returned on second call' => sub {
 
 subtest 'risk_assessment -- canonical brand domains not flagged as lookalikes' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email("From: x\@y.com\n\nbody");
     $a->{_origin} = undef; $a->{_urls} = [];
     for my $real (qw(paypal.com paypal.co.uk apple.com google.com
@@ -897,7 +897,7 @@ subtest 'risk_assessment -- canonical brand domains not flagged as lookalikes' =
 
 subtest 'risk_assessment -- prefix and suffix lookalikes flagged' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email("From: x\@y.com\n\nbody");
     $a->{_origin} = undef; $a->{_urls} = [];
     for my $fake (qw(paypal-secure.example getpaypal.example
@@ -919,7 +919,7 @@ subtest 'risk_assessment -- prefix and suffix lookalikes flagged' => sub {
 # =============================================================================
 
 subtest 'abuse_contacts -- address without @ never added' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email("From: x\@y.com\n\nbody");
     $a->{_origin}         = undef;
     $a->{_urls}           = [];
@@ -934,7 +934,7 @@ subtest 'abuse_contacts -- address without @ never added' => sub {
 };
 
 subtest 'abuse_contacts -- 40 routes to same address: appears exactly once' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email("From: x\@y.com\n\nbody");
     $a->{_origin} = {
         ip=>'1.2.3.4', rdns=>'mail.x', confidence=>'medium',
@@ -955,7 +955,7 @@ subtest 'abuse_contacts -- 40 routes to same address: appears exactly once' => s
 };
 
 subtest 'abuse_contacts -- gmail From/Reply-To/Return-Path: one google contact' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email(
         "From: a\@gmail.com\n"
       . "Reply-To: b\@gmail.com\n"
@@ -974,25 +974,25 @@ subtest 'abuse_contacts -- gmail From/Reply-To/Return-Path: one google contact' 
 # =============================================================================
 
 subtest '_parse_whois_text -- all-comment WHOIS returns empty hash' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $r = $a->_parse_whois_text("% comment\n% another\n");
     is_deeply $r, {}, 'all-comment WHOIS text returns {}';
 };
 
 subtest '_parse_whois_text -- first OrgName wins over second' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $r = $a->_parse_whois_text("OrgName: First\nOrgName: Second\n");
     is $r->{org}, 'First', 'first OrgName takes priority';
 };
 
 subtest '_parse_whois_text -- trailing whitespace stripped from abuse email' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $r = $a->_parse_whois_text("OrgAbuseEmail: abuse\@corp.example   \n");
     is $r->{abuse}, 'abuse@corp.example', 'trailing whitespace stripped';
 };
 
 subtest '_parse_whois_text -- country code normalised to uppercase' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     # Regex matches [A-Za-z]{2} and stores uc($1), so both cases give uppercase
     is $a->_parse_whois_text("country: au\n")->{country}, 'AU',
         'lowercase country code matched and normalised to uppercase';
@@ -1003,7 +1003,7 @@ subtest '_parse_whois_text -- country code normalised to uppercase' => sub {
 };
 
 subtest '_parse_whois_text -- 2 KB padded WHOIS blob: fields found correctly' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $pad  = ("% " . "x" x 70 . "\n") x 25;
     my $text = $pad . "OrgName: Correct Org\n" . $pad
              . "OrgAbuseEmail: correct\@org.example\n" . $pad;
@@ -1018,7 +1018,7 @@ subtest '_parse_whois_text -- 2 KB padded WHOIS blob: fields found correctly' =>
 
 subtest 'report() -- does not die on completely empty email' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email('');
     $a->{_urls} = []; $a->{_mailto_domains} = [];
     my $r;
@@ -1029,7 +1029,7 @@ subtest 'report() -- does not die on completely empty email' => sub {
 
 subtest 'report() -- does not die when all network returns undef' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email(
         "Received: from h [91.198.174.1] by mx\n"
       . "From: x\@spam.example\n\n"
@@ -1042,7 +1042,7 @@ subtest 'report() -- does not die when all network returns undef' => sub {
 
 subtest 'report() -- special chars in registrar name do not corrupt output' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email("From: x\@y.com\n\nbody");
     $a->{_origin}         = undef;
     $a->{_urls}           = [];
@@ -1061,7 +1061,7 @@ subtest 'report() -- special chars in registrar name do not corrupt output' => s
 
 subtest 'abuse_report_text() -- does not die on empty email' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email('');
     $a->{_urls} = []; $a->{_mailto_domains} = [];
     my $r;
@@ -1077,8 +1077,8 @@ subtest 'abuse_report_text() -- does not die on empty email' => sub {
 
 subtest 'two objects have independent state' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
-    my $b = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
+    my $b = new_ok('Email::Abuse::Investigator');
     $a->parse_email(
         "Received: from h [91.198.174.1] by mx\nFrom: x\@a.example\n\nbody");
     $b->parse_email(
@@ -1097,7 +1097,7 @@ subtest 'two objects have independent state' => sub {
 
 subtest 're-parse on same object produces independent results' => sub {
     null_net();
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     $a->parse_email(
         "Received: from h [91.198.174.1] by mx\nFrom: x\@first.example\n\nbody");
     my $orig1 = $a->originating_ip();
@@ -1116,7 +1116,7 @@ subtest 're-parse on same object produces independent results' => sub {
 # =============================================================================
 
 subtest '_provider_abuse_for_host -- 10-level deep subdomain reaches provider' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     my $deep = 'a.b.c.d.e.f.g.h.i.gmail.com';
     my $r = $a->_provider_abuse_for_host($deep);
     is $r->{email}, 'abuse@google.com',
@@ -1124,7 +1124,7 @@ subtest '_provider_abuse_for_host -- 10-level deep subdomain reaches provider' =
 };
 
 subtest '_provider_abuse_for_host -- case-insensitive lookup' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     is $a->_provider_abuse_for_host('GMAIL.COM')->{email},
        'abuse@google.com', 'GMAIL.COM matched case-insensitively';
     is $a->_provider_abuse_for_host('Mail.GMAIL.Com')->{email},
@@ -1132,7 +1132,7 @@ subtest '_provider_abuse_for_host -- case-insensitive lookup' => sub {
 };
 
 subtest '_provider_abuse_for_host -- completely unknown host returns undef' => sub {
-    my $a = new_ok('Mail::Message::Abuse');
+    my $a = new_ok('Email::Abuse::Investigator');
     is $a->_provider_abuse_for_host('completely.unknown.example'),
        undef, 'unknown host returns undef';
 };

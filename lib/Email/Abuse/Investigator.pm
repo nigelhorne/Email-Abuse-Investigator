@@ -1,15 +1,15 @@
-package Mail::Message::Abuse;
+package Email::Abuse::Investigator;
 
 use strict;
 use warnings;
 
 use IO::Socket::INET;
 use MIME::QuotedPrint qw( decode_qp );
-use MIME::Base64      qw( decode_base64 );
+use MIME::Base64 qw( decode_base64 );
 use Object::Configure;
 use Params::Get;
 use Params::Validate::Strict;
-use Socket          qw( inet_aton inet_ntoa );
+use Socket qw( inet_aton inet_ntoa );
 
 # Optional - gracefully degraded
 my $HAS_NET_DNS;
@@ -153,7 +153,7 @@ my %PROVIDER_ABUSE = (
 
 =head1 NAME
 
-Mail::Message::Abuse - Analyse spam email to identify originating hosts,
+Email::Abuse::Investigator - Analyse spam email to identify originating hosts,
 hosted URLs, and suspicious domains
 
 =head1 VERSION
@@ -166,9 +166,9 @@ our $VERSION = '0.01';
 
 =head1 SYNOPSIS
 
-    use Mail::Message::Abuse;
+    use Email::Abuse::Investigator;
 
-    my $analyser = Mail::Message::Abuse->new( verbose => 1 );
+    my $analyser = Email::Abuse::Investigator->new( verbose => 1 );
     $analyser->parse_email($raw_email_text);
 
     # Originating IP and its network owner
@@ -188,7 +188,7 @@ our $VERSION = '0.01';
 
 =head1 DESCRIPTION
 
-C<Mail::Message::Abuse> examines the raw source of a spam/phishing e-mail
+C<Email::Abuse::Investigator> examines the raw source of a spam/phishing e-mail
 and answers the questions abuse investigators ask:
 
 =over 4
@@ -233,7 +233,7 @@ C<Message-ID:> domain.  For each unique domain it gathers:
 
 =head3 Purpose
 
-Constructs and returns a new C<Mail::Message::Abuse> analyser object.  The
+Constructs and returns a new C<Email::Abuse::Investigator> analyser object.  The
 object is stateless until C<parse_email()> is called; all analysis results
 are stored on the object and retrieved via the public accessor methods
 documented below.
@@ -244,10 +244,10 @@ again: all cached state from the previous message is discarded automatically.
 =head3 Usage
 
     # Minimal -- all options take safe defaults
-    my $analyser = Mail::Message::Abuse->new();
+    my $analyser = Email::Abuse::Investigator->new();
 
     # With options
-    my $analyser = Mail::Message::Abuse->new(
+    my $analyser = Email::Abuse::Investigator->new(
         timeout        => 15,
         trusted_relays => ['203.0.113.0/24', '10.0.0.0/8'],
         verbose        => 0,
@@ -301,7 +301,7 @@ C<trusted_relays =E<gt> ['203.0.113.5']> and that hop will be ignored.
 =item C<verbose> (boolean, default 0)
 
 When true, diagnostic messages are written to STDERR as the object
-processes each email.  Messages are prefixed with C<[Mail::Message::Abuse]>
+processes each email.  Messages are prefixed with C<[Email::Abuse::Investigator]>
 and describe each major analysis step (header parsing, DNS resolution,
 WHOIS queries, etc.).  Intended for development and debugging; leave false
 in production.
@@ -310,7 +310,7 @@ in production.
 
 =head3 Returns
 
-A blessed C<Mail::Message::Abuse> object.  The object is immediately usable;
+A blessed C<Email::Abuse::Investigator> object.  The object is immediately usable;
 no network I/O is performed during construction.
 
 =head3 Side Effects
@@ -335,7 +335,7 @@ Unknown option keys are silently ignored.
 =item *
 
 The object is not thread-safe.  If you process multiple emails
-concurrently, construct a separate C<Mail::Message::Abuse> object per
+concurrently, construct a separate C<Email::Abuse::Investigator> object per
 thread or per-request.
 
 =item *
@@ -378,8 +378,8 @@ timeout on affected platforms.
 
     # Return::Set compatible specification
     {
-        type  => 'Mail::Message::Abuse',  # blessed object
-        isa   => 'Mail::Message::Abuse',
+        type  => 'Email::Abuse::Investigator',  # blessed object
+        isa   => 'Email::Abuse::Investigator',
 
         # Guaranteed slots on the returned object (public API):
         #   timeout        => non-negative integer
@@ -457,7 +457,7 @@ the previous email survives.
     $analyser->parse_email(\$raw);
 
     # Chained with new()
-    my $analyser = Mail::Message::Abuse->new()->parse_email($raw);
+    my $analyser = Email::Abuse::Investigator->new()->parse_email($raw);
 
     # Re-use the same object for multiple messages
     while (my $msg = $queue->next()) {
@@ -502,7 +502,7 @@ are silently skipped.
 
 The object itself (C<$self>), allowing method chaining:
 
-    my $origin = Mail::Message::Abuse->new()->parse_email($raw)->originating_ip();
+    my $origin = Email::Abuse::Investigator->new()->parse_email($raw)->originating_ip();
 
 =head3 Side Effects
 
@@ -603,8 +603,8 @@ prevents malformed spam from causing exceptions during analysis.
 
     # Return::Set compatible specification
     {
-        type => 'Mail::Message::Abuse',  # the invocant, returned for chaining
-        isa  => 'Mail::Message::Abuse',
+        type => 'Email::Abuse::Investigator',  # the invocant, returned for chaining
+        isa  => 'Email::Abuse::Investigator',
 
         # Guaranteed post-conditions on the returned object:
         #   sending_software()  returns a (possibly empty) list
@@ -615,6 +615,7 @@ prevents malformed spam from causing exceptions during analysis.
 
 =cut
 
+# TODO:  Allow a Mail::Message object to be given
 sub parse_email {
     my ($self, $text) = @_;
     $text = $$text if ref $text;
@@ -862,7 +863,7 @@ for the unknown case: C<$orig-E<gt>{abuse} eq '(unknown)'>.
 =head4 Input
 
     # Params::Validate::Strict compatible specification
-    # No arguments; invocant must be a Mail::Message::Abuse object
+    # No arguments; invocant must be a Email::Abuse::Investigator object
     # on which parse_email() has previously been called.
     []
 
@@ -2958,7 +2959,7 @@ The report is structured as follows, in order:
 
 Two fixed lines:
 
-    This is an automated abuse report generated by Mail::Message::Abuse.
+    This is an automated abuse report generated by Email::Abuse::Investigator.
     Please investigate the following spam/phishing message.
 
 =item 2. Risk level
@@ -3078,7 +3079,7 @@ sub abuse_report_text {
     my ($self) = @_;
     my @out;
 
-    push @out, "This is an automated abuse report generated by Mail::Message::Abuse.";
+    push @out, "This is an automated abuse report generated by Email::Abuse::Investigator.";
     push @out, "Please investigate the following spam/phishing message.";
     push @out, '';
 
@@ -3658,7 +3659,7 @@ this fixed order:
 =item 1. Banner
 
     ========================================================================
-      Mail::Message::Abuse Report  (vX.XX)
+      Email::Abuse::Investigator Report  (vX.XX)
     ========================================================================
 
 A row of 72 equals signs, the module name and version number, and a
@@ -3840,7 +3841,7 @@ C<(none found)> or equivalent placeholder when their data is empty.
 
 =item *
 
-The version number in the banner is the value of C<$Mail::Message::Abuse::VERSION>
+The version number in the banner is the value of C<$Email::Abuse::Investigator::VERSION>
 at the time C<report()> is called.
 
 =back
@@ -3873,7 +3874,7 @@ sub report {
 	my @out;
 
 	push @out, '=' x 72;
-	push @out, "  Mail::Message::Abuse Report  (v$VERSION)";
+	push @out, "  Email::Abuse::Investigator Report  (v$VERSION)";
 	push @out, '=' x 72;
 	push @out, '';
 
@@ -4042,17 +4043,63 @@ sub report {
             push @out, '';
         }
     } else {
-        push @out, "  (no abuse contacts could be determined)";
+        push @out, '  (no abuse contacts could be determined)';
         push @out, '';
     }
 
-    push @out, "=" x 72;
+    push @out, '=' x 72;
     return join("\n", @out) . "\n";
 }
 
-# -----------------------------------------------------------------------
-# Private: message parsing
-# -----------------------------------------------------------------------
+# _split_message( $text )
+#
+# Entry criteria:
+#   $text  -- a defined scalar containing a raw RFC 2822 email message,
+#             with headers and body separated by a blank line (\n\n or
+#             \r\n\r\n).  Both LF and CRLF line endings are accepted.
+#             The text must already be dereferenced (parse_email() handles
+#             the scalar-ref case before calling this method).
+#             Called only from parse_email(); $self->{_sending_sw} and
+#             $self->{_rcvd_tracking} must have been reset to [] by the
+#             caller before this method is invoked.
+#
+# Exit status:
+#   Returns undef (and does nothing further) if $header_block is undef or
+#   contains only whitespace -- i.e. the message has no headers or is
+#   empty.  Otherwise returns no meaningful value; all results are
+#   communicated through side effects on $self.
+#
+# Side effects:
+#   $self->{_headers}      set to an arrayref of { name => lc, value => raw }
+#                          hashrefs, one per parsed header, in message order.
+#                          Folded (multi-line) values are unfolded before
+#                          parsing (RFC 2822 s2.2.3).  Header names are
+#                          normalised to lower-case.
+#   $self->{_received}     set to an arrayref of raw Received: header values
+#                          (not decoded), in message order (most-recent first).
+#   $self->{_body_plain}   set to the decoded plain-text body.  Appended to
+#                          (not replaced) for each text/* part in multipart
+#                          messages.
+#   $self->{_body_html}    set to the decoded HTML body.  Appended to for
+#                          each text/html part in multipart messages.
+#   $self->{_sending_sw}   populated with { header, value, note } hashrefs
+#                          for any of the six recognised software-fingerprint
+#                          headers that are present, in alphabetical key order.
+#   $self->{_rcvd_tracking} populated with { received, ip, for, id } hashrefs,
+#                          one per Received: hop from which at least one of
+#                          an IP, envelope recipient, or session ID could be
+#                          extracted, in oldest-first order.
+#
+# Notes:
+#   Delegates body decoding to _decode_multipart() for multipart/* content
+#   types (which recursively handles each part) or to _decode_body() for
+#   single-part messages.  If Content-Type is absent or unrecognised, the
+#   body is treated as plain text with 7bit encoding.
+#   The boundary parameter in multipart Content-Type is extracted with a
+#   simple regex; missing or malformed boundaries cause the body to be
+#   silently skipped.
+#   Lines that do not match the header pattern /^([\w-]+)\s*:\s*(.*)/ are
+#   silently discarded (covers blank lines and non-header preamble text).
 
 sub _split_message {
     my ($self, $text) = @_;
@@ -4153,16 +4200,69 @@ sub _decode_multipart {
 }
 
 sub _decode_body {
-    my ($self, $body, $cte) = @_;
-    $cte //= '';
-    return decode_qp($body)     if $cte =~ /quoted-printable/i;
-    return decode_base64($body) if $cte =~ /base64/i;
-    return $body;
+	my ($self, $body, $cte) = @_;
+
+	$cte //= '';
+
+	return decode_qp($body)     if $cte =~ /quoted-printable/i;
+	return decode_base64($body) if $cte =~ /base64/i;
+	return $body;
 }
 
-# -----------------------------------------------------------------------
-# Private: Received-chain -> originating IP
-# -----------------------------------------------------------------------
+# _find_origin()
+#
+#   Identifies the IP address of the machine that originally injected the
+#   message into the public mail system by walking the Received: chain and
+#   discarding every hop that belongs to private, reserved, or
+#   caller-trusted infrastructure.  The first remaining (oldest external)
+#   IP is enriched with reverse DNS, organisation, abuse contact, and
+#   country information and returned as the origin hashref.
+#
+#   This is the back-end implementation for the public originating_ip()
+#   method, which caches the result.  _find_origin() itself performs no
+#   caching and must not be called directly; always call originating_ip().
+#
+# Entry criteria:
+#   No arguments beyond $self.
+#   $self->{_received}     must be populated (by _split_message()).
+#   $self->{_headers}      must be populated (by _split_message()), so
+#                          that _header_value('x-originating-ip') works.
+#   $self->{trusted_relays} must be an arrayref (set by new(); may be []).
+#
+# Exit status:
+#   Returns a hashref on success -- the same structure as originating_ip():
+#     { ip, rdns, org, abuse, country, confidence, note }
+#   Returns undef if no usable originating IP can be determined:
+#     -- all Received: IPs are private, reserved, or trusted; AND
+#     -- X-Originating-IP is absent, private, or unparseable.
+#
+# Side effects:
+#   Performs network I/O via _enrich_ip():
+#     - one PTR (rDNS) lookup for the chosen IP (_reverse_dns)
+#     - one RDAP or WHOIS query for the chosen IP (_whois_ip)
+#   No state is written to $self; the result is returned, not cached here.
+#
+# Notes:
+#   The Received: chain is walked in reverse message order -- i.e. from
+#   the oldest header (bottom of the header block) to the most recent --
+#   so that candidates are accumulated in oldest-first order.  $candidates[0]
+#   is always the outermost (first) external relay.
+#
+#   Confidence levels are assigned as follows:
+#     'high'   -- two or more distinct external IPs found in the chain.
+#                 Multiple independent relay records corroborate the origin.
+#     'medium' -- exactly one external IP found in the chain.
+#     'low'    -- no usable Received: IP; origin taken from
+#                 X-Originating-IP, which is injected by webmail providers
+#                 and is not independently verifiable.  Brackets and
+#                 whitespace are stripped from the header value before use.
+#
+#   _is_private() treats undef and the empty string as private, so a
+#   Received: header from which no IP can be extracted is silently skipped
+#   without special-casing.
+#
+#   IPv6 addresses are not extracted by _extract_ip_from_received(); only
+#   dotted-quad IPv4 addresses are considered.
 
 sub _find_origin {
     my ($self) = @_;
@@ -4206,6 +4306,11 @@ sub _extract_ip_from_received {
     return undef;
 }
 
+# Not using Data::Validate::IP::is_private_ipv4 here: that function covers
+# only RFC 1918, loopback, and link-local.  We additionally need to exclude
+# CGN (100.64.0.0/10, RFC 6598), the three RFC 5737 documentation ranges,
+# 0.0.0.0/8, broadcast, and IPv6 ULA -- all of which appear in real or test
+# Received: headers and must not be reported as origins.
 sub _is_private {
     my ($self, $ip) = @_;
     return 1 unless defined $ip && $ip ne '';
@@ -4220,10 +4325,6 @@ sub _is_trusted {
     }
     return 0;
 }
-
-# -----------------------------------------------------------------------
-# Private: HTTP/HTTPS URL extraction
-# -----------------------------------------------------------------------
 
 sub _extract_and_resolve_urls {
     my ($self) = @_;
@@ -4281,10 +4382,6 @@ sub _extract_http_urls {
     s/[.,;:!?\)>\]]+$// for @all;
     return @all;
 }
-
-# -----------------------------------------------------------------------
-# Private: domain extraction and full analysis
-# -----------------------------------------------------------------------
 
 sub _extract_and_analyse_domains {
     my ($self) = @_;
@@ -4378,13 +4475,111 @@ sub _domains_from_text {
 }
 
 # Full domain intelligence gathering
+#
+# _analyse_domain( $domain )
+#
+#   Runs the complete intelligence pipeline for a single domain name:
+#   resolves its web-hosting IP (A record), mail-hosting IP (MX record),
+#   DNS-hosting IP (NS record), and queries WHOIS for registrar, creation
+#   date, expiry date, and abuse contact.  Each IP is enriched with
+#   organisation name and abuse address via RDAP or WHOIS.
+#
+#   The result is cached in $self->{_domain_info}{$domain} so that if
+#   the same domain is encountered in multiple sources (e.g. From: header
+#   and body) the network queries are only performed once.
+#
+#   Called exclusively from _extract_and_analyse_domains(), which merges
+#   the returned hashref with the { domain, source } record to produce
+#   the per-domain hashrefs returned by mailto_domains().
+#
+# Entry criteria:
+#   $domain  -- a defined, non-empty, lower-cased domain string with no
+#               trailing dot (normalisation is the caller's responsibility).
+#               Must not be in %TRUSTED_DOMAINS (filtering is the caller's
+#               responsibility).
+#   $self->{timeout}  -- used for all DNS and WHOIS socket operations.
+#   $self->{_domain_info}  -- hashref cache; may already contain an entry
+#                             for $domain from a prior call.
+#
+# Exit status:
+#   Always returns a hashref reference -- never undef, never dies.
+#   The hashref may be empty ({}) if all lookups fail or return nothing.
+#   Keys present depend entirely on what the lookups return; all are
+#   optional.  Possible keys and their types:
+#     web_ip              string  -- dotted-quad IPv4 of A record
+#     web_org             string  -- organisation owning web_ip
+#     web_abuse           string  -- abuse contact for web_ip network
+#     mx_host             string  -- lowest-preference MX hostname
+#     mx_ip               string  -- dotted-quad IPv4 of mx_host
+#     mx_org              string  -- organisation owning mx_ip
+#     mx_abuse            string  -- abuse contact for mx_ip network
+#     ns_host             string  -- first NS hostname returned
+#     ns_ip               string  -- dotted-quad IPv4 of ns_host
+#     ns_org              string  -- organisation owning ns_ip
+#     ns_abuse            string  -- abuse contact for ns_ip network
+#     registrar           string  -- registrar name from WHOIS
+#     registrar_abuse     string  -- registrar abuse email from WHOIS
+#     registered          string  -- creation date YYYY-MM-DD
+#     expires             string  -- expiry date YYYY-MM-DD
+#     recently_registered integer -- 1 if registered < 180 days ago
+#     whois_raw           string  -- first 2048 bytes of WHOIS response
+#
+# Side effects:
+#   Network I/O, subject to $self->{timeout}, in this order:
+#     1. One A record lookup (_resolve_host) for the domain itself.
+#     2. If web_ip found: one RDAP/WHOIS query (_whois_ip) -- up to two
+#        TCP connections (IANA referral + authoritative registry).
+#     3. If Net::DNS available: one MX record lookup.
+#        If MX found: one A lookup for the MX hostname, then one
+#        RDAP/WHOIS query for its IP (up to two TCP connections).
+#     4. If Net::DNS available: one NS record lookup.
+#        If NS found: one A lookup for the NS hostname, then one
+#        RDAP/WHOIS query for its IP (up to two TCP connections).
+#     5. Two TCP WHOIS connections for the domain itself: first to
+#        whois.iana.org to obtain the TLD's authoritative registry,
+#        then to that registry.
+#   Worst-case total: 3 A lookups + 1 MX lookup + 1 NS lookup +
+#   3x RDAP/WHOIS IP queries (up to 6 TCP connections) +
+#   2 domain WHOIS TCP connections = up to 17 network operations.
+#   Writes result hashref to $self->{_domain_info}{$domain} (cache).
+#
+# Notes:
+#   Result is served from $self->{_domain_info}{$domain} on all
+#   subsequent calls for the same domain within one parse_email() lifetime.
+#   The cache is invalidated (reset to {}) by parse_email().
+#
+#   MX selection: the lowest-preference MX record is used (most preferred
+#   server).  Only the primary MX is analysed; backup MXs are ignored.
+#
+#   NS selection: the first NS record returned by the resolver is used.
+#   DNS resolvers do not guarantee a consistent ordering; the choice of
+#   nameserver may vary between calls on different machines or at different
+#   times.
+#
+#   MX and NS lookups are skipped entirely when Net::DNS is not installed.
+#   In that case mx_*, ns_* keys are never present in the result.
+#
+#   WHOIS date fields (registered, expires) have time and timezone
+#   components stripped by removing everything from the first 'T' or 'Z'
+#   onward; the stored value is a plain YYYY-MM-DD string.  Parsing
+#   uses the first matching pattern from a priority list; any fields not
+#   found in the WHOIS response are absent from the result (not undef).
+#
+#   whois_raw is truncated to the first 2048 bytes of the raw WHOIS
+#   response.  Structured fields (registrar, dates, abuse) are parsed from
+#   the full response before truncation.
+#
+#   recently_registered is set to integer 1 when present; it is absent
+#   (not 0) when the domain is not recently registered or when no creation
+#   date was found.  The threshold is 180 days before time() at the moment
+#   of analysis.
 sub _analyse_domain {
-    my ($self, $domain) = @_;
-    return $self->{_domain_info}{$domain}
-        if $self->{_domain_info}{$domain};
+	my ($self, $domain) = @_;
 
-    $self->_debug("Analysing domain: $domain");
-    my %info;
+	return $self->{_domain_info}{$domain} if $self->{_domain_info}{$domain};
+
+	$self->_debug("Analysing domain: $domain");
+	my %info;
 
     # --- A record -> web hosting ---
     my $web_ip = $self->_resolve_host($domain);
@@ -4490,10 +4685,6 @@ sub _analyse_domain {
     return \%info;
 }
 
-# -----------------------------------------------------------------------
-# Private: DNS helpers
-# -----------------------------------------------------------------------
-
 sub _resolve_host {
     my ($self, $host) = @_;
     return $host if $host =~ /^\d{1,3}(?:\.\d{1,3}){3}$/;
@@ -4534,10 +4725,6 @@ sub _reverse_dns {
     return scalar gethostbyaddr(inet_aton($ip), Socket::AF_INET());
 }
 
-# -----------------------------------------------------------------------
-# Private: WHOIS / RDAP
-# -----------------------------------------------------------------------
-
 # IP WHOIS: RDAP preferred, raw WHOIS TCP fallback
 sub _whois_ip {
     my ($self, $ip) = @_;
@@ -4566,7 +4753,7 @@ sub _rdap_lookup {
     my ($self, $ip) = @_;
     return {} unless $HAS_LWP;
     my $ua  = LWP::UserAgent->new(timeout => $self->{timeout},
-                                  agent   => "Mail-Message-Abuse/$VERSION");
+                                  agent   => "Email-Abuse-Investigator/$VERSION");
     my $res = eval { $ua->get("https://rdap.arin.net/registry/ip/$ip") };
     return {} unless $res && $res->is_success;
     my $j = $res->decoded_content;
@@ -4636,10 +4823,6 @@ sub _parse_whois_text {
     }
     return \%info;
 }
-
-# -----------------------------------------------------------------------
-# Private: utilities
-# -----------------------------------------------------------------------
 
 sub _enrich_ip {
     my ($self, $ip, $confidence, $note) = @_;
@@ -4785,11 +4968,12 @@ sub _registrable {
 }
 
 sub _country_name {
-    my ($cc) = @_;
-    my %names = ( CN => 'China', RU => 'Russia', NG => 'Nigeria',
-                  VN => 'Vietnam', IN => 'India', PK => 'Pakistan',
-                  BD => 'Bangladesh' );
-    return $names{$cc} // $cc;
+	my $cc = $_[0];
+
+	my %names = ( CN => 'China', RU => 'Russia', NG => 'Nigeria',
+		VN => 'Vietnam', IN => 'India', PK => 'Pakistan',
+		BD => 'Bangladesh' );
+	return $names{$cc} // $cc;
 }
 
 # Look up provider abuse contact by plain domain name
@@ -4806,14 +4990,19 @@ sub _provider_abuse_for_host {
 
 # Look up provider abuse contact by IP and/or rDNS hostname
 sub _provider_abuse_for_ip {
-    my ($self, $ip, $rdns) = @_;
-    return $self->_provider_abuse_for_host($rdns) if $rdns;
-    return undef;
+	my ($self, $ip, $rdns) = @_;
+
+	return $self->_provider_abuse_for_host($rdns) if $rdns;
+	return undef;
 }
 
 sub _debug {
-    my ($self, $msg) = @_;
-    print STDERR "[Mail::Message::Abuse] $msg\n" if $self->{verbose};
+	my ($self, $msg) = @_;
+
+	if($self->{logger}) {
+		$self->{logger}->debug($msg);
+	}
+	print STDERR '[', __PACKAGE__, "] $msg\n" if $self->{verbose};
 }
 
 =head1 AUTHOR
@@ -4879,15 +5068,15 @@ L<ARIN RDAP|https://rdap.arin.net/>
 
 =head1 REPOSITORY
 
-L<https://github.com/nigelhorne/Mail-Message-Abuse>
+L<https://github.com/nigelhorne/Email-Abuse-Investigator>
 
 =head1 SUPPORT
 
 This module is provided as-is without any warranty.
 
-Please report any bugs or feature requests to C<bug-mail-message-abuse at rt.cpan.org>,
+Please report any bugs or feature requests to C<bug-email-abuse-investigator at rt.cpan.org>,
 or through the web interface at
-L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Mail-Message-Abuse>
+L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Email-Abuse-Investigator>
 I will be notified, and then you'll
 automatically be notified of progress on your bug as I make changes.
 
@@ -4901,15 +5090,15 @@ You can also look for information at:
 
 =item * MetaCPAN
 
-L<https://metacpan.org/dist/Mail-Message-Abuse>
+L<https://metacpan.org/dist/Email-Abuse-Investigator>
 
 =item * RT: CPAN's request tracker
 
-L<https://rt.cpan.org/NoAuth/Bugs.html?Dist=Mail-Message-Abuse>
+L<https://rt.cpan.org/NoAuth/Bugs.html?Dist=Email-Abuse-Investigator>
 
 =item * CPAN Testers' Matrix
 
-L<http://matrix.cpantesters.org/?dist=Mail-Message-Abuse>
+L<http://matrix.cpantesters.org/?dist=Email-Abuse-Investigator>
 
 =item * CPAN Testers Dependencies
 
