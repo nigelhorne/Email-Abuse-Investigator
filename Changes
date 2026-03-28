@@ -1,5 +1,30 @@
 Revision history for Email-Abuse-Investigator
 
+0.04
+
+  Bug fixes
+
+  - Fixed abuse_contacts() section 4 (account provider lookup) incorrectly
+    matching the domain of an @ sign appearing in a display name rather than
+    the actual addr-spec.  A From: header of the form:
+      "evil@gmail.com" <real@hotmail.com>
+    was matching gmail.com instead of hotmail.com.  The addr-spec is now
+    extracted from the rightmost angle-bracket pair before the domain is
+    parsed; without angle brackets the whole value is used as before.
+
+  New features
+
+  - Added implausible_timezone (MEDIUM, weight 2) risk flag.  Numeric
+    timezone offsets in the Date: header are now validated against the
+    real-world range of +1400 (Line Islands) to -1200 (Baker Island).
+    Offsets outside that range, or with a minutes field >= 60, raise this
+    flag.  Positive and negative bounds are checked separately; a symmetric
+    limit would wrongly accept values such as -1300.
+
+  - Added ActiveCampaign to the built-in provider table:
+      activecampaign.com  -> abuse@activecampaign.com
+      ac-tinker.com       -> abuse@activecampaign.com  (tracking domain)
+
 0.03	Fri Mar 27 19:54:32 EDT 2026
 
   Bug fixes

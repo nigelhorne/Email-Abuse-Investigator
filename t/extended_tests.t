@@ -1276,6 +1276,7 @@ subtest 'risk_assessment -- missing_date raised when no Date: header' => sub {
     restore_net();
 };
 
+
 # =============================================================================
 # 29. Recipient domain exclusion -- To: domain must never be reported
 # =============================================================================
@@ -1581,4 +1582,203 @@ subtest 'mailto_domains -- all DKIM domains fed into domain pipeline' => sub {
     restore_net();
 };
 
+
+# =============================================================================
+# 33. Regression: display-name @ sign in abuse_contacts section 4
+#     (patch 1 of 3 for 0.04)
+#     A From: header containing an @ in the display name (e.g.
+#     "evil@gmail.com" <real@hotmail.com>) was being matched against
+#     the display-name domain instead of the addr-spec domain.
+# =============================================================================
+
+subtest 'abuse_contacts section 4 -- display-name @ sign ignored, addr-spec domain used' => sub {
+    null_net();
+    my $a = new_ok('Email::Abuse::Investigator');
+
+    # Craft a From: header where the display name contains an @ sign pointing
+    # at a well-known provider (gmail) while the real addr-spec uses a
+    # different provider (hotmail/Microsoft).  The correct behaviour is to
+    # identify microsoft.com (the hotmail.com registrant), not google.com.
+    $a->parse_email(make_email(
+        from        => '"evil@gmail.com" <spammer@hotmail.com>',
+        return_path => '<bounce@hotmail.com>',
+        to          => '<victim@nigelhorne.com>',
+        body        => 'Buy now',
+    ));
+
+    {
+        no warnings 'redefine';
+        # Mock out network so the test is deterministic
+        local *Email::Abuse::Investigator::_resolve_host = sub { undef };
+        local *Email::Abuse::Investigator::_domain_whois = sub { undef };
+
+        my @contacts  = $a->abuse_contacts();
+        my @addresses = map { lc $_->{address} } @contacts;
+
+        # hotmail.com maps to abuse@microsoft.com in the provider table
+        ok scalar(grep { $_ eq 'abuse@microsoft.com' } @addresses),
+            'addr-spec domain (hotmail.com -> microsoft.com) correctly identified';
+
+        # google.com is the gmail.com provider -- must NOT appear here
+        # because gmail.com only appears in the display name, not the addr-spec
+        ok !scalar(grep { $_ eq 'abuse@google.com' } @addresses),
+            'display-name domain (gmail.com -> google.com) not reported as account provider';
+    }
+    restore_net();
+};
+
+subtest 'abuse_contacts section 4 -- plain addr-spec without display name still works' => sub {
+    # Regression guard: the fix must not break the simple no-display-name case
+    null_net();
+    my $a = new_ok('Email::Abuse::Investigator');
+    $a->parse_email(make_email(
+        from        => 'spammer@gmail.com',
+        return_path => '<spammer@gmail.com>',
+        to          => '<victim@nigelhorne.com>',
+        body        => 'Buy now',
+    ));
+    {
+        no warnings 'redefine';
+        local *Email::Abuse::Investigator::_resolve_host = sub { undef };
+        local *Email::Abuse::Investigator::_domain_whois = sub { undef };
+        my @contacts  = $a->abuse_contacts();
+        my @addresses = map { lc $_->{address} } @contacts;
+        # gmail.com maps to abuse@google.com in the provider table
+        ok scalar(grep { $_ eq 'abuse@google.com' } @addresses),
+            'plain addr-spec (gmail.com -> google.com) still correctly matched';
+    }
+    restore_net();
+};
+
+subtest 'abuse_contacts section 4 -- angle-bracket addr-spec without display name works' => sub {
+    null_net();
+    my $a = new_ok('Email::Abuse::Investigator');
+    $a->parse_email(make_email(
+        from        => '<spammer@gmail.com>',
+        return_path => '<spammer@gmail.com>',
+        to          => '<victim@nigelhorne.com>',
+        body        => 'Buy now',
+    ));
+    {
+        no warnings 'redefine';
+        local *Email::Abuse::Investigator::_resolve_host = sub { undef };
+        local *Email::Abuse::Investigator::_domain_whois = sub { undef };
+        my @contacts  = $a->abuse_contacts();
+        my @addresses = map { lc $_->{address} } @contacts;
+        # gmail.com maps to abuse@google.com in the provider table
+        ok scalar(grep { $_ eq 'abuse@google.com' } @addresses),
+            'angle-bracket-only form (gmail.com -> google.com) correctly matched';
+    }
+    restore_net();
+};
+
+# =============================================================================
+# 34. Regression: implausible timezone offset in Date: header
+#     (patch 2 of 3 for 0.04)
+#     Offsets beyond +1400 / -1200, or with minutes >= 60, are header
+#     forgeries.  Should raise a MEDIUM implausible_timezone flag.
+# =============================================================================
+
+subtest 'risk_assessment -- implausible_timezone flagged for +9900' => sub {
+    my $a = new_ok('Email::Abuse::Investigator');
+    $a->parse_email(make_email(
+        # +9900 is 99 hours -- impossible; clearly machine-generated
+        date => 'Mon, 01 Jan 2024 12:00:00 +9900',
+    ));
+    my $risk  = $a->risk_assessment();
+    my @flags = map { $_->{flag} } @{ $risk->{flags} };
+    ok scalar(grep { $_ eq 'implausible_timezone' } @flags),
+        '+9900 offset raises implausible_timezone flag';
+};
+
+subtest 'risk_assessment -- implausible_timezone flagged for -1300' => sub {
+    my $a = new_ok('Email::Abuse::Investigator');
+    $a->parse_email(make_email(
+        # -1300 is beyond the -1200 real-world minimum (Baker Island)
+        date => 'Mon, 01 Jan 2024 12:00:00 -1300',
+    ));
+    my $risk  = $a->risk_assessment();
+    my @flags = map { $_->{flag} } @{ $risk->{flags} };
+    ok scalar(grep { $_ eq 'implausible_timezone' } @flags),
+        '-1300 offset raises implausible_timezone flag';
+};
+
+subtest 'risk_assessment -- implausible_timezone flagged for minutes >= 60' => sub {
+    my $a = new_ok('Email::Abuse::Investigator');
+    $a->parse_email(make_email(
+        # +0060 has an invalid minutes field -- no real timezone has 60 minutes
+        date => 'Mon, 01 Jan 2024 12:00:00 +0060',
+    ));
+    my $risk  = $a->risk_assessment();
+    my @flags = map { $_->{flag} } @{ $risk->{flags} };
+    ok scalar(grep { $_ eq 'implausible_timezone' } @flags),
+        '+0060 (minutes=60) raises implausible_timezone flag';
+};
+
+subtest 'risk_assessment -- valid edge-case timezones not flagged' => sub {
+    my $a = new_ok('Email::Abuse::Investigator');
+
+    # +1400 is the Line Islands -- the most easterly real timezone
+    $a->parse_email(make_email( date => 'Mon, 01 Jan 2024 12:00:00 +1400' ));
+    my @flags = map { $_->{flag} } @{ $a->risk_assessment()->{flags} };
+    ok !scalar(grep { $_ eq 'implausible_timezone' } @flags),
+        '+1400 (Line Islands) not flagged as implausible';
+
+    # -1200 is Baker Island -- the most westerly real timezone
+    $a->parse_email(make_email( date => 'Mon, 01 Jan 2024 12:00:00 -1200' ));
+    @flags = map { $_->{flag} } @{ $a->risk_assessment()->{flags} };
+    ok !scalar(grep { $_ eq 'implausible_timezone' } @flags),
+        '-1200 (Baker Island) not flagged as implausible';
+
+    # +0530 is India Standard Time -- common legitimate offset
+    $a->parse_email(make_email( date => 'Mon, 01 Jan 2024 12:00:00 +0530' ));
+    @flags = map { $_->{flag} } @{ $a->risk_assessment()->{flags} };
+    ok !scalar(grep { $_ eq 'implausible_timezone' } @flags),
+        '+0530 (India) not flagged as implausible';
+};
+
+# =============================================================================
+# 35. Regression: ActiveCampaign in provider table
+#     (patch 3 of 3 for 0.04 -- Constant Contact and HubSpot were already
+#     present; this confirms ActiveCampaign, which was newly added)
+# =============================================================================
+
+subtest '_provider_abuse_for_host -- activecampaign.com in table' => sub {
+    my $a = new_ok('Email::Abuse::Investigator');
+    my $r = $a->_provider_abuse_for_host('activecampaign.com');
+    ok defined $r,
+        'activecampaign.com found in provider table';
+    is $r->{email}, 'abuse@activecampaign.com',
+        'correct abuse address for ActiveCampaign';
+};
+
+subtest '_provider_abuse_for_host -- ac-tinker.com strips to activecampaign' => sub {
+    # ac-tinker.com is ActiveCampaign tracking infrastructure; subdomain
+    # stripping should not apply here (it is a different registrable domain),
+    # so ac-tinker.com must be in the table as an explicit entry.
+    my $a = new_ok('Email::Abuse::Investigator');
+    my $r = $a->_provider_abuse_for_host('ac-tinker.com');
+    ok defined $r,
+        'ac-tinker.com found in provider table';
+    is $r->{email}, 'abuse@activecampaign.com',
+        'ac-tinker.com maps to ActiveCampaign abuse address';
+};
+
+subtest '_provider_abuse_for_host -- constantcontact.com already present' => sub {
+    # Guard against future table cleanup accidentally removing entries
+    # that were present before this patch series.
+    my $a = new_ok('Email::Abuse::Investigator');
+    my $r = $a->_provider_abuse_for_host('constantcontact.com');
+    ok defined $r,                                    'constantcontact.com in table';
+    is $r->{email}, 'abuse@constantcontact.com',      'correct abuse address';
+};
+
+subtest '_provider_abuse_for_host -- hubspot.com already present' => sub {
+    my $a = new_ok('Email::Abuse::Investigator');
+    my $r = $a->_provider_abuse_for_host('hubspot.com');
+    ok defined $r,                             'hubspot.com in table';
+    is $r->{email}, 'abuse@hubspot.com',       'correct abuse address';
+};
+
 done_testing();
+

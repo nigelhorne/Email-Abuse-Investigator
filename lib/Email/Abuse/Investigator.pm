@@ -138,6 +138,17 @@ my %PROVIDER_ABUSE = (
     'mailgun.org'         => { email => 'abuse@mailgun.com',       note => 'Mailgun sending infrastructure' },
     # Postmark
     'postmarkapp.com'     => { email => 'abuse@postmarkapp.com',   note => 'ESP abuse' },
+    # ActiveCampaign
+    # Main sending domain plus ac-tinker.com which is used for tracking links.
+    # Note: ac-tinker.com cannot be reached via subdomain stripping from
+    # activecampaign.com as they are separate registrable domains, so both
+    # must be listed explicitly.
+    'activecampaign.com'  => { email => 'abuse@activecampaign.com', note => 'ActiveCampaign ESP' },
+    'ac-tinker.com'       => { email => 'abuse@activecampaign.com', note => 'ActiveCampaign tracking infrastructure' },
+     # Salesforce Marketing Cloud (ExactTarget)
+     # Sending infrastructure domains follow the pattern *.mc.salesforce.com,
+     # *.exacttarget.com, and customer subdomains routed through their MTAs.
+    
         # Salesforce Marketing Cloud (ExactTarget)
     # Sending infrastructure domains follow the pattern *.mc.salesforce.com,
     # *.exacttarget.com, and customer subdomains routed through their MTAs.
@@ -2756,6 +2767,29 @@ sub risk_assessment {
         $flag->('MEDIUM', 'missing_date',
             'No Date: header — violates RFC 5322; common in spam');
     } else {
+        # Check the timezone offset before anything else.
+        # RFC 2822 allows numeric offsets; in practice no real timezone exceeds
+        # +1400 (Line Islands) or -1200 (Baker Island).  Anything beyond those
+        # bounds, or with a minutes field >= 60, is an unambiguous forgery.
+        if ($date_raw =~ /([+-])(\d{2})(\d{2})\s*$/) {
+            my ($sign, $hh, $mm) = ($1, $2, $3);
+            # Convert hours and minutes to a total offset in minutes.
+            my $offset_mins = $hh * 60 + $mm;
+            # The minutes field must always be 00-59 regardless of sign.
+            # Positive offsets: real-world maximum is +1400 = 840 minutes.
+            # Negative offsets: real-world minimum is -1200 = 720 minutes.
+            # The bounds are checked separately because a single symmetric
+            # limit would wrongly accept -1300 (780 min, which is < 840).
+            my $implausible = $mm >= 60
+                || ($sign eq '+' && $offset_mins > 840)
+                || ($sign eq '-' && $offset_mins > 720);
+            if ($implausible) {
+                $flag->('MEDIUM', 'implausible_timezone',
+                    "Date: '$date_raw' contains an implausible timezone offset "
+                    . "($sign$hh$mm) -- header is likely forged");
+            }
+        }
+
         # Check for dates wildly outside the current window (> 7 days off).
         # Note: timezone offsets are ignored; the window is wide enough that
         # this does not cause false positives for any real timezone.
@@ -3536,10 +3570,35 @@ sub abuse_contacts {
     }
 
     # 4. From: / Reply-To: / Return-Path: / Sender: account provider
+    # For each of the four headers that may identify the sending account,
+    # extract the domain from the addr-spec.  We must be careful to pull
+    # the domain from the actual email address, not from a display name
+    # that may itself contain an @ sign (e.g. "evil@gmail.com" <real@isp.com>).
+    # Strategy: if angle brackets are present, take only the content of the
+    # last <...> pair as the addr-spec; otherwise use the whole header value.
     for my $hname (qw(from reply-to return-path sender)) {
         my $val = $self->_header_value($hname) // next;
-        my ($addr_domain) = $val =~ /\@([\w.-]+)/;
+
+        # Extract the addr-spec from the rightmost angle-bracket pair.
+        # RFC 2822 display-name form: "Display Name" <local@domain>
+        # If no angle brackets are present the whole value is the addr-spec.
+        my $addr_spec;
+        if ($val =~ /<([^>]*)>\s*$/) {
+            # Angle-bracket form -- use only what is inside the brackets.
+            # This correctly ignores any @ signs in the display-name portion.
+            $addr_spec = $1;
+        } else {
+            # No angle brackets -- treat the whole value as the addr-spec.
+            $addr_spec = $val;
+        }
+
+        # Pull the domain from the right-hand side of the @ in the addr-spec.
+        my ($addr_domain) = $addr_spec =~ /\@([\w.-]+)/;
         next unless $addr_domain;
+
+        # Look up the domain (and its parents via subdomain stripping) in
+        # the built-in provider table.  A hit means the account is hosted
+        # by a known webmail or ESP provider we can contact directly.
         my $pa = $self->_provider_abuse_for_host($addr_domain);
         if ($pa) {
             $add->(role    => "Account provider ($hname: $val)",
