@@ -152,10 +152,6 @@ my %PROVIDER_ABUSE = (
     # must be listed explicitly.
     'activecampaign.com'  => { email => 'abuse@activecampaign.com', note => 'ActiveCampaign ESP' },
     'ac-tinker.com'       => { email => 'abuse@activecampaign.com', note => 'ActiveCampaign tracking infrastructure' },
-     # Salesforce Marketing Cloud (ExactTarget)
-     # Sending infrastructure domains follow the pattern *.mc.salesforce.com,
-     # *.exacttarget.com, and customer subdomains routed through their MTAs.
-    
         # Salesforce Marketing Cloud (ExactTarget)
     # Sending infrastructure domains follow the pattern *.mc.salesforce.com,
     # *.exacttarget.com, and customer subdomains routed through their MTAs.
@@ -5148,14 +5144,16 @@ sub _country_name {
 
 # Look up provider abuse contact by plain domain name
 sub _provider_abuse_for_host {
-    my ($self, $host) = @_;
-    $host = lc $host;
-    # Try exact match, then strip successive subdomains
-    while ($host =~ /\./) {
-        return $PROVIDER_ABUSE{$host} if $PROVIDER_ABUSE{$host};
-        $host =~ s/^[^.]+\.//;
-    }
-    return undef;
+	my ($self, $host) = @_;
+
+	$host = lc $host;
+
+	# Try exact match, then strip successive subdomains
+	while ($host =~ /\./) {
+		return $PROVIDER_ABUSE{$host} if $PROVIDER_ABUSE{$host};
+		$host =~ s/^[^.]+\.//;
+	}
+	return;	# return undef
 }
 
 # Look up provider abuse contact by IP and/or rDNS hostname
@@ -5170,6 +5168,7 @@ sub _debug {
 	my ($self, $msg) = @_;
 
 	if($self->{logger}) {
+		# This may have been set by Object::Configure
 		$self->{logger}->debug($msg);
 	}
 	print STDERR '[', __PACKAGE__, "] $msg\n" if $self->{verbose};
@@ -5252,7 +5251,7 @@ automatically be notified of progress on your bug as I make changes.
 
 You can find documentation for this module with the perldoc command.
 
-    perldoc Mail::Message::Abuse
+    perldoc Email::Abuse::Investigator
 
 You can also look for information at:
 
@@ -5272,7 +5271,7 @@ L<http://matrix.cpantesters.org/?dist=Email-Abuse-Investigator>
 
 =item * CPAN Testers Dependencies
 
-L<http://deps.cpantesters.org/?module=Mail::Message::Abuse>
+L<http://deps.cpantesters.org/?module=Email::Abuse::Investigator>
 
 =back
 
