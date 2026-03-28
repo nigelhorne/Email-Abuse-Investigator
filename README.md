@@ -2188,8 +2188,11 @@ the `List-Unsubscribe:` header.
 For each party the method produces the role description, the abuse email
 address, a supporting note, and the source of the information.  Addresses
 are deduplicated globally: if the same address is discovered through
-multiple routes (e.g. Cloudflare as both a URL host and a nameserver), it
-appears only once, using the data from the first route that found it.
+multiple routes (e.g. Google as both the sending ISP and the owner of a
+blogspot.com URL in the message body), it appears only once.  The `role`
+string for that entry is the combined description of all routes that found
+it, joined by `" and "`, and the `roles` key holds the individual role
+strings as an arrayref.
 
 This method is designed to be used together with `abuse_report_text()`:
 iterate over the returned contacts to obtain the list of addresses, and
@@ -2252,16 +2255,23 @@ Roles produced (in order):
 Addresses are deduplicated so the same address never appears twice,
 even if it is discovered through multiple routes.
 
-Each hashref contains exactly four keys, all always present:
+Each hashref contains the following keys, all always present:
 
 - `role` (string)
 
     A human-readable description of the party's relationship to the message.
-    The role string often includes the relevant domain name or IP address
-    inline (e.g. `"Web host of firmluminary.com"`,
-    `"Domain registrar for firmluminary.com"`,
-    `"Account provider (from: Sender <spammer@gmail.com>)"`).
+    When the same address was found via multiple discovery routes, the role
+    strings from each route are joined with `" and "` (e.g.
+    `"Sending ISP (provider table) and URL host (provider table)"`).
     See the Algorithm section for the full set of role string patterns.
+
+- `roles` (arrayref of strings)
+
+    The individual role strings for each discovery route that found this
+    address, in discovery order.  Contains exactly one element when the
+    address was found via a single route; two or more elements when multiple
+    routes converged on the same address.  The `role` key is always the
+    `join(' and ', @{$c-`{roles}})> of this arrayref.
 
 - `address` (string)
 
@@ -2276,11 +2286,12 @@ Each hashref contains exactly four keys, all always present:
     table (which may include a URL to a web-based abuse form).  For WHOIS- and
     RDAP-discovered entries this describes the IP block or domain involved.
     Always defined; may be the empty string for entries where no note is
-    available.
+    available.  When roles are merged, this reflects the note from the first
+    discovery route.
 
 - `via` (string)
 
-    The discovery method.  One of:
+    The discovery method for the first route that found this address.  One of:
 
     - `'provider-table'`
 
@@ -2317,10 +2328,11 @@ do re-execute the collation and deduplication logic.
 ### Algorithm: discovery routes
 
 Contacts are discovered through six routes, applied in order.
-Deduplication is global across all routes: once an address is added it
-cannot be added again regardless of which later route also finds it.
-An entry is suppressed entirely if its address is empty, does not contain
-an `@` sign, or is the sentinel `'(unknown)'`.
+Deduplication is global across all routes: if an address is found by
+more than one route, a single entry is kept and the role strings from
+every route that found it are accumulated into `roles` and joined into
+`role`.  An entry is suppressed entirely if its address is empty, does
+not contain an `@` sign, or is the sentinel `'(unknown)'`.
 
 - Route 1 -- Sending ISP
 
