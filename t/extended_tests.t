@@ -1780,5 +1780,97 @@ subtest '_provider_abuse_for_host -- hubspot.com already present' => sub {
     is $r->{email}, 'abuse@hubspot.com',       'correct abuse address';
 };
 
+
+# =============================================================================
+# 36. Regression: WordPress.com and Substack in provider table (0.05)
+# =============================================================================
+
+subtest '_provider_abuse_for_host -- wordpress.com in table' => sub {
+	my $a = new_ok('Email::Abuse::Investigator');
+	my $r = $a->_provider_abuse_for_host('wordpress.com');
+	ok defined $r,
+		'wordpress.com found in provider table';
+	is $r->{email}, 'abuse@wordpress.com',
+		'correct abuse address for WordPress.com';
+	like $r->{note}, qr/wordpress/i,
+		'note mentions WordPress';
+};
+
+subtest '_provider_abuse_for_host -- substack.com in table' => sub {
+	my $a = new_ok('Email::Abuse::Investigator');
+	my $r = $a->_provider_abuse_for_host('substack.com');
+	ok defined $r,
+		'substack.com found in provider table';
+	is $r->{email}, 'abuse@substack.com',
+		'correct abuse address for Substack';
+};
+
+subtest '_provider_abuse_for_host -- wordpress.com subdomain strips correctly' => sub {
+	# spammer.wordpress.com should resolve via subdomain stripping
+	my $a = new_ok('Email::Abuse::Investigator');
+	my $r = $a->_provider_abuse_for_host('spammer.wordpress.com');
+	ok defined $r,
+		'spammer.wordpress.com resolves via subdomain stripping';
+	is $r->{email}, 'abuse@wordpress.com',
+		'subdomain correctly resolves to WordPress.com abuse address';
+};
+
+subtest '_provider_abuse_for_host -- wp.com short domain in table' => sub {
+	# wp.com is WordPress.com's short domain used in some links
+	my $a = new_ok('Email::Abuse::Investigator');
+	my $r = $a->_provider_abuse_for_host('wp.com');
+	ok defined $r,
+		'wp.com found in provider table';
+	is $r->{email}, 'abuse@wordpress.com',
+		'wp.com maps to WordPress.com abuse address';
+};
+
+subtest 'abuse_contacts -- wordpress.com URL host produces correct contact' => sub {
+	# End-to-end: a message containing a wordpress.com URL should yield
+	# abuse@wordpress.com in abuse_contacts() without any network calls,
+	# via the provider-table route for URL hosts.
+	null_net();
+	my $a = new_ok('Email::Abuse::Investigator');
+	$a->parse_email(make_email(
+		from        => 'Spammer <spam@spammer.example>',
+		return_path => '<bounce@spammer.example>',
+		to          => '<victim@nigelhorne.com>',
+		body        => 'Visit https://evilblog.wordpress.com/offer for details',
+	));
+	{
+		no warnings 'redefine';
+		local *Email::Abuse::Investigator::_resolve_host = sub { undef };
+		local *Email::Abuse::Investigator::_domain_whois = sub { undef };
+		local *Email::Abuse::Investigator::_whois_ip     = sub { {} };
+		my @contacts  = $a->abuse_contacts();
+		my @addresses = map { lc $_->{address} } @contacts;
+		ok scalar(grep { $_ eq 'abuse@wordpress.com' } @addresses),
+			'abuse@wordpress.com present when wordpress.com URL found in body';
+	}
+	restore_net();
+};
+
+subtest 'abuse_contacts -- substack.com URL host produces correct contact' => sub {
+	null_net();
+	my $a = new_ok('Email::Abuse::Investigator');
+	$a->parse_email(make_email(
+		from        => 'Spammer <spam@spammer.example>',
+		return_path => '<bounce@spammer.example>',
+		to          => '<victim@nigelhorne.com>',
+		body        => 'Read my newsletter at https://evilnews.substack.com/p/scam',
+	));
+	{
+		no warnings 'redefine';
+		local *Email::Abuse::Investigator::_resolve_host = sub { undef };
+		local *Email::Abuse::Investigator::_domain_whois = sub { undef };
+		local *Email::Abuse::Investigator::_whois_ip     = sub { {} };
+		my @contacts  = $a->abuse_contacts();
+		my @addresses = map { lc $_->{address} } @contacts;
+		ok scalar(grep { $_ eq 'abuse@substack.com' } @addresses),
+			'abuse@substack.com present when substack.com URL found in body';
+	}
+	restore_net();
+};
+
 done_testing();
 
