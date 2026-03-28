@@ -187,11 +187,11 @@ hosted URLs, and suspicious domains
 
 =head1 VERSION
 
-Version 0.04
+Version 0.05
 
 =cut
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 =head1 SYNOPSIS
 
@@ -5121,10 +5121,12 @@ sub _parse_rfc2822_date {
 }
 
 sub _decode_mime_words {
-    my ($self, $str) = @_;
-    return '' unless defined $str;
-    $str =~ s/=\?([^?]+)\?([BbQq])\?([^?]*)\?=/_decode_ew($1,$2,$3)/ge;
-    return $str;
+	my ($self, $str) = @_;
+
+	return '' unless defined $str;
+
+	$str =~ s/=\?([^?]+)\?([BbQq])\?([^?]*)\?=/_decode_ew($1,$2,$3)/ge;
+	return $str;
 }
 
 sub _decode_ew {
