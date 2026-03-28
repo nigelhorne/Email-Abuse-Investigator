@@ -143,8 +143,15 @@ my %PROVIDER_ABUSE = (
     # Mailgun
     'mailgun.com'         => { email => 'abuse@mailgun.com',       note => 'ESP abuse' },
     'mailgun.org'         => { email => 'abuse@mailgun.com',       note => 'Mailgun sending infrastructure' },
-    # Postmark
-    'postmarkapp.com'     => { email => 'abuse@postmarkapp.com',   note => 'ESP abuse' },
+	# Postmark
+	'postmarkapp.com'     => { email => 'abuse@postmarkapp.com',   note => 'ESP abuse' },
+	# WordPress.com -- Automattic-hosted blogs frequently used as spam
+	# landing pages.  Subdomains (e.g. spammer.wordpress.com) are handled
+	# by subdomain stripping to wordpress.com.
+	'wordpress.com'       => { email => 'abuse@wordpress.com',     note => 'WordPress.com hosted blog -- report via https://en.wordpress.com/abuse/' },
+	'wp.com'              => { email => 'abuse@wordpress.com',     note => 'WordPress.com short domain' },
+	# Substack -- newsletter platform abused for spam and phishing content
+	'substack.com'        => { email => 'abuse@substack.com',      note => 'Substack newsletter platform abuse' },
     # ActiveCampaign
     # Main sending domain plus ac-tinker.com which is used for tracking links.
     # Note: ac-tinker.com cannot be reached via subdomain stripping from
