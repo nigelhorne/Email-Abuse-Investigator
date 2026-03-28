@@ -76,6 +76,13 @@ my %PROVIDER_ABUSE = (
     'gmail.com'         => { email => 'abuse@google.com',      note => 'Report Gmail spam via https://support.google.com/mail/contact/abuse' },
     'googlemail.com'    => { email => 'abuse@google.com',      note => 'Report via https://support.google.com/mail/contact/abuse' },
     '1e100.net'         => { email => 'abuse@google.com',      note => 'Google infrastructure' },
+    # Blogger / Blogspot -- Google-hosted blogging platform frequently abused
+    # for spam landing pages.  Subdomains (e.g. ruseriver.blogspot.com) are
+    # handled by subdomain stripping to blogspot.com.
+    'blogspot.com'      => { email => 'abuse@google.com',      note => 'Blogger/Blogspot -- report via https://support.google.com/blogger/answer/76315' },
+    'blogger.com'       => { email => 'abuse@google.com',      note => 'Blogger platform abuse' },
+    # Google Sites -- another Google hosting product used for phishing pages
+    'sites.google.com'  => { email => 'abuse@google.com',      note => 'Google Sites hosted content' },
     # Microsoft / Outlook / Hotmail
     'microsoft.com'     => { email => 'abuse@microsoft.com',   note => 'Also report via https://www.microsoft.com/en-us/wdsi/support/report-unsafe-site' },
     'outlook.com'       => { email => 'abuse@microsoft.com',   note => 'Report Outlook spam: https://support.microsoft.com/en-us/office/report-phishing' },
@@ -4219,15 +4226,23 @@ sub _split_message {
 sub _decode_multipart {
     my ($self, $body, $boundary) = @_;
 
+    # Split on the boundary marker.  The (?:--)? suffix matches both the
+    # regular boundary (--BOUNDARY) and the closing boundary (--BOUNDARY--).
     my @parts = split /--\Q$boundary\E(?:--)?/, $body;
-    for my $part (@parts) {
-        next unless $part =~ /\S/;
-        $part =~ s/^\r?\n//;
 
+    for my $part (@parts) {
+        # Skip whitespace-only segments that appear between boundaries
+        next unless $part =~ /\S/;
+
+        # Each part begins with a blank line separating headers from body
+        $part =~ s/^\r?\n//;
         my ($phdr_block, $pbody) = split /\r?\n\r?\n/, $part, 2;
         next unless defined $pbody;
 
+        # Unfold continuation header lines (RFC 2822 s.2.2.3)
         $phdr_block =~ s/\r?\n([ \t]+)/ $1/g;
+
+        # Parse the per-part headers into a simple hash
         my %phdr;
         for my $line (split /\r?\n/, $phdr_block) {
             $phdr{ lc($1) } = $2 if $line =~ /^([\w-]+)\s*:\s*(.*)/;
@@ -4235,9 +4250,29 @@ sub _decode_multipart {
 
         my $pct  = $phdr{'content-type'}              // '';
         my $pcte = $phdr{'content-transfer-encoding'} // '';
+
+        # Nested multipart/* (e.g. multipart/alternative inside multipart/mixed)
+        # must be recursed into; the URL or body text lives inside those parts.
+        # Without recursion the inner content is silently discarded, causing
+        # embedded_urls() to miss all URLs in the message.
+        if ($pct =~ /multipart/i) {
+            # Extract the boundary parameter from the nested Content-Type header.
+            # The parameter may be quoted or unquoted.
+            my ($inner_boundary) = $pct =~ /boundary\s*=\s*"?([^";]+)"?/i;
+            if ($inner_boundary) {
+                $inner_boundary =~ s/\s+$//;   # strip trailing whitespace
+                # Recurse to decode the inner MIME container
+                $self->_decode_multipart($pbody, $inner_boundary);
+            }
+            next;   # do not fall through to the text handlers below
+        }
+
+        # Decode the part body according to its transfer encoding
         my $decoded = $self->_decode_body($pbody, $pcte);
 
-        if    ($pct =~ /text\/html/i)  { $self->{_body_html}  .= $decoded }
+        # Accumulate plain-text and HTML body content separately.
+        # Both are used by embedded_urls() and mailto_domains().
+        if    ($pct =~ /text\/html/i)    { $self->{_body_html}  .= $decoded }
         elsif ($pct =~ /text/i || !$pct) { $self->{_body_plain} .= $decoded }
     }
 }
