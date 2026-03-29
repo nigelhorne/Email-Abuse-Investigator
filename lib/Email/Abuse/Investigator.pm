@@ -111,8 +111,19 @@ my %PROVIDER_ABUSE = (
     'akamaitechnologies.com' => { email => 'abuse@akamai.com', note => 'Akamai CDN' },
     # Namecheap
     'namecheap.com'     => { email => 'abuse@namecheap.com',   note => 'Registrar abuse' },
-    # GoDaddy
-    'godaddy.com'       => { email => 'abuse@godaddy.com',     note => 'Registrar/host abuse' },
+    # GoDaddy -- explicitly rejects email abuse reports per autoresponse;
+    # web form only.  The email address abuse@godaddy.com bounces with
+    # instructions to use the web form instead.
+    'godaddy.com'       => {
+        form        => 'https://supportcenter.godaddy.com/AbuseReport',
+        form_paste  => 'Select the abuse type (spam, phishing, malware etc). '
+                     . 'Enter the domain name in the Domain field. '
+                     . 'Paste the originating IP, risk flags, and the relevant '
+                     . 'Received: headers from the report below.',
+        form_upload => 'Take a screenshot of the report as a .png or .jpg, '
+                     . 'or export it as a .pdf.',
+        note        => 'Registrar/host -- email reports not monitored, use web form',
+    },
     # SendGrid / Twilio
     'sendgrid.net'      => { email => 'abuse@sendgrid.com',    note => 'ESP — include full headers' },
     'sendgrid.com'      => { email => 'abuse@sendgrid.com',    note => 'ESP — include full headers' },
