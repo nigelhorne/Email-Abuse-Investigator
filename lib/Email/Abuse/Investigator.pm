@@ -57,6 +57,7 @@ my @RECEIVED_IP_RE = (
 my %TRUSTED_DOMAINS = map { $_ => 1 } qw(
 	gmail.com googlemail.com yahoo.com outlook.com hotmail.com
 	google.com microsoft.com apple.com amazon.com
+	googlegroups.com groups.google.com
 );
 
 # Known URL shortener / redirect domains — real destination is hidden
@@ -184,7 +185,7 @@ my %PROVIDER_ABUSE = (
                      . 'description of the abuse.  Paste the originating IP, '
                      . 'risk flags, and the relevant Received: headers from the '
                      . 'report below.',
-        form_upload => 'Attach the original spam message as an .eml file.',
+        form_upload => 'Take a screenshot of the report as a .png or .jpg, or export it as a .pdf.  MarkMonitor does not accept .eml files.',
         note        => 'Brand-protection registrar -- email reports not processed',
     },
     # Global Domain Group -- registrar that explicitly rejects email reports.
@@ -3173,6 +3174,7 @@ sub abuse_report_text {
         for my $c (@form_cs) {
             push @out, "  [$c->{role}]";
             push @out, "    Form   : $c->{form}";
+            push @out, "    Domain : $c->{form_domain}" if $c->{form_domain};
             push @out, "    Paste  : $c->{form_paste}"  if $c->{form_paste};
             push @out, "    Upload : $c->{form_upload}" if $c->{form_upload};
         }
@@ -4083,6 +4085,7 @@ sub form_contacts {
 			$add->(
 				role        => 'URL host (provider table)',
 				form        => $pa->{form},
+				form_domain => $u->{host},
 				note        => $pa->{note} // '',
 				form_paste  => $pa->{form_paste}  // '',
 				form_upload => $pa->{form_upload} // '',
@@ -4099,6 +4102,7 @@ sub form_contacts {
 			$add->(
 				role        => "Web host of $dom (provider table)",
 				form        => $pa->{form},
+				form_domain => $dom,
 				note        => $pa->{note} // '',
 				form_paste  => $pa->{form_paste}  // '',
 				form_upload => $pa->{form_upload} // '',
@@ -4119,6 +4123,7 @@ sub form_contacts {
 				$add->(
 					role        => "Domain registrar for $dom (web form only)",
 					form        => $rpa->{form},
+					form_domain => $dom,
 					note        => $rpa->{note} // '',
 					form_paste  => $rpa->{form_paste}  // '',
 					form_upload => $rpa->{form_upload} // '',
@@ -4376,6 +4381,7 @@ sub report {
         for my $c (@form_cs) {
             push @out, "  Role         : $c->{role}";
             push @out, "  Form URL     : $c->{form}";
+            push @out, "  Domain/URL   : $c->{form_domain}" if $c->{form_domain};
             push @out, "  Note         : $c->{note}" if $c->{note};
             if ($c->{form_paste}) {
                 my $hint = $c->{form_paste};
