@@ -3710,6 +3710,7 @@ sub abuse_contacts {
         # Pull the domain from the right-hand side of the @ in the addr-spec.
         my ($addr_domain) = $addr_spec =~ /\@([\w.-]+)/;
         next unless $addr_domain;
+	next if $addr_spec =~ /\+SRS[0-9]?=/i;  # skip SRS-rewritten forwarder addresses
 
         # Look up the domain (and its parents via subdomain stripping) in
         # the built-in provider table.  A hit means the account is hosted
@@ -3799,7 +3800,7 @@ Each hashref contains:
 =cut
 
 sub form_contacts {
-	my ($self) = @_;
+	my $self = $_[0];
 	my (@contacts, %seen);
 
 	my $add = sub {
@@ -3889,6 +3890,7 @@ sub form_contacts {
 		my $addr_spec = ($val =~ /<([^>]*)>\s*$/) ? $1 : $val;
 		my ($addr_domain) = $addr_spec =~ /\@([\w.-]+)/;
 		next unless $addr_domain;
+		next if $addr_spec =~ /\+SRS[0-9]?=/i;  # skip SRS-rewritten forwarder addresses
 		my $pa = $self->_provider_abuse_for_host($addr_domain);
         if ($pa && $pa->{form}) {
             my $role_addr = $addr_spec =~ /@/ ? $addr_spec : $val;
