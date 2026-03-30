@@ -20,4 +20,5 @@ t/kwalitee.t
 t/manifest.t
 t/pod-coverage.t
 t/pod.t
+t/submit_script.t
 t/unit.t

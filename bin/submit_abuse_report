@@ -1,11 +1,11 @@
 #!/usr/bin/env perl
 # -----------------------------------------------------------------------
-# submit_abuse_report -- analyse a spam/phishing email and send abuse
+# submit_abuse_report.pl -- analyse a spam/phishing email and send abuse
 #                           reports to all relevant parties.
 #
 # Usage:
-#   submit_abuse_report [options] spam.eml
-#   submit_abuse_report [options] < spam.eml
+#   submit_abuse_report.pl [options] spam.eml
+#   submit_abuse_report.pl [options] < spam.eml
 #
 # Options:
 #   --dry-run              Show what would be sent and to whom; do not
@@ -22,13 +22,13 @@
 #
 # Examples:
 #   # Dry run -- see what would be sent without sending anything
-#   submit_abuse_report --dry-run spam.eml
+#   submit_abuse_report.pl --dry-run spam.eml
 #
 #   # Send reports via the local MTA
-#   submit_abuse_report --from postmaster@myisp.example spam.eml
+#   submit_abuse_report.pl --from postmaster@myisp.example spam.eml
 #
 #   # Send via a specific SMTP relay, skipping our own outbound IP
-#   submit_abuse_report \
+#   submit_abuse_report.pl \
 #       --from abuse-reporter@example.com \
 #       --smtp mail.example.com:587 \
 #       --trusted 203.0.113.0/24 \
@@ -89,15 +89,16 @@ $smtp_port //= 25;
 # Read the raw email
 # -----------------------------------------------------------------------
 my $raw;
-if (@ARGV) {
-	open my $fh, '<:raw', $ARGV[0] or die basename($0), ": cannot open '$ARGV[0]': $!";
-	local $/;
-	$raw = <$fh>;
-	close $fh;
+if (@ARGV && -f $ARGV[0]) {
+    open my $fh, '<:raw', $ARGV[0]
+        or die basename($0) . ": cannot open '$ARGV[0]': $!\n";
+    local $/;
+    $raw = <$fh>;
+    close $fh;
 } else {
-	binmode STDIN, ':raw';
-	local $/;
-	$raw = <STDIN>;
+    binmode STDIN, ':raw';
+    local $/;
+    $raw = <STDIN>;
 }
 
 die basename($0) . ": no email data supplied.\n"
@@ -233,19 +234,9 @@ for my $contact (@contacts) {
         printf "\nSend abuse report to: %s\n", $to;
         printf "Reason             : %s\n", $role;
         print  "Send? [y/N] ";
-        # Force a direct read from the terminal even if stdin is a file
-        my $tty;
-        if (open $tty, '<', '/dev/tty') {
-            my $ans = <$tty>;
-            close $tty;
-            chomp $ans;
-            unless (lc($ans) eq 'y') {
-                printf "Skipped: %-45s  %s\n", $to, $role;
-                next;
-            }
-        } else {
-            # /dev/tty unavailable (e.g. Windows) -- skip with a warning
-            warn "Cannot open /dev/tty for interactive prompt; skipping $to\n";
+        my $ans = _read_tty();
+        unless (defined $ans && lc($ans) eq 'y') {
+            printf "Skipped: %-45s  %s\n", $to, $role;
             next;
         }
     }
@@ -387,6 +378,25 @@ sub _dry_run_report {
     print "$bar\n";
 
     _print_unresolved($inv, \*STDOUT);
+}
+
+# -----------------------------------------------------------------------
+# _read_tty() -> string | undef
+#
+# Read a single line from the controlling terminal.  Extracted into its
+# own sub so tests can override it without spawning a pseudo-terminal.
+# Returns the chomped input string, or undef if /dev/tty is unavailable.
+# -----------------------------------------------------------------------
+sub _read_tty {
+    my $tty;
+    unless (open $tty, '<', '/dev/tty') {
+        warn "Cannot open /dev/tty for interactive prompt; skipping\n";
+        return undef;
+    }
+    my $ans = <$tty>;
+    close $tty;
+    chomp $ans if defined $ans;
+    return $ans;
 }
 
 # -----------------------------------------------------------------------
@@ -576,7 +586,7 @@ sub _build_mime_message {
     push @msg, "Content-Type: multipart/report;";
     push @msg, "    report-type=feedback-report;";
     push @msg, "    boundary=\"$boundary\"";
-    push @msg, "X-Mailer: Email::Abuse::Investigator submit_abuse_report";
+    push @msg, "X-Mailer: Email::Abuse::Investigator submit_abuse_report.pl";
     push @msg, "";
 
     # Preamble for non-MIME clients
@@ -634,13 +644,13 @@ __END__
 
 =head1 NAME
 
-submit_abuse_report -- analyse a spam/phishing email and send abuse
+submit_abuse_report.pl -- analyse a spam/phishing email and send abuse
 reports to all relevant parties
 
 =head1 SYNOPSIS
 
-    submit_abuse_report [options] spam.eml
-    submit_abuse_report [options] < spam.eml
+    submit_abuse_report.pl [options] spam.eml
+    submit_abuse_report.pl [options] < spam.eml
 
 =head1 OPTIONS
 
