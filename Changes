@@ -4,16 +4,48 @@ Revision history for Email-Abuse-Investigator
 
   New features
 
-  - Added -i / --interactive flag to submit_abuse_report, modelled on
+  - Added -i / --interactive flag to submit_abuse_report.pl, modelled on
     rm -i.  When set, the script prompts for confirmation before sending
     each abuse report.  The recipient address and the reason for contacting
     them (the role string) are displayed, followed by a "Send? [y/N]"
     prompt.  Only reports answered with "y" are sent; all others are
     skipped and noted in the output but not counted as failures.  Has no
     effect in --dry-run mode.  Reads confirmation from /dev/tty directly
-    so the prompt works correctly when the email is supplied on stdin.
+    via a new _read_tty() helper sub so the prompt works correctly when
+    the email is supplied on stdin, and so the prompt logic is testable
+    without a pseudo-terminal.
 
-  - Added unresolved domain listing to submit_abuse_report.  When the
+  - Added t/submit_script.t: a new black-box test suite for
+    submit_abuse_report.pl that runs the script as a subprocess via
+    IPC::Open3.  Covers --dry-run output, --interactive with --dry-run
+    (no prompt shown), the no-contacts unresolved domain listing, spoofed
+    From: domain exclusion from the unresolved list, and --help
+    documentation of --interactive.  The suite skips automatically if the
+    script's dependencies are not installed, so it is safe to add to the
+    distribution without breaking CI on minimal Perl installs.
+
+  - Added role string display cap to abuse_contacts().  When multiple
+    distinct routes converge on the same abuse address and the joined
+    role string would exceed 80 characters, it is summarised as
+    "N routes: type1, type2, ..." (e.g. "4 routes: Sending ISP, URL
+    host, Account provider, DKIM signer").  The full detail is always
+    available via the roles arrayref for callers that need it; only the
+    role (singular) display string is capped.  This keeps the dry-run
+    footer and live-run output readable when Google or Microsoft is
+    identified via four or more independent discovery routes.
+
+  - Added unresolved_contacts() public method to Email::Abuse::Investigator.
+    Returns a list of hashrefs describing domains and URL hosts found in
+    the message for which no abuse contact could be determined -- i.e.
+    they are not in %PROVIDER_ABUSE and produced no usable result from
+    IP or domain WHOIS.  Domains whose only source is a spoofable
+    sending header (From:, Return-Path:, Sender:) are excluded, as are
+    domains already covered by abuse_contacts() or form_contacts().
+    Each hashref contains domain, type (url_host or domain), and source.
+    submit_abuse_report.pl now delegates its _print_unresolved() helper
+    to this method rather than reimplementing the filtering logic inline.
+
+  - Added unresolved domain listing to submit_abuse_report.pl.  When the
     analysis finds domains or URL hosts in the message but cannot determine
     an abuse contact for them, they are now listed so the user knows where
     to look for manual follow-up.  The list appears in three places: after
