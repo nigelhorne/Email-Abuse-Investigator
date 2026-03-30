@@ -1,11 +1,11 @@
 #!/usr/bin/env perl
 # -----------------------------------------------------------------------
-# submit_abuse_report.pl -- analyse a spam/phishing email and send abuse
+# submit_abuse_report -- analyse a spam/phishing email and send abuse
 #                           reports to all relevant parties.
 #
 # Usage:
-#   submit_abuse_report.pl [options] spam.eml
-#   submit_abuse_report.pl [options] < spam.eml
+#   submit_abuse_report [options] spam.eml
+#   submit_abuse_report [options] < spam.eml
 #
 # Options:
 #   --dry-run              Show what would be sent and to whom; do not
@@ -22,13 +22,13 @@
 #
 # Examples:
 #   # Dry run -- see what would be sent without sending anything
-#   submit_abuse_report.pl --dry-run spam.eml
+#   submit_abuse_report --dry-run spam.eml
 #
 #   # Send reports via the local MTA
-#   submit_abuse_report.pl --from postmaster@myisp.example spam.eml
+#   submit_abuse_report --from postmaster@myisp.example spam.eml
 #
 #   # Send via a specific SMTP relay, skipping our own outbound IP
-#   submit_abuse_report.pl \
+#   submit_abuse_report \
 #       --from abuse-reporter@example.com \
 #       --smtp mail.example.com:587 \
 #       --trusted 203.0.113.0/24 \
@@ -89,9 +89,8 @@ $smtp_port //= 25;
 # Read the raw email
 # -----------------------------------------------------------------------
 my $raw;
-if (@ARGV && -f $ARGV[0]) {
-    open my $fh, '<:raw', $ARGV[0]
-        or die basename($0) . ": cannot open '$ARGV[0]': $!\n";
+if (@ARGV) {
+    open my $fh, '<:raw', $ARGV[0] or die basename($0), ": cannot open '$ARGV[0]': $!";
     local $/;
     $raw = <$fh>;
     close $fh;
@@ -136,59 +135,19 @@ unless (@contacts) {
 sub _print_unresolved {
     my ($inv, $fh) = @_;
 
-    my @url_hosts = do {
-        my %seen;
-        grep { !$seen{$_}++ }
-        map  { $_->{host} }
-        $inv->embedded_urls();
-    };
-    my @mailto_doms = do {
-        my %seen;
-        grep { !$seen{$_}++ }
-        map  { $_->{domain} }
-        $inv->mailto_domains();
-    };
-
-    return unless @url_hosts || @mailto_doms;
-
-    # Collect addresses already covered by abuse_contacts() and form_contacts()
-    # so we only list genuinely unresolved parties.
-    my %covered;
-    for my $c ($inv->abuse_contacts(), $inv->form_contacts()) {
-        my $dom = $c->{form_domain} // do {
-            my ($d) = ($c->{address} // '') =~ /\@([\w.-]+)/;
-            $d // '';
-        };
-        $covered{lc $dom}++ if $dom;
-    }
-    for my $u ($inv->embedded_urls()) {
-        (my $bare = lc $u->{host}) =~ s/^www\.//;
-        $covered{$bare}++ if $u->{abuse} && $u->{abuse} ne '(unknown)';
-    }
-
-    my @unresolved_hosts = grep {
-        (my $bare = lc $_) =~ s/^www\.//;
-        !$covered{$bare};
-    } @url_hosts;
-
-    # Exclude domains whose only source is a spoofable sending header
-    # (From:, Return-Path:, Sender:) -- these are innocent victims of
-    # spoofing and not worth investigating.
-    my %dom_source = map { $_->{domain} => $_->{source} } $inv->mailto_domains();
-    my @unresolved_doms = grep {
-        !$covered{lc $_} &&
-        ($dom_source{$_} // '') !~ /^(?:From:|Return-Path:|Sender:) header$/
-    } @mailto_doms;
-
-    return unless @unresolved_hosts || @unresolved_doms;
+    # Delegate to the module's unresolved_contacts() method which handles
+    # all the filtering logic (spoofable headers, already-covered domains).
+    my @unresolved = $inv->unresolved_contacts();
+    return unless @unresolved;
 
     print $fh "\nDomains found in this message with no abuse contact determined\n";
     print $fh "(consider investigating or reporting manually):\n\n";
-    for my $h (@unresolved_hosts) {
-        print $fh "  URL host : $h\n";
-    }
-    for my $d (@unresolved_doms) {
-        print $fh "  Domain   : $d\n";
+    for my $u (@unresolved) {
+        if ($u->{type} eq 'url_host') {
+            print $fh "  URL host : $u->{domain}\n";
+        } else {
+            print $fh "  Domain   : $u->{domain}\n";
+        }
     }
     print $fh "\n";
 }
@@ -586,7 +545,7 @@ sub _build_mime_message {
     push @msg, "Content-Type: multipart/report;";
     push @msg, "    report-type=feedback-report;";
     push @msg, "    boundary=\"$boundary\"";
-    push @msg, "X-Mailer: Email::Abuse::Investigator submit_abuse_report.pl";
+    push @msg, "X-Mailer: Email::Abuse::Investigator submit_abuse_report";
     push @msg, "";
 
     # Preamble for non-MIME clients
@@ -644,13 +603,13 @@ __END__
 
 =head1 NAME
 
-submit_abuse_report.pl -- analyse a spam/phishing email and send abuse
+submit_abuse_report -- analyse a spam/phishing email and send abuse
 reports to all relevant parties
 
 =head1 SYNOPSIS
 
-    submit_abuse_report.pl [options] spam.eml
-    submit_abuse_report.pl [options] < spam.eml
+    submit_abuse_report [options] spam.eml
+    submit_abuse_report [options] < spam.eml
 
 =head1 OPTIONS
 

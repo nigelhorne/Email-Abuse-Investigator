@@ -2019,10 +2019,18 @@ subtest 'abuse_contacts -- role deduplication: different subdomains each get own
 			'roles arrayref has four entries (one per URL host)';
 		unlike $c->{role}, qr/\(x4\)/,
 			'distinct hostnames not collapsed with (xN)';
-		like $c->{role}, qr/a1\.spamdomain\.example/,
-			'first hostname present in role string';
-		like $c->{role}, qr/a4\.spamdomain\.example/,
-			'last hostname present in role string';
+			ok defined $c, 'merged contact found';
+			is scalar(@{ $c->{roles} }), 4,
+				'roles arrayref has four entries (one per URL host)';
+				unlike $c->{role}, qr/\(x4\)/,
+				'distinct hostnames not collapsed with (xN)';
+			# The four distinct hostname role strings exceed the 80-char display
+			# cap, so {role} is summarised -- check the full detail in {roles}
+			ok scalar(grep { /a1\.spamdomain\.example/ } @{ $c->{roles} }), 'first hostname present in roles arrayref';
+			ok scalar(grep { /a4\.spamdomain\.example/ } @{ $c->{roles} }),
+				'last hostname present in roles arrayref';
+				like $c->{role}, qr/\d+ routes:/,
+				'capped role string uses N routes: summary format';
 	}
 	restore_net();
 };

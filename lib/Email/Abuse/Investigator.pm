@@ -1841,6 +1841,86 @@ sub all_domains {
     return @out;
 }
 
+=head2 unresolved_contacts()
+
+=head3 Purpose
+
+Returns a list of domains and URL hosts found in the message for which
+no abuse contact could be determined -- i.e. they are not in
+C<%PROVIDER_ABUSE> and produced no usable result from IP WHOIS or
+domain WHOIS.  Domains whose only source is a spoofable sending header
+(C<From:>, C<Return-Path:>, C<Sender:>) are excluded, as are domains
+already covered by C<abuse_contacts()> or C<form_contacts()>.
+
+This is useful for surfacing parties that may warrant manual
+investigation when the automated pipeline cannot find a contact.
+
+=head3 Returns
+
+A list of hashrefs, each with:
+
+=over 4
+
+=item C<domain> (string) -- the domain or hostname
+
+=item C<type> (string) -- C<'url_host'> or C<'domain'>
+
+=item C<source> (string) -- where it was found (e.g. C<'email address / mailto in body'>)
+
+=back
+
+=cut
+
+sub unresolved_contacts {
+    my ($self) = @_;
+
+    # Build a set of domains already covered by email or form contacts
+    my %covered;
+    for my $c ($self->abuse_contacts(), $self->form_contacts()) {
+        my $dom = $c->{form_domain};
+        unless ($dom) {
+            ($dom) = ($c->{address} // '') =~ /\@([\w.-]+)/;
+        }
+        $covered{lc $dom}++ if $dom;
+    }
+    # Also mark URL hosts that resolved to a known abuse address
+    for my $u ($self->embedded_urls()) {
+        (my $bare = lc $u->{host}) =~ s/^www\.//;
+        $covered{$bare}++ if $u->{abuse} && $u->{abuse} ne '(unknown)';
+    }
+
+    my @out;
+    my %seen;
+
+    # URL hosts
+    for my $u ($self->embedded_urls()) {
+        (my $bare = lc $u->{host}) =~ s/^www\.//;
+        next if $covered{$bare};
+        next if $seen{"url:$bare"}++;
+        push @out, {
+            domain => $u->{host},
+            type   => 'url_host',
+            source => 'URL in body',
+        };
+    }
+
+    # Contact domains -- skip spoofable-header-only sources
+    for my $d ($self->mailto_domains()) {
+        my $dom    = $d->{domain};
+        my $source = $d->{source} // '';
+        next if $source =~ /^(?:From:|Return-Path:|Sender:) header$/;
+        next if $covered{lc $dom};
+        next if $seen{"dom:$dom"}++;
+        push @out, {
+            domain => $dom,
+            type   => 'domain',
+            source => $source,
+        };
+    }
+
+    return @out;
+}
+
 =head2 sending_software()
 
 Returns information extracted from headers that identify the software or
@@ -3589,9 +3669,25 @@ sub abuse_contacts {
             for my $r (@{ $entry->{roles} }) {
                 push @ordered_roles, $r unless $role_counts{$r}++;
             }
-            $entry->{role} = join(' and ', map {
+            my @display = map {
                 $role_counts{$_} > 1 ? "$_ (x$role_counts{$_})" : $_
-            } @ordered_roles);
+            } @ordered_roles;
+            my $joined = join(' and ', @display);
+            # Cap the display string at 80 characters to keep output readable.
+            # The full detail is always available via the roles arrayref.
+            # Summarise as "N routes: type1, type2, ..." where each type is
+            # the leading word(s) of the role string up to the first colon,
+            # digit, or open-paren.
+            if (length($joined) > 80) {
+                my @short = map {
+                    (my $s = $_) =~ s/[:(\d].*//;
+                    $s =~ s/\s+$//;
+                    $s;
+                } @display;
+                $joined = scalar(@display) . ' routes: '
+                        . join(', ', @short);
+            }
+            $entry->{role} = $joined;
             return;
         }
         # First time we have seen this address -- record its position and add it
