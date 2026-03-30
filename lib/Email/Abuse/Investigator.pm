@@ -3622,6 +3622,14 @@ sub abuse_contacts {
     my (%url_host_seen);
     for my $u ($self->embedded_urls()) {
         next if $url_host_seen{ $u->{host} }++;
+
+	# Skip trusted infrastructure domains -- W3C namespace/DTD URLs,
+	# Google, Microsoft etc. appearing in HTML boilerplate are not
+	# actionable abuse targets.
+	my $bare_host = lc $u->{host};
+	$bare_host =~ s/^www\.//;
+	next if $TRUSTED_DOMAINS{$bare_host};
+
         my $pa = $self->_provider_abuse_for_host($u->{host});
         if ($pa) {
             $add->(role    => "URL host: $u->{host}",
