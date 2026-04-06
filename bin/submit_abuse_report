@@ -110,15 +110,14 @@ $smtp_port //= 25;
 # -----------------------------------------------------------------------
 my $raw;
 if (@ARGV) {
-    open my $fh, '<:raw', $ARGV[0]
-        or die basename($0) . ": cannot open '$ARGV[0]': $!\n";
-    local $/;
-    $raw = <$fh>;
-    close $fh;
+	open my $fh, '<:raw', $ARGV[0] or die basename($0), ": cannot open '$ARGV[0]': $!";
+	local $/;
+	$raw = <$fh>;
+	close $fh;
 } else {
-    binmode STDIN, ':raw';
-    local $/;
-    $raw = <STDIN>;
+	binmode STDIN, ':raw';
+	local $/;
+	$raw = <STDIN>;
 }
 
 die basename($0) . ": no email data supplied.\n"
@@ -608,10 +607,10 @@ sub _build_mime_message {
     # inline or discarding it.
     my $original_b64 = MIME::Base64::encode_base64($original_crlf, "\r\n");
     push @msg, "--$boundary";
-    push @msg, "Content-Type: application/octet-stream; name=\"original_message.eml\"";
+    push @msg, "Content-Type: application/octet-stream; name=\"original_message.eml.txt\"";
     push @msg, "Content-Transfer-Encoding: base64";
     push @msg, "Content-Disposition: attachment;";
-    push @msg, "    filename=\"original_message.eml\"";
+    push @msg, "    filename=\"original_message.eml.txt\"";
     push @msg, "Content-Description: Original spam/phishing message";
     push @msg, "";
     push @msg, $original_b64;
