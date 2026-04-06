@@ -1,11 +1,11 @@
 #!/usr/bin/env perl
 # -----------------------------------------------------------------------
-# submit_abuse_report.pl -- analyse a spam/phishing email and send abuse
+# submit_abuse_report -- analyse a spam/phishing email and send abuse
 #                           reports to all relevant parties.
 #
 # Usage:
-#   submit_abuse_report.pl [options] spam.eml
-#   submit_abuse_report.pl [options] < spam.eml
+#   submit_abuse_report [options] spam.eml
+#   submit_abuse_report [options] < spam.eml
 #
 # Options:
 #   --dry-run              Show what would be sent and to whom; do not
@@ -24,13 +24,13 @@
 #
 # Examples:
 #   # Dry run -- see what would be sent without sending anything
-#   submit_abuse_report.pl --dry-run spam.eml
+#   submit_abuse_report --dry-run spam.eml
 #
 #   # Send reports via the local MTA
-#   submit_abuse_report.pl --from postmaster@myisp.example spam.eml
+#   submit_abuse_report --from postmaster@myisp.example spam.eml
 #
 #   # Send via a specific SMTP relay, skipping our own outbound IP
-#   submit_abuse_report.pl \
+#   submit_abuse_report \
 #       --from abuse-reporter@example.com \
 #       --smtp mail.example.com:587 \
 #       --trusted 203.0.113.0/24 \
@@ -110,17 +110,19 @@ $smtp_port //= 25;
 # -----------------------------------------------------------------------
 my $raw;
 if (@ARGV) {
-	open my $fh, '<:raw', $ARGV[0] or die basename($0), ": cannot open '$ARGV[0]': $!";
-	local $/;
-	$raw = <$fh>;
-	close $fh;
+    open my $fh, '<:raw', $ARGV[0]
+        or die basename($0) . ": cannot open '$ARGV[0]': $!\n";
+    local $/;
+    $raw = <$fh>;
+    close $fh;
 } else {
-	binmode STDIN, ':raw';
-	local $/;
-	$raw = <STDIN>;
+    binmode STDIN, ':raw';
+    local $/;
+    $raw = <STDIN>;
 }
 
-die basename($0), ': no email data supplied.' unless defined $raw && length $raw;
+die basename($0) . ": no email data supplied.\n"
+    unless defined $raw && length $raw;
 
 # -----------------------------------------------------------------------
 # Analyse
@@ -576,7 +578,7 @@ sub _build_mime_message {
     push @msg, "Content-Type: multipart/report;";
     push @msg, "    report-type=feedback-report;";
     push @msg, "    boundary=\"$boundary\"";
-    push @msg, "X-Mailer: Email::Abuse::Investigator submit_abuse_report.pl";
+    push @msg, "X-Mailer: Email::Abuse::Investigator submit_abuse_report";
     push @msg, "X-Report-Monitor: $a{bcc}" if $a{bcc};
     push @msg, "";
 
@@ -606,7 +608,7 @@ sub _build_mime_message {
     # inline or discarding it.
     my $original_b64 = MIME::Base64::encode_base64($original_crlf, "\r\n");
     push @msg, "--$boundary";
-    push @msg, "Content-Type: message/rfc822";
+    push @msg, "Content-Type: application/octet-stream; name=\"original_message.eml\"";
     push @msg, "Content-Transfer-Encoding: base64";
     push @msg, "Content-Disposition: attachment;";
     push @msg, "    filename=\"original_message.eml\"";
@@ -642,13 +644,13 @@ __END__
 
 =head1 NAME
 
-submit_abuse_report.pl -- analyse a spam/phishing email and send abuse
+submit_abuse_report -- analyse a spam/phishing email and send abuse
 reports to all relevant parties
 
 =head1 SYNOPSIS
 
-    submit_abuse_report.pl [options] spam.eml
-    submit_abuse_report.pl [options] < spam.eml
+    submit_abuse_report [options] spam.eml
+    submit_abuse_report [options] < spam.eml
 
 =head1 OPTIONS
 
