@@ -48,6 +48,7 @@ WriteMakefile(
 		'Scalar::Util' => 0,
 		'Test::DescribeMe' => 0,
 		'Test::Most' => 0,
+		'Test::Needs' => 0,
 	}, dist => $dist,
 	clean		=> { FILES => 'Email-Abuse-Investigator-*' },
 	# META_ADD => {

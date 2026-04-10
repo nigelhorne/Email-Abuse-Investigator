@@ -14,6 +14,7 @@ requires 'Socket';
 on 'configure' => sub {
 	requires 'ExtUtils::MakeMaker', '6.64';
 };
+
 on 'test' => sub {
 	requires 'FindBin';
 	requires 'MIME::Base64';
@@ -22,7 +23,9 @@ on 'test' => sub {
 	requires 'Scalar::Util';
 	requires 'Test::DescribeMe';
 	requires 'Test::Most';
+	requires 'Test::Needs';
 };
+
 on 'develop' => sub {
 	requires 'Devel::Cover';
 	requires 'Perl::Critic';
