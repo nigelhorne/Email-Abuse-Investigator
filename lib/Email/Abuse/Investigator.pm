@@ -692,20 +692,24 @@ prevents malformed spam from causing exceptions during analysis.
 
 # TODO:  Allow a Mail::Message object to be given
 sub parse_email {
-    my ($self, $text) = @_;
-    $text = $$text if ref $text;
-    $self->{_raw}            = $text;
-    $self->{_origin}         = undef;
-    $self->{_urls}           = undef;
-    $self->{_mailto_domains} = undef;
-    $self->{_domain_info}    = {};
-    $self->{_risk}           = undef;
-    $self->{_auth_results}   = undef;
-    $self->{_sending_sw}     = [];
-    $self->{_rcvd_tracking}  = [];
+	my $self = shift;
 
-    $self->_split_message($text);
-    return $self;
+	my $args = Params::Get::get_params('text', \@_);
+	my $text = $args->{text};
+
+	$text = $$text if ref $text;
+	$self->{_raw}            = $text;
+	$self->{_origin}         = undef;
+	$self->{_urls}           = undef;
+	$self->{_mailto_domains} = undef;
+	$self->{_domain_info}    = {};
+	$self->{_risk}           = undef;
+	$self->{_auth_results}   = undef;
+	$self->{_sending_sw}     = [];
+	$self->{_rcvd_tracking}  = [];
+
+	$self->_split_message($text);
+	return $self;
 }
 
 =head2 originating_ip()
@@ -1254,7 +1258,6 @@ sub embedded_urls {
     $self->{_urls} //= $self->_extract_and_resolve_urls();
     return @{ $self->{_urls} };
 }
-
 
 =head2 mailto_domains()
 

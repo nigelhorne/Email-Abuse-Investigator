@@ -124,7 +124,7 @@ note '=== 2. parse_email ===';
     $a->{_urls}           = [{ url => 'old' }];
     $a->{_mailto_domains} = [{ domain => 'old.example' }];
     $a->{_domain_info}    = { 'old.example' => {} };
-    $a->parse_email($raw);
+    $a->parse_email(text => $raw);
     is $a->{_origin},         undef, 're-parse clears _origin';
     is $a->{_urls},           undef, 're-parse clears _urls';
     is $a->{_mailto_domains}, undef, 're-parse clears _mailto_domains';
