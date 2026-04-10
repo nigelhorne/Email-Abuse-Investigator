@@ -200,6 +200,18 @@ my %PROVIDER_ABUSE = (
         form_upload => 'Take a screenshot of the report as a .png or .jpg, or export it as a .pdf.  MarkMonitor does not accept .eml files.',
         note        => 'Brand-protection registrar -- email reports not processed',
     },
+    # Dynadot -- registrar that explicitly rejects email abuse reports per
+    # autoresponse; web form only.
+    'dynadot.com'           => {
+        form        => 'https://www.dynadot.com/report-abuse',
+        form_paste  => 'Complete all fields including the domain name and your '
+                     . 'description of the abuse.  Paste the originating IP, '
+                     . 'risk flags, and the relevant Received: headers from the '
+                     . 'report below.',
+        form_upload => 'Take a screenshot of the report as a .png or .jpg, '
+                     . 'or export it as a .pdf.',
+        note        => 'Registrar -- email reports not monitored, use web form',
+    },
     # Global Domain Group -- registrar that explicitly rejects email reports.
     # Only ICANN RAA s3.18.3 contacts (law enforcement, registries) may use
     # the email address; all other abuse reports must use the web form.
