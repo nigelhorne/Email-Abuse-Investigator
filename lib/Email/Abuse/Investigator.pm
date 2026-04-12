@@ -64,12 +64,12 @@ my %TRUSTED_DOMAINS = map { $_ => 1 } qw(
 
 # Known URL shortener / redirect domains — real destination is hidden
 my %URL_SHORTENERS = map { $_ => 1 } qw(
-    bit.ly      bitly.com   tinyurl.com  t.co        ow.ly
-    goo.gl      is.gd       buff.ly      ift.tt       dlvr.it
-    short.link  rebrand.ly  tiny.cc      cutt.ly      rb.gy
-    shorturl.at bl.ink      smarturl.it  yourls.org   clicky.me
-    snip.ly     adf.ly      bc.vc        lnkd.in      fb.me
-    youtu.be
+	bit.ly      bitly.com   tinyurl.com  t.co        ow.ly
+	goo.gl      is.gd       buff.ly      ift.tt       dlvr.it
+	short.link  rebrand.ly  tiny.cc      cutt.ly      rb.gy
+	shorturl.at bl.ink      smarturl.it  yourls.org   clicky.me
+	snip.ly     adf.ly      bc.vc        lnkd.in      fb.me
+	youtu.be
 );
 
 # Well-known providers: use their specific abuse address / report URL

@@ -2019,18 +2019,14 @@ subtest 'abuse_contacts -- role deduplication: different subdomains each get own
 			'roles arrayref has four entries (one per URL host)';
 		unlike $c->{role}, qr/\(x4\)/,
 			'distinct hostnames not collapsed with (xN)';
-			ok defined $c, 'merged contact found';
-			is scalar(@{ $c->{roles} }), 4,
-				'roles arrayref has four entries (one per URL host)';
-				unlike $c->{role}, qr/\(x4\)/,
-				'distinct hostnames not collapsed with (xN)';
-			# The four distinct hostname role strings exceed the 80-char display
-			# cap, so {role} is summarised -- check the full detail in {roles}
-			ok scalar(grep { /a1\.spamdomain\.example/ } @{ $c->{roles} }), 'first hostname present in roles arrayref';
-			ok scalar(grep { /a4\.spamdomain\.example/ } @{ $c->{roles} }),
-				'last hostname present in roles arrayref';
-				like $c->{role}, qr/\d+ routes:/,
-				'capped role string uses N routes: summary format';
+		# The four distinct hostname role strings exceed the 80-char display
+		# cap, so {role} is summarised -- check the full detail in {roles}
+		ok scalar(grep { /a1\.spamdomain\.example/ } @{ $c->{roles} }),
+			'first hostname present in roles arrayref';
+		ok scalar(grep { /a4\.spamdomain\.example/ } @{ $c->{roles} }),
+			'last hostname present in roles arrayref';
+		like $c->{role}, qr/\d+ routes:/,
+			'capped role string uses N routes: summary format';
 	}
 	restore_net();
 };
@@ -2970,9 +2966,55 @@ subtest 'abuse_contacts -- From: domain registrar reported when domain also in U
 	restore_net();
 };
 
+
+# =============================================================================
+# 44. Role display cap: long merged role strings summarised (0.08)
+# =============================================================================
+
+subtest 'abuse_contacts -- role string capped at 80 chars with N routes summary' => sub {
+	# When multiple distinct routes converge on the same address and the
+	# joined string would exceed 80 characters, {role} is summarised as
+	# "N routes: type1, type2, ..." while {roles} retains full detail.
+	null_net();
+	my $a = new_ok('Email::Abuse::Investigator');
+	$a->parse_email(make_email(
+		from        => 'Spammer <spam@gmail.com>',
+		return_path => '<spam@gmail.com>',
+		to          => '<victim@nigelhorne.com>',
+		body        => 'Visit https://cenovelle.blogspot.com/ for details',
+		received    => 'from mail-yx1.google.com (mail-yx1.google.com [74.125.0.1])'
+		             . ' by mx.nigelhorne.com with ESMTP',
+	));
+	{
+		no warnings 'redefine';
+		local *Email::Abuse::Investigator::_resolve_host = sub { '74.125.0.1' };
+		local *Email::Abuse::Investigator::_whois_ip     = sub {
+			{ org => 'Google LLC', abuse => 'abuse@google.com' }
+		};
+		local *Email::Abuse::Investigator::_domain_whois = sub { undef };
+
+		my @contacts = $a->abuse_contacts();
+		my ($g) = grep { $_->{address} eq 'abuse@google.com' } @contacts;
+		ok defined $g, 'google contact found';
+		cmp_ok scalar(@{ $g->{roles} }), '>=', 3,
+			'roles arrayref has three or more entries';
+		if (length($g->{role}) > 80) {
+			fail 'role string exceeds 80 characters after cap';
+		} else {
+			pass 'role string is 80 characters or fewer';
+		}
+		if (scalar(@{ $g->{roles} }) >= 4) {
+			like $g->{role}, qr/\d+ routes:/,
+				'capped role uses N routes: summary format';
+		}
+	}
+	restore_net();
+};
+
 subtest 'abuse_contacts -- short merged role not capped' => sub {
 	# A role string under 80 chars must not be summarised with "N routes:".
-	# Use IP WHOIS only (no provider-table match) to keep the role short.
+	# Use IP WHOIS only with an unknown sending domain to produce a single
+	# Sending ISP role -- guaranteed to stay under 80 chars.
 	null_net();
 	my $a = new_ok('Email::Abuse::Investigator');
 	$a->parse_email(make_email(
@@ -2997,6 +3039,268 @@ subtest 'abuse_contacts -- short merged role not capped' => sub {
 			'short single-route role string not summarised with N routes: format';
 	}
 	restore_net();
+};
+
+# =============================================================================
+# 45. unresolved_contacts() public method (0.08)
+# =============================================================================
+
+subtest 'unresolved_contacts -- URL host with no contact listed' => sub {
+	null_net();
+	my $a = new_ok('Email::Abuse::Investigator');
+	$a->parse_email(make_email(
+		from => 'Spammer <spam@spammer.example>',
+		to   => '<victim@nigelhorne.com>',
+		body => 'Visit http://www.unknownspamsite.example/offer now',
+	));
+	{
+		no warnings 'redefine';
+		local *Email::Abuse::Investigator::_resolve_host = sub { undef };
+		local *Email::Abuse::Investigator::_whois_ip     = sub { {} };
+		local *Email::Abuse::Investigator::_domain_whois = sub { undef };
+
+		my @u = $a->unresolved_contacts();
+		my ($entry) = grep { $_->{domain} =~ /unknownspamsite/ } @u;
+		ok defined $entry,
+			'unresolved URL host appears in unresolved_contacts()';
+		is $entry->{type}, 'url_host',
+			'type is url_host';
+	}
+	restore_net();
+};
+
+subtest 'unresolved_contacts -- spoofed From: domain excluded' => sub {
+	null_net();
+	my $a = new_ok('Email::Abuse::Investigator');
+	$a->parse_email(make_email(
+		from => 'Spammer <spoofed@innocent.example>',
+		to   => '<victim@nigelhorne.com>',
+		body => 'Buy now',
+	));
+	{
+		no warnings 'redefine';
+		local *Email::Abuse::Investigator::_resolve_host = sub { undef };
+		local *Email::Abuse::Investigator::_whois_ip     = sub { {} };
+		local *Email::Abuse::Investigator::_domain_whois = sub { undef };
+
+		my @u = $a->unresolved_contacts();
+		ok !scalar(grep { $_->{domain} eq 'innocent.example' } @u),
+			'spoofed From: domain not listed in unresolved_contacts()';
+	}
+	restore_net();
+};
+
+subtest 'unresolved_contacts -- body mailto domain included' => sub {
+	null_net();
+	my $a = new_ok('Email::Abuse::Investigator');
+	$a->parse_email(make_email(
+		from => 'Spammer <spoofed@innocent.example>',
+		to   => '<victim@nigelhorne.com>',
+		body => 'Contact gyomu@tolde.co.jp for details',
+	));
+	{
+		no warnings 'redefine';
+		local *Email::Abuse::Investigator::_resolve_host = sub { undef };
+		local *Email::Abuse::Investigator::_whois_ip     = sub { {} };
+		local *Email::Abuse::Investigator::_domain_whois = sub { undef };
+
+		my @u = $a->unresolved_contacts();
+		my ($entry) = grep { $_->{domain} eq 'tolde.co.jp' } @u;
+		ok defined $entry,
+			'body mailto domain listed in unresolved_contacts()';
+		is $entry->{type}, 'domain',
+			'type is domain';
+	}
+	restore_net();
+};
+
+subtest 'unresolved_contacts -- covered domain not listed' => sub {
+	# A domain already resolved to an abuse contact must not appear
+	# in unresolved_contacts().
+	null_net();
+	my $a = new_ok('Email::Abuse::Investigator');
+	$a->parse_email(make_email(
+		from => 'Spammer <spam@gmail.com>',
+		to   => '<victim@nigelhorne.com>',
+		body => 'Buy now',
+	));
+	{
+		no warnings 'redefine';
+		local *Email::Abuse::Investigator::_resolve_host = sub { undef };
+		local *Email::Abuse::Investigator::_whois_ip     = sub { {} };
+		local *Email::Abuse::Investigator::_domain_whois = sub { undef };
+
+		my @u = $a->unresolved_contacts();
+		ok !scalar(grep { $_->{domain} =~ /gmail/ } @u),
+			'gmail.com already covered -- not listed in unresolved_contacts()';
+	}
+	restore_net();
+};
+
+
+# =============================================================================
+# 46. Regression: 0.08 provider table and trusted domain additions
+#     - Dynadot as form-only registrar
+#     - URL shortener abuse contacts (is.gd, bit.ly etc.)
+#     - Delivery companies in %TRUSTED_DOMAINS (fedex.com etc.)
+#     - Route 2 trusted domain skip in abuse_contacts()
+# =============================================================================
+
+subtest 'dynadot.com in provider table as form-only' => sub {
+	my $a = new_ok('Email::Abuse::Investigator');
+	my $pa = $a->_provider_abuse_for_host('dynadot.com');
+	ok defined $pa,
+		'dynadot.com found in provider table';
+	ok !$pa->{email},
+		'dynadot.com has no email key (form-only)';
+	ok $pa->{form},
+		'dynadot.com has form key';
+	like $pa->{form}, qr{dynadot\.com},
+		'form URL references dynadot.com';
+};
+
+subtest 'dynadot.com registrar not returned by abuse_contacts()' => sub {
+	null_net();
+	my $a = new_ok('Email::Abuse::Investigator');
+	$a->parse_email(make_email(
+		to   => '<victim@nigelhorne.com>',
+		body => 'Buy now at https://spamsite.example/offer',
+	));
+	{
+		no warnings 'redefine';
+		local *Email::Abuse::Investigator::_resolve_host = sub { undef };
+		local *Email::Abuse::Investigator::_whois_ip     = sub { {} };
+		local *Email::Abuse::Investigator::_domain_whois = sub {
+			my (undef, $dom) = @_;
+			return "Registrar: Dynadot LLC\n"
+			     . "Registrar Abuse Contact Email: abuse\@dynadot.com\n"
+				if $dom =~ /spamsite/;
+			return undef;
+		};
+		my @contacts = $a->abuse_contacts();
+		my @dyn = grep { ($_->{address} // '') =~ /dynadot/i } @contacts;
+		is scalar(@dyn), 0,
+			'dynadot.com does not appear in abuse_contacts() (form-only)';
+	}
+	restore_net();
+};
+
+subtest 'dynadot.com registrar appears in form_contacts()' => sub {
+	null_net();
+	my $a = new_ok('Email::Abuse::Investigator');
+	$a->parse_email(make_email(
+		to   => '<victim@nigelhorne.com>',
+		body => 'Buy now at https://spamsite.example/offer',
+	));
+	{
+		no warnings 'redefine';
+		local *Email::Abuse::Investigator::_resolve_host = sub { undef };
+		local *Email::Abuse::Investigator::_whois_ip     = sub { {} };
+		local *Email::Abuse::Investigator::_domain_whois = sub {
+			return "Registrar: Dynadot LLC\n"
+			     . "Registrar Abuse Contact Email: abuse\@dynadot.com\n";
+		};
+		my @fcs = $a->form_contacts();
+		my ($dyn) = grep { $_->{form} =~ /dynadot/i } @fcs;
+		ok defined $dyn,
+			'dynadot.com form contact present in form_contacts()';
+		like $dyn->{form}, qr{dynadot\.com/report-abuse},
+			'correct form URL for Dynadot';
+	}
+	restore_net();
+};
+
+subtest 'URL shortener is.gd in provider table with abuse address' => sub {
+	my $a = new_ok('Email::Abuse::Investigator');
+	my $pa = $a->_provider_abuse_for_host('is.gd');
+	ok defined $pa,
+		'is.gd found in provider table';
+	like $pa->{email}, qr/is\.gd/,
+		'is.gd has abuse email at is.gd';
+};
+
+subtest 'abuse_contacts -- is.gd URL host produces is.gd contact not registrar' => sub {
+	null_net();
+	my $a = new_ok('Email::Abuse::Investigator');
+	$a->parse_email(make_email(
+		to   => '<victim@nigelhorne.com>',
+		body => 'Visit https://is.gd/abc123 now',
+	));
+	{
+		no warnings 'redefine';
+		local *Email::Abuse::Investigator::_resolve_host = sub { undef };
+		local *Email::Abuse::Investigator::_whois_ip     = sub { {} };
+		local *Email::Abuse::Investigator::_domain_whois = sub { undef };
+
+		my @contacts  = $a->abuse_contacts();
+		my @addresses = map { lc $_->{address} } @contacts;
+		ok scalar(grep { /abuse\@is\.gd/ } @addresses),
+			'abuse@is.gd generated for is.gd URL host';
+		ok !scalar(grep { /gandi/i } @addresses),
+			'Gandi registrar contact not generated for is.gd';
+	}
+	restore_net();
+};
+
+subtest 'URL shortener bit.ly in provider table' => sub {
+	my $a = new_ok('Email::Abuse::Investigator');
+	my $pa = $a->_provider_abuse_for_host('bit.ly');
+	ok defined $pa, 'bit.ly found in provider table';
+	like $pa->{email}, qr/bitly\.com/, 'bit.ly maps to bitly.com abuse address';
+};
+
+subtest 'fedex.com in TRUSTED_DOMAINS' => sub {
+	null_net();
+	my $a = new_ok('Email::Abuse::Investigator');
+	$a->parse_email(make_email(
+		to   => '<victim@nigelhorne.com>',
+		body => 'Track your package at https://www.fedex.com/tracking',
+	));
+	{
+		no warnings 'redefine';
+		local *Email::Abuse::Investigator::_resolve_host = sub { undef };
+		local *Email::Abuse::Investigator::_whois_ip     = sub { {} };
+		local *Email::Abuse::Investigator::_domain_whois = sub { undef };
+
+		my @contacts  = $a->abuse_contacts();
+		my @addresses = map { lc $_->{address} } @contacts;
+		ok !scalar(grep { /cscglobal|fedex/i } @addresses),
+			'fedex.com URL host does not generate registrar abuse contact';
+	}
+	restore_net();
+};
+
+subtest 'abuse_contacts route 2 -- trusted domain URL host skipped' => sub {
+	# The route 2 trusted domain skip must suppress URL hosts whose
+	# bare (www-stripped) hostname is in %TRUSTED_DOMAINS, preventing
+	# false positives from delivery company impersonation spam.
+	#
+	# To isolate Route 2, _whois_ip returns a sentinel address that is
+	# distinct from ups.com so we can confirm no Route 2 contact appears.
+	# (Route 3 may still run for ups.com as a contact domain, but with
+	# its own neutral abuse address.)
+	no warnings 'redefine';
+	local *Email::Abuse::Investigator::_reverse_dns  = sub { undef };
+	local *Email::Abuse::Investigator::_resolve_host = sub { '1.2.3.4' };
+	local *Email::Abuse::Investigator::_whois_ip     = sub {
+		{ org => 'Some Network', abuse => 'abuse@neutral-isp.example' }
+	};
+	local *Email::Abuse::Investigator::_raw_whois    = sub { undef };
+	local *Email::Abuse::Investigator::_rdap_lookup  = sub { {} };
+	local *Email::Abuse::Investigator::_domain_whois = sub { undef };
+
+	my $a = new_ok('Email::Abuse::Investigator');
+	$a->parse_email(make_email(
+		to   => '<victim@nigelhorne.com>',
+		body => 'Track at https://www.ups.com/track?num=123',
+	));
+
+	my @contacts  = $a->abuse_contacts();
+	# Route 2 skip: the URL host contact should not appear.
+	# We check that the neutral-isp.example address (which would be the
+	# Route 2 contact if the skip were absent) does NOT appear.
+	ok !scalar(grep { /neutral-isp\.example/i } map { lc $_->{address} } @contacts),
+		'ups.com URL host skipped in abuse_contacts() route 2';
 };
 
 done_testing();
