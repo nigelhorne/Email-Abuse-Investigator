@@ -153,8 +153,8 @@
 
 <tbody>
 
-<tr class="low"><td><a href="bin-submit_abuse_report.html" title="View coverage line by line" target="_blank">bin/submit_abuse_report</a> <a href="https://github.com/nigelhorne/Email-Abuse-Investigator/blob/c38631f61efb3778bf84021102a7d47b7e0c2700/bin/submit_abuse_report" class="icon-link" title="View source on GitHub">&#128269;</a><canvas class="sparkline" width="80" height="20" data-points="48.8,48.8,48.8"></canvas></td><td>56.1</td><td>28.6</td><td>31.0</td><td>85.0</td><td><span class="coverage-badge badge-bad" title="Needs improvement">48.8%</span></td><td class="neutral" title="Previous: 48.8%">&#9679; 0.0%</td></tr>
-<tr class="med"><td><a href="blib-lib-Email-Abuse-Investigator-pm.html" title="View coverage line by line" target="_blank">blib/lib/Email/Abuse/Investigator.pm</a> <a href="https://github.com/nigelhorne/Email-Abuse-Investigator/blob/c38631f61efb3778bf84021102a7d47b7e0c2700/blib/lib/Email/Abuse/Investigator.pm" class="icon-link" title="View source on GitHub">&#128269;</a><canvas class="sparkline" width="80" height="20" data-points="81.0,81.0,81.0"></canvas></td><td>88.2</td><td>75.8</td><td>65.8</td><td>97.0</td><td><span class="coverage-badge badge-warn" title="Moderate coverage">81.0%</span></td><td class="neutral" title="Previous: 81.0%">&#9679; 0.0%</td></tr>
+<tr class="low"><td><a href="bin-submit_abuse_report.html" title="View coverage line by line" target="_blank">bin/submit_abuse_report</a> <a href="https://github.com/nigelhorne/Email-Abuse-Investigator/blob/89372b202ad7eb4fb3a17ed28211619d842ec9c0/bin/submit_abuse_report" class="icon-link" title="View source on GitHub">&#128269;</a><canvas class="sparkline" width="80" height="20" data-points="48.8,48.8,48.8,48.8"></canvas></td><td>56.1</td><td>28.6</td><td>31.0</td><td>85.0</td><td><span class="coverage-badge badge-bad" title="Needs improvement">48.8%</span></td><td class="neutral" title="Previous: 48.8%">&#9679; 0.0%</td></tr>
+<tr class="med"><td><a href="lib-Email-Abuse-Investigator-pm.html" title="View coverage line by line" target="_blank">lib/Email/Abuse/Investigator.pm</a> <a href="https://github.com/nigelhorne/Email-Abuse-Investigator/blob/89372b202ad7eb4fb3a17ed28211619d842ec9c0/lib/Email/Abuse/Investigator.pm" class="icon-link" title="View source on GitHub">&#128269;</a><canvas class="sparkline" width="80" height="20" data-points="81.0,81.0,81.0,81.0"></canvas></td><td>88.2</td><td>75.8</td><td>65.8</td><td>97.0</td><td><span class="coverage-badge badge-warn" title="Moderate coverage">81.0%</span></td><td class="neutral" title="No previous data">&#9679;</td></tr>
 <tr class="summary-row nosort"><td colspan="2"><strong>Summary</strong></td><td colspan="2">2 files</td><td colspan="3">Avg: 64%, Low: 1</td></tr>
 <tr class="med nosort"><td><strong>Total</strong></td><td>72.1</td><td>52.2</td><td>48.4</td><td>91.0</td><td colspan="2"><strong>64.9</strong></td></tr>
 </tbody></table>
@@ -205,7 +205,8 @@ function linearRegression(data) {
 
 const dataPoints = [ { x: "2026-04-10T08:50:40-04:00", y: 64.8773814228066, delta: 0, url: "https://github.com/nigelhorne/Email-Abuse-Investigator/commit/2cbc264", label: "2026-04-10T08:50:40-04:00", pointBackgroundColor: "gray", comment: "Added the scripts to display the test dashboard" },
 { x: "2026-04-10T08:59:24-04:00", y: 64.8773814228066, delta: 0.0, url: "https://github.com/nigelhorne/Email-Abuse-Investigator/commit/c2bd67f", label: "2026-04-10T08:59:24-04:00", pointBackgroundColor: "gray", comment: "Look in the right place" },
-{ x: "2026-04-10T10:21:33-04:00", y: 64.8623672121734, delta: -0.0, url: "https://github.com/nigelhorne/Email-Abuse-Investigator/commit/e6daf2f", label: "2026-04-10T10:21:33-04:00", pointBackgroundColor: "gray", comment: "Allow parse_email to take a named parameter" } ];
+{ x: "2026-04-10T10:21:33-04:00", y: 64.8623672121734, delta: -0.0, url: "https://github.com/nigelhorne/Email-Abuse-Investigator/commit/e6daf2f", label: "2026-04-10T10:21:33-04:00", pointBackgroundColor: "gray", comment: "Allow parse_email to take a named parameter" },
+{ x: "2026-04-10T12:21:36-04:00", y: 64.8623672121734, delta: 0.0, url: "https://github.com/nigelhorne/Email-Abuse-Investigator/commit/c38631f", label: "2026-04-10T12:21:36-04:00", pointBackgroundColor: "gray", comment: "Added Test::Returns" } ];
 const regressionPoints = linearRegression(dataPoints);
 // Try to register the zoom plugin (handles different UMD builds)
 (function registerZoomPlugin(){
@@ -462,12 +463,12 @@ function refresh(){
 Fails on Perl &leq; 5.8.9; passes on Perl &geq; 5.10.1. 
 <a href="https://perldoc.perl.org/perl5100delta" target="_blank">See perldelta for this release</a>
  <span class="coverage-badge badge-good" title="1 fails, 0 passes">Strong confidence</span></p>
-<h3>Failure Summary</h3>
+<h3>Failure Summary (all reports)</h3>
 <ul>
 <li><b>Perl 5.8.x</b>: 2 failures</li>
 <p><em>100% of failures occur on Perl 5.8.x</em></p>
 <li><b>freebsd</b>: 1 failures</li>
-<li><b>5.8 / linux</b>: 1 failures</li>
+<li><b>5.8 / freebsd</b>: 1 failures</li>
 </ul>
 <h3>Likely Root Causes</h3>
 <table class="root-causes">
@@ -597,22 +598,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
 <tr><th>File</th><th>Total</th><th>Killed</th><th>Survivors</th><th>Score%</th><th>Complexity</th><th title="TER1=Statement, TER2=Branch, TER3=LCSAJ Path">TER1 / TER2 / TER3</th></tr>
 
-<tr class="low"><td><a href="mutation_html/lib/Email/Abuse/Investigator.pm.html" title="View mutation line by line" target="_blank">lib/Email/Abuse/Investigator.pm</a> <a href="https://github.com/nigelhorne/Email-Abuse-Investigator/blob/c38631f61efb3778bf84021102a7d47b7e0c2700/lib/Email/Abuse/Investigator.pm" class="icon-link" title="View source on GitHub">&#128269;</a></td><td>204</td><td>0</td><td>204</td><td><span class="coverage-badge badge-bad" title="Needs improvement">0.0%</span></td><td><span class="coverage-badge badge-bad" title="Good">444</span></td><td><span class="coverage-badge badge-warn" title="Moderate">88.2%</span> / <span class="coverage-badge badge-warn" title="Moderate">75.8%</span> / <span class="coverage-badge badge-warn" title="Moderate">77.4%</span></td></tr>
+<tr class="low"><td><a href="mutation_html/lib/Email/Abuse/Investigator.pm.html" title="View mutation line by line" target="_blank">lib/Email/Abuse/Investigator.pm</a> <a href="https://github.com/nigelhorne/Email-Abuse-Investigator/blob/89372b202ad7eb4fb3a17ed28211619d842ec9c0/lib/Email/Abuse/Investigator.pm" class="icon-link" title="View source on GitHub">&#128269;</a></td><td>204</td><td>0</td><td>204</td><td><span class="coverage-badge badge-bad" title="Needs improvement">0.0%</span></td><td><span class="coverage-badge badge-bad" title="Needs improvement">444</span></td><td><span class="coverage-badge badge-warn" title="Moderate">88.2%</span> / <span class="coverage-badge badge-warn" title="Moderate">75.8%</span> / <span class="coverage-badge badge-warn" title="Moderate">77.4%</span></td></tr>
 </table>
 
 <h2>Structural Coverage (Approximate)</h2>
 <div class='summary'>
-Statement Coverage: 45.17% (1675 / 3708)<br>
-Branch Coverage: 31.18% (653 / 2094)<br>
+Statement Coverage: 80.81% (1095 / 1355)<br>
+Branch Coverage: 68.19% (476 / 698)<br>
 <em>Approximate LCSAJ derived from branch and statement coverage.</em>
 </div>
 <h2>Executive Summary</h2>
 <div class='summary'>
-Tests execute 45.17% of the code, but detect only 0.00% of injected faults.
+Tests execute 80.81% of the code, but detect only 0.00% of injected faults.
 </div>
 <footer>
 	<p>Project: <a href="https://github.com/nigelhorne/Email-Abuse-Investigator">Email-Abuse-Investigator</a></p>
-	<p><em>Last updated: 2026-04-10 16:23:21 - <a href="https://github.com/nigelhorne/Email-Abuse-Investigator/commit/c38631f61efb3778bf84021102a7d47b7e0c2700">commit <code>c38631f</code></a></em></p>
+	<p><em>Last updated: 2026-04-12 20:34:37 - <a href="https://github.com/nigelhorne/Email-Abuse-Investigator/commit/89372b202ad7eb4fb3a17ed28211619d842ec9c0">commit <code>89372b2</code></a></em></p>
 </footer>
 
 </body>
