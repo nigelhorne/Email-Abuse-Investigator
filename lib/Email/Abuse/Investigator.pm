@@ -59,6 +59,7 @@ my %TRUSTED_DOMAINS = map { $_ => 1 } qw(
 	google.com microsoft.com apple.com amazon.com
 	googlegroups.com groups.google.com
 	w3.org
+	fedex.com ups.com dhl.com usps.com royalmail.com
 );
 
 # Known URL shortener / redirect domains — real destination is hidden
@@ -224,6 +225,16 @@ my %PROVIDER_ABUSE = (
         form_upload => 'Attach the original spam message as an .eml file.',
         note        => 'Registrar -- email reports explicitly not accepted',
     },
+    # URL shorteners -- report to the shortener operator, not their registrar.
+    'is.gd'             => { email => 'abuse@is.gd',           note => 'URL shortener -- report via https://is.gd/contact.php' },
+    'bitly.com'         => { email => 'abuse@bitly.com',        note => 'URL shortener abuse' },
+    'bit.ly'            => { email => 'abuse@bitly.com',        note => 'URL shortener abuse' },
+    'tinyurl.com'       => { email => 'abuse@tinyurl.com',      note => 'URL shortener abuse' },
+    'ow.ly'             => { email => 'abuse@hootsuite.com',    note => 'Hootsuite URL shortener' },
+    'buff.ly'           => { email => 'abuse@buffer.com',       note => 'Buffer URL shortener' },
+    'rb.gy'             => { email => 'abuse@rb.gy',            note => 'URL shortener abuse' },
+    'cutt.ly'           => { email => 'abuse@cutt.ly',          note => 'URL shortener abuse' },
+    'shorturl.at'       => { email => 'abuse@shorturl.at',      note => 'URL shortener abuse' },
     # TPG / Internode (Australia)
     'tpgi.com.au'       => { email => 'abuse@tpg.com.au',      note => 'TPG Telecom Australia' },
     'tpg.com.au'        => { email => 'abuse@tpg.com.au',      note => 'TPG Telecom Australia' },
@@ -1841,21 +1852,22 @@ called afterwards to retrieve their full detail.
 =cut
 
 sub all_domains {
-    my ($self) = @_;
-    my %seen;
-    my @out;
-    for my $u ($self->embedded_urls()) {
-        my $dom = _registrable($u->{host});
-        push @out, $dom if $dom && !$seen{$dom}++;
-    }
-    for my $d ($self->mailto_domains()) {
-        # mailto_domains() stores the full domain from the address;
-        # normalise to registrable domain so sub.spamco.example and
-        # a URL at www.spamco.example both collapse to spamco.example.
-        my $dom = _registrable($d->{domain}) // $d->{domain};
-        push @out, $dom if $dom && !$seen{$dom}++;
-    }
-    return @out;
+	my $self = $_[0];
+	my %seen;
+	my @out;
+
+	for my $u ($self->embedded_urls()) {
+		my $dom = _registrable($u->{host});
+		push @out, $dom if $dom && !$seen{$dom}++;
+	}
+	for my $d ($self->mailto_domains()) {
+		# mailto_domains() stores the full domain from the address;
+		# normalise to registrable domain so sub.spamco.example and
+		# a URL at www.spamco.example both collapse to spamco.example.
+		my $dom = _registrable($d->{domain}) // $d->{domain};
+		push @out, $dom if $dom && !$seen{$dom}++;
+	}
+	return @out;
 }
 
 =head2 unresolved_contacts()
@@ -1889,7 +1901,7 @@ A list of hashrefs, each with:
 =cut
 
 sub unresolved_contacts {
-    my ($self) = @_;
+	my $self = $_[0];
 
     # Build a set of domains already covered by email or form contacts
     my %covered;
@@ -3731,17 +3743,17 @@ sub abuse_contacts {
         }
     }
 
-    # 2. URL hosts
+	# 2. URL hosts
     my (%url_host_seen);
     for my $u ($self->embedded_urls()) {
         next if $url_host_seen{ $u->{host} }++;
 
-	# Skip trusted infrastructure domains -- W3C namespace/DTD URLs,
-	# Google, Microsoft etc. appearing in HTML boilerplate are not
-	# actionable abuse targets.
-	my $bare_host = lc $u->{host};
-	$bare_host =~ s/^www\.//;
-	next if $TRUSTED_DOMAINS{$bare_host};
+        # Skip trusted infrastructure domains -- W3C namespace/DTD URLs,
+        # Google, Microsoft etc. appearing in HTML boilerplate are not
+        # actionable abuse targets.
+        my $bare_host = lc $u->{host};
+        $bare_host =~ s/^www\.//;
+        next if $TRUSTED_DOMAINS{$bare_host};
 
         my $pa = $self->_provider_abuse_for_host($u->{host});
         if ($pa) {

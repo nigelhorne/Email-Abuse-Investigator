@@ -28,6 +28,15 @@ Revision history for Email-Abuse-Investigator
     script's dependencies are not installed, so it is safe to add to the
     distribution without breaking CI on minimal Perl installs.
 
+  - Added abuse contacts for major URL shorteners to %PROVIDER_ABUSE.
+    Previously URL shorteners were only flagged as a risk indicator;
+    the module fell back to WHOIS which returned the registrar (e.g.
+    Gandi for is.gd), who correctly responded that they have no control
+    over how the shortener service is used.  The shortener operator is
+    the right contact.  Entries added: is.gd, bit.ly/bitly.com,
+    tinyurl.com, ow.ly (Hootsuite), buff.ly (Buffer), rb.gy, cutt.ly,
+    shorturl.at.
+
   - Added role string display cap to abuse_contacts().  When multiple
     distinct routes converge on the same abuse address and the joined
     role string would exceed 80 characters, it is summarised as
