@@ -4167,9 +4167,7 @@ this fixed order:
 
 =item 1. Banner
 
-    ========================================================================
       Email::Abuse::Investigator Report  (vX.XX)
-    ========================================================================
 
 A row of 72 equals signs, the module name and version number, and a
 closing row of 72 equals signs.
