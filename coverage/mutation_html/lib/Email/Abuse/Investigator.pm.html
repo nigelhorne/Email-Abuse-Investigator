@@ -244,7 +244,7 @@ pre details.mutant-details ul {
 <div class="nav"><a href="../../../../index.html">Index</a>
 </div><div class='summary'>
 <strong>Structural Coverage (Approximate)</strong><p>
-TER1 (Statement): 88.23%<br>
+TER1 (Statement): 88.15%<br>
 TER2 (Branch): 75.85%<br>
 TER3 (LCSAJ): 97.7% (209/214)<br>
 Approximate LCSAJ segments: 589<br>
@@ -434,27 +434,27 @@ Approximate LCSAJ segments: 589<br>
 </span><span class="">  142: # -----------------------------------------------------------------------
 </span><span class="">  143: 
 </span><span class="">  144: # WHOIS protocol constants
-</span><span class="">  145: Readonly::Scalar my $WHOIS_PORT       =&gt; 43;    # IANA-assigned WHOIS port
-</span><span class="">  146: Readonly::Scalar my $WHOIS_READ_CHUNK =&gt; 4096;  # bytes per sysread call
+</span><span class="">  145: Readonly::Scalar my $WHOIS_PORT	=&gt; 43;	# IANA-assigned WHOIS port
+</span><span class="">  146: Readonly::Scalar my $WHOIS_READ_CHUNK =&gt; 4096;	# bytes per sysread call
 </span><span class="">  147: # Constants
 </span><span class="">  148: # -----------------------------------------------------------------------
 </span><span class="">  149: 
 </span><span class="">  150: my @PRIVATE_RANGES = (
-</span><span class="">  151:     qr/^0\./,                         # 0.0.0.0/8  this-network (RFC 1122)
-</span><span class="">  152:     qr/^127\./,                       # 127.0.0.0/8 loopback
-</span><span class="">  153:     qr/^10\./,                        # 10.0.0.0/8  RFC 1918
-</span><span class="">  154:     qr/^192\.168\./,                 # 192.168.0.0/16 RFC 1918
-</span><span class="">  155:     qr/^172\.(?:1[6-9]|2\d|3[01])\./, # 172.16.0.0/12  RFC 1918
-</span><span class="">  156:     qr/^169\.254\./,                 # 169.254.0.0/16 link-local
-</span><span class="">  157:     qr/^100\.(?:6[4-9]|[7-9]\d|1(?:[01]\d|2[0-7]))\./,  # 100.64.0.0/10 shared address space (RFC 6598)
-</span><span class="">  158:     qr/^192\.0\.0\./,              # 192.0.0.0/24  IETF protocol (RFC 6890)
-</span><span class="">  159:     qr/^192\.0\.2\./,              # 192.0.2.0/24  TEST-NET-1 (RFC 5737)
-</span><span class="">  160:     qr/^198\.51\.100\./,           # 198.51.100.0/24 TEST-NET-2 (RFC 5737)
-</span><span class="">  161:     qr/^203\.0\.113\./,            # 203.0.113.0/24 TEST-NET-3 (RFC 5737)
-</span><span class="">  162:     qr/^255\./,                      # 255.0.0.0/8 broadcast
-</span><span class="">  163:     qr/^::1$/,                        # IPv6 loopback
-</span><span class="">  164:     qr/^fc/i,                         # IPv6 ULA fc00::/7
-</span><span class="">  165:     qr/^fd/i,                         # IPv6 ULA fd00::/8
+</span><span class="">  151: 	qr/^0\./,                         # 0.0.0.0/8  this-network (RFC 1122)
+</span><span class="">  152: 	qr/^127\./,                       # 127.0.0.0/8 loopback
+</span><span class="">  153: 	qr/^10\./,                        # 10.0.0.0/8  RFC 1918
+</span><span class="">  154: 	qr/^192\.168\./,                 # 192.168.0.0/16 RFC 1918
+</span><span class="">  155: 	qr/^172\.(?:1[6-9]|2\d|3[01])\./, # 172.16.0.0/12  RFC 1918
+</span><span class="">  156: 	qr/^169\.254\./,                 # 169.254.0.0/16 link-local
+</span><span class="">  157: 	qr/^100\.(?:6[4-9]|[7-9]\d|1(?:[01]\d|2[0-7]))\./,  # 100.64.0.0/10 shared address space (RFC 6598)
+</span><span class="">  158: 	qr/^192\.0\.0\./,              # 192.0.0.0/24  IETF protocol (RFC 6890)
+</span><span class="">  159: 	qr/^192\.0\.2\./,              # 192.0.2.0/24  TEST-NET-1 (RFC 5737)
+</span><span class="">  160: 	qr/^198\.51\.100\./,           # 198.51.100.0/24 TEST-NET-2 (RFC 5737)
+</span><span class="">  161: 	qr/^203\.0\.113\./,            # 203.0.113.0/24 TEST-NET-3 (RFC 5737)
+</span><span class="">  162: 	qr/^255\./,                      # 255.0.0.0/8 broadcast
+</span><span class="">  163: 	qr/^::1$/,                        # IPv6 loopback
+</span><span class="">  164: 	qr/^fc/i,                         # IPv6 ULA fc00::/7
+</span><span class="">  165: 	qr/^fd/i,                         # IPv6 ULA fd00::/8
 </span><span class="">  166: );
 </span><span class="">  167: 
 </span><span class="">  168: my @RECEIVED_IP_RE = (
@@ -1073,7 +1073,7 @@ Approximate LCSAJ segments: 589<br>
 </span><span class="">  781: 	$self-&gt;{_rcvd_tracking}  = [];
 </span><span class="">  782: 
 </span><span class="">  783: 	$self-&gt;_split_message($text);
-</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values.">  784: 	return $self;
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths.">  784: 	return $self;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -2230,7 +2230,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 1896:         my $dom = _registrable($d-&gt;{domain}) // $d-&gt;{domain};
 </span><span class=""> 1897:         push @out, $dom if $dom &amp;&amp; !$seen{$dom}++;
 </span><span class=""> 1898:     }
-</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">1899 → 1899 → 0</span></span> 1899:     return @out;
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">1899 → 1899 → 0</span></span> 1899:     return @out;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -3334,7 +3334,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 2877: 
 </span><span class=""> 2878: sub risk_assessment {
 </span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">2879 → 2894 → 2927</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">2879 → 2894 → 0</span></span> 2879:     my ($self) = @_;
-</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 2880:     return $self-&gt;{_risk} if $self-&gt;{_risk};
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 2880:     return $self-&gt;{_risk} if $self-&gt;{_risk};
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -3671,7 +3671,7 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 				<li><b>COND_INV_3005_9: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
 </li></ul></details>
 <span class=""> 3006:             my $delta = time() - $date_epoch;
-</span><span class="survived-3 tooltip" data-tooltip="Boundary mutation survived. Add tests around edge values (e.g. min, max, off-by-one). Mutation survived. Add targeted tests to validate this branch."> 3007:             if ($delta &gt; 7 * 86400) {
+</span><span class="survived-3 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch. Boundary mutation survived. Add tests around edge values (e.g. min, max, off-by-one)."> 3007:             if ($delta &gt; 7 * 86400) {
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 4, Killed: 0, Survived: 4)</summary>
@@ -3905,31 +3905,7 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 					<details class="mutant-details">
 					<summary>Mutants (Total: 7, Killed: 0, Survived: 7)</summary>
 					<ul>
-				<li><b>NUM_BOUNDARY_3105_32_<: Numeric boundary flip > to <</b><br>HIGH: Likely missing edge-case test (boundary value)
-
-								<div class="suggested-test">
-								<div class="suggest-label">🧪 Suggested Test</div>
-								<pre># Boundary test suggestion
-is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
-</pre>
-								</div>
-							</li><li><b>NUM_BOUNDARY_3105_32_>=: Numeric boundary flip > to >=</b><br>HIGH: Likely missing edge-case test (boundary value)
-
-								<div class="suggested-test">
-								<div class="suggest-label">🧪 Suggested Test</div>
-								<pre># Boundary test suggestion
-is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
-</pre>
-								</div>
-							</li><li><b>NUM_BOUNDARY_3105_32_<=: Numeric boundary flip > to <=</b><br>HIGH: Likely missing edge-case test (boundary value)
-
-								<div class="suggested-test">
-								<div class="suggest-label">🧪 Suggested Test</div>
-								<pre># Boundary test suggestion
-is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
-</pre>
-								</div>
-							</li><li><b>NUM_BOUNDARY_3105_50_>: Numeric boundary flip < to ></b><br>HIGH: Likely missing edge-case test (boundary value)
+				<li><b>NUM_BOUNDARY_3105_50_>: Numeric boundary flip < to ></b><br>HIGH: Likely missing edge-case test (boundary value)
 
 								<div class="suggested-test">
 								<div class="suggest-label">🧪 Suggested Test</div>
@@ -3946,6 +3922,30 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 </pre>
 								</div>
 							</li><li><b>NUM_BOUNDARY_3105_50_>=: Numeric boundary flip < to >=</b><br>HIGH: Likely missing edge-case test (boundary value)
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boundary test suggestion
+is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>NUM_BOUNDARY_3105_32_<: Numeric boundary flip > to <</b><br>HIGH: Likely missing edge-case test (boundary value)
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boundary test suggestion
+is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>NUM_BOUNDARY_3105_32_>=: Numeric boundary flip > to >=</b><br>HIGH: Likely missing edge-case test (boundary value)
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boundary test suggestion
+is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>NUM_BOUNDARY_3105_32_<=: Numeric boundary flip > to <=</b><br>HIGH: Likely missing edge-case test (boundary value)
 
 								<div class="suggested-test">
 								<div class="suggest-label">🧪 Suggested Test</div>
@@ -4105,7 +4105,7 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 <span class=""> 3131:               :               &#39;INFO&#39;;
 </span><span class=""> 3132: 
 </span><span class=""> 3133:     $self-&gt;{_risk} = { level =&gt; $level, score =&gt; $score, flags =&gt; \@flags };
-</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 3134:     return $self-&gt;{_risk};
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 3134:     return $self-&gt;{_risk};
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -4242,7 +4242,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 								</div>
 							</li></ul></details>
 <span class=""> 3189:     my @labels = split /\./, lc $host;
-</span><span class="survived-3 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Boundary mutation survived. Add tests around edge values (e.g. min, max, off-by-one). Return value mutation survived. Add tests asserting exact return values."> 3190:     return $host if @labels &lt;= 2;
+</span><span class="survived-3 tooltip" data-tooltip="Boundary mutation survived. Add tests around edge values (e.g. min, max, off-by-one). Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 3190:     return $host if @labels &lt;= 2;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 5, Killed: 0, Survived: 5)</summary>
@@ -5362,7 +5362,7 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 </span><span class=""> 4059:                via     =&gt; &#39;provider-table&#39;);
 </span><span class=""> 4060:     }
 </span><span class=""> 4061: 
-</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">4062 → 4062 → 0</span></span> 4062:     return @contacts;
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">4062 → 4062 → 0</span></span> 4062:     return @contacts;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -5395,7 +5395,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 4071:         return $PROVIDER_ABUSE{$host} if $PROVIDER_ABUSE{$host};
 </span><span class=""> 4072:         $host =~ s/^[^.]+\.//;
 </span><span class=""> 4073:     }
-</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">4074 → 4074 → 0</span></span> 4074:     return undef;
+</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">4074 → 4074 → 0</span></span> 4074:     return undef;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -5422,7 +5422,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 4077: # Look up provider abuse contact by IP and/or rDNS hostname
 </span><span class=""> 4078: sub _provider_abuse_for_ip {
 </span><span class=""> 4079:     my ($self, $ip, $rdns) = @_;
-</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 4080:     return $self-&gt;_provider_abuse_for_host($rdns) if $rdns;
+</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 4080:     return $self-&gt;_provider_abuse_for_host($rdns) if $rdns;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -6567,7 +6567,7 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 </span><span class=""> 4929:     $cte //= &#39;&#39;;
 </span><span class=""> 4930:     return decode_qp($body)     if $cte =~ /quoted-printable/i;
 </span><span class=""> 4931:     return decode_base64($body) if $cte =~ /base64/i;
-</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 4932:     return $body;
+</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 4932:     return $body;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -6826,7 +6826,7 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 </pre>
 								</div>
 							</li></ul></details>
-<span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 5031:             return $ip;
+<span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 5031:             return $ip;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -6883,7 +6883,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 5043: # without adding a non-core CPAN dependency.
 </span><span class=""> 5044: sub _is_private {
 </span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5045 → 5047 → 5048</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5045 → 5047 → 0</span></span> 5045:     my ($self, $ip) = @_;
-</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 5046:     return 1 unless defined $ip &amp;&amp; $ip ne &#39;&#39;;
+</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 5046:     return 1 unless defined $ip &amp;&amp; $ip ne &#39;&#39;;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -6905,7 +6905,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </pre>
 								</div>
 							</li></ul></details>
-<span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 5047:     for my $re (@PRIVATE_RANGES) { return 1 if $ip =~ $re }
+<span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 5047:     for my $re (@PRIVATE_RANGES) { return 1 if $ip =~ $re }
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -6927,7 +6927,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </pre>
 								</div>
 							</li></ul></details>
-<span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5048 → 5048 → 0</span></span> 5048:     return 0;
+<span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5048 → 5048 → 0</span></span> 5048:     return 0;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -6954,7 +6954,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 5051: sub _is_trusted {
 </span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5052 → 5053 → 5056</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5052 → 5053 → 0</span></span> 5052:     my ($self, $ip) = @_;
 </span><span class=""> 5053:     for my $cidr (@{ $self-&gt;{trusted_relays} }) {
-</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 5054:         return 1 if $self-&gt;_ip_in_cidr($ip, $cidr);
+</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 5054:         return 1 if $self-&gt;_ip_in_cidr($ip, $cidr);
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -7275,7 +7275,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 5273:         push @out, $dom unless $seen{$dom}++;
 </span><span class=""> 5274:     }
 </span><span class=""> 5275: 
-</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5276 → 5276 → 0</span></span> 5276:     return @out;
+</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5276 → 5276 → 0</span></span> 5276:     return @out;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -7401,13 +7401,14 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 5378: #   of analysis.
 </span><span class=""> 5379: 
 </span><span class=""> 5380: sub _analyse_domain {
-</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5381 → 5390 → 5397</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5381 → 5390 → 0</span></span> 5381:     my ($self, $domain) = @_;
-</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 5382:     return $self-&gt;{_domain_info}{$domain}
+</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5381 → 5390 → 5397</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5381 → 5390 → 0</span></span> 5381: 	my ($self, $domain) = @_;
+</span><span class=""> 5382: 
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 5383: 	return $self-&gt;{_domain_info}{$domain} if $self-&gt;{_domain_info}{$domain};
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
 					<ul>
-				<li><b>BOOL_NEGATE_5382_5: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
+				<li><b>BOOL_NEGATE_5383_2: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
 
 								<div class="suggested-test">
 								<div class="suggest-label">🧪 Suggested Test</div>
@@ -7415,7 +7416,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
 </pre>
 								</div>
-							</li><li><b>RETURN_UNDEF_5382_5: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
+							</li><li><b>RETURN_UNDEF_5383_2: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
 
 								<div class="suggested-test">
 								<div class="suggest-label">🧪 Suggested Test</div>
@@ -7424,10 +7425,9 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </pre>
 								</div>
 							</li></ul></details>
-<span class=""> 5383:         if $self-&gt;{_domain_info}{$domain};
-</span><span class=""> 5384: 
-</span><span class=""> 5385:     $self-&gt;_debug(&quot;Analysing domain: $domain&quot;);
-</span><span class=""> 5386:     my %info;
+<span class=""> 5384: 
+</span><span class=""> 5385: 	$self-&gt;_debug(&quot;Analysing domain: $domain&quot;);
+</span><span class=""> 5386: 	my %info;
 </span><span class=""> 5387: 
 </span><span class=""> 5388:     # --- A record -&gt; web hosting ---
 </span><span class=""> 5389:     my $web_ip = $self-&gt;_resolve_host($domain);
@@ -7642,8 +7642,8 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 <span class=""> 5485:         }
 </span><span class=""> 5486:     }
 </span><span class=""> 5487: 
-</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5488 → 5489 → 0</span></span> 5488:     $self-&gt;{_domain_info}{$domain} = \%info;
-</span><span class=""> 5489:     return \%info;
+</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5488 → 5489 → 0</span></span> 5488: 	$self-&gt;{_domain_info}{$domain} = \%info;
+</span><span class=""> 5489: 	return \%info;
 </span><span class=""> 5490: }
 </span><span class=""> 5491: 
 </span><span class=""> 5492: # -----------------------------------------------------------------------
@@ -7651,13 +7651,13 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 </span><span class=""> 5494: # -----------------------------------------------------------------------
 </span><span class=""> 5495: 
 </span><span class=""> 5496: sub _resolve_host {
-</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5497 → 5500 → 5514</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5497 → 5500 → 0</span></span> 5497:     my ($self, $host) = @_;
-</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 5498:     return $host if $host =~ /^\d{1,3}(?:\.\d{1,3}){3}$/;
+</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5497 → 5500 → 5514</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5497 → 5500 → 0</span></span> 5497: 	my ($self, $host) = @_;
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 5498: 	return $host if $host =~ /^\d{1,3}(?:\.\d{1,3}){3}$/;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
 					<ul>
-				<li><b>BOOL_NEGATE_5498_5: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
+				<li><b>BOOL_NEGATE_5498_2: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
 
 								<div class="suggested-test">
 								<div class="suggest-label">🧪 Suggested Test</div>
@@ -7665,7 +7665,7 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
 </pre>
 								</div>
-							</li><li><b>RETURN_UNDEF_5498_5: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
+							</li><li><b>RETURN_UNDEF_5498_2: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
 
 								<div class="suggested-test">
 								<div class="suggest-label">🧪 Suggested Test</div>
@@ -7695,7 +7695,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 				<li><b>COND_INV_5506_9: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
 </li></ul></details>
 <span class=""> 5507:             for my $rr ($query-&gt;answer) {
-</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 5508:                 return $rr-&gt;address if $rr-&gt;type eq &#39;A&#39;;
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 5508:                 return $rr-&gt;address if $rr-&gt;type eq &#39;A&#39;;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -7719,7 +7719,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 							</li></ul></details>
 <span class=""> 5509:             }
 </span><span class=""> 5510:         }
-</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 5511:         return undef;
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 5511:         return undef;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -7770,7 +7770,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 5517: 
 </span><span class=""> 5518: sub _reverse_dns {
 </span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5519 → 5522 → 5533</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5519 → 5522 → 0</span></span> 5519:     my ($self, $ip) = @_;
-</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 5520:     return undef unless $ip;
+</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 5520:     return undef unless $ip;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -7918,7 +7918,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 5557:     my ($self, $domain) = @_;
 </span><span class=""> 5558:     my $iana = $self-&gt;_raw_whois($domain, &#39;whois.iana.org&#39;) // return undef;
 </span><span class=""> 5559:     my ($server) = $iana =~ /whois:\s*([\w.-]+)/i;
-</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 5560:     return undef unless $server;
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 5560:     return undef unless $server;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -7940,7 +7940,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </pre>
 								</div>
 							</li></ul></details>
-<span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 5561:     return $self-&gt;_raw_whois($domain, $server);
+<span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 5561:     return $self-&gt;_raw_whois($domain, $server);
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -8005,88 +8005,93 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 5590: }
 </span><span class=""> 5591: 
 </span><span class=""> 5592: sub _rdap_lookup {
-</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot-uncovered">●</span><span class="lcsaj-tip-text">[NOT COVERED] 5593 → 5603 → 5609</span></span><span class="lcsaj-tip"><span class="lcsaj-dot-uncovered">●</span><span class="lcsaj-tip-text">[NOT COVERED] 5593 → 5603 → 0</span></span> 5593:     my ($self, $ip) = @_;
-</span><span class=""> 5594:     return {} unless $HAS_LWP;
-</span><span class=""> 5595:     my $ua  = LWP::UserAgent-&gt;new(timeout =&gt; $self-&gt;{timeout},
-</span><span class=""> 5596:                                   agent   =&gt; &quot;Email-Abuse-Investigator/$VERSION&quot;);
-</span><span class=""> 5597:     my $res = eval { $ua-&gt;get(&quot;https://rdap.arin.net/registry/ip/$ip&quot;) };
-</span><span class=""> 5598:     return {} unless $res &amp;&amp; $res-&gt;is_success;
-</span><span class=""> 5599:     my $j = $res-&gt;decoded_content;
-</span><span class=""> 5600:     my %info;
-</span><span class=""> 5601:     $info{org}    = $1 if $j =~ /&quot;name&quot;\s*:\s*&quot;([^&quot;]+)&quot;/;
-</span><span class=""> 5602:     $info{handle} = $1 if $j =~ /&quot;handle&quot;\s*:\s*&quot;([^&quot;]+)&quot;/;
-</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 5603:     if ($j =~ /&quot;abuse&quot;.*?&quot;email&quot;\s*:\s*&quot;([^&quot;]+)&quot;/s) {
+</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot-uncovered">●</span><span class="lcsaj-tip-text">[NOT COVERED] 5593 → 5608 → 5614</span></span><span class="lcsaj-tip"><span class="lcsaj-dot-uncovered">●</span><span class="lcsaj-tip-text">[NOT COVERED] 5593 → 5608 → 0</span></span> 5593: 	my ($self, $ip) = @_;
+</span><span class=""> 5594: 
+</span><span class=""> 5595: 	return {} unless $HAS_LWP;
+</span><span class=""> 5596: 
+</span><span class=""> 5597: 	my $ua = LWP::UserAgent-&gt;new(timeout =&gt; $self-&gt;{timeout}, agent =&gt; &quot;Email-Abuse-Investigator/$VERSION&quot;);
+</span><span class=""> 5598: 
+</span><span class=""> 5599: 	$ua-&gt;env_proxy(1);
+</span><span class=""> 5600: 
+</span><span class=""> 5601: 	my $res = eval { $ua-&gt;get(&quot;https://rdap.arin.net/registry/ip/$ip&quot;) };
+</span><span class=""> 5602: 	return {} unless $res &amp;&amp; $res-&gt;is_success();
+</span><span class=""> 5603: 
+</span><span class=""> 5604: 	my $j = $res-&gt;decoded_content();
+</span><span class=""> 5605: 	my %info;
+</span><span class=""> 5606: 	$info{org}    = $1 if $j =~ /&quot;name&quot;\s*:\s*&quot;([^&quot;]+)&quot;/;
+</span><span class=""> 5607: 	$info{handle} = $1 if $j =~ /&quot;handle&quot;\s*:\s*&quot;([^&quot;]+)&quot;/;
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 5608: 	if ($j =~ /&quot;abuse&quot;.*?&quot;email&quot;\s*:\s*&quot;([^&quot;]+)&quot;/s) {
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
 					<ul>
-				<li><b>COND_INV_5603_5: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+				<li><b>COND_INV_5608_2: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
 </li></ul></details>
-<span class=""> 5604:         $info{abuse} = $1;
-</span><span class=""> 5605:     } elsif ($j =~ /&quot;email&quot;\s*:\s*&quot;([^@&quot;]+@[^&quot;]+)&quot;/) {
-</span><span class=""> 5606:         $info{abuse} = $1;
-</span><span class=""> 5607:     }
-</span><span class=""> 5608:     # Country code from RDAP
-</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot-uncovered">●</span><span class="lcsaj-tip-text">[NOT COVERED] 5609 → 5610 → 0</span></span> 5609:     $info{country} = $1 if $j =~ /&quot;country&quot;\s*:\s*&quot;([A-Z]{2})&quot;/;
-</span><span class=""> 5610:     return \%info;
-</span><span class=""> 5611: }
-</span><span class=""> 5612: 
-</span><span class=""> 5613: # _raw_whois( $query, $server ) -&gt; string | undef
-</span><span class=""> 5614: #
-</span><span class=""> 5615: # Purpose:
-</span><span class=""> 5616: #   Open a TCP connection to a WHOIS server on port 43, send the query,
-</span><span class=""> 5617: #   and return the full response as a string.  Uses IO::Select for all
-</span><span class=""> 5618: #   read timeouts so that alarm() is never needed -- alarm() is unreliable
-</span><span class=""> 5619: #   on Windows and inside threaded Perl interpreters.  The connect timeout
-</span><span class=""> 5620: #   is handled by IO::Socket::INET&#39;s own Timeout parameter, which uses the
-</span><span class=""> 5621: #   OS-level connect(2) timeout and works on all platforms.
-</span><span class=""> 5622: #
-</span><span class=""> 5623: # Entry criteria:
-</span><span class=""> 5624: #   $query   -- the domain name or IP address to query (defined, non-empty).
-</span><span class=""> 5625: #   $server  -- the WHOIS server hostname (default: &#39;whois.iana.org&#39;).
-</span><span class=""> 5626: #   $self-&gt;{timeout} -- seconds; used for both connect and per-read waits.
+<span class=""> 5609: 		$info{abuse} = $1;
+</span><span class=""> 5610: 	} elsif ($j =~ /&quot;email&quot;\s*:\s*&quot;([^@&quot;]+@[^&quot;]+)&quot;/) {
+</span><span class=""> 5611: 		$info{abuse} = $1;
+</span><span class=""> 5612: 	}
+</span><span class=""> 5613: 	# Country code from RDAP
+</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot-uncovered">●</span><span class="lcsaj-tip-text">[NOT COVERED] 5614 → 5615 → 0</span></span> 5614: 	$info{country} = $1 if $j =~ /&quot;country&quot;\s*:\s*&quot;([A-Z]{2})&quot;/;
+</span><span class=""> 5615: 	return \%info;
+</span><span class=""> 5616: }
+</span><span class=""> 5617: 
+</span><span class=""> 5618: # _raw_whois( $query, $server ) -&gt; string | undef
+</span><span class=""> 5619: #
+</span><span class=""> 5620: # Purpose:
+</span><span class=""> 5621: #   Open a TCP connection to a WHOIS server on port 43, send the query,
+</span><span class=""> 5622: #   and return the full response as a string.  Uses IO::Select for all
+</span><span class=""> 5623: #   read timeouts so that alarm() is never needed -- alarm() is unreliable
+</span><span class=""> 5624: #   on Windows and inside threaded Perl interpreters.  The connect timeout
+</span><span class=""> 5625: #   is handled by IO::Socket::INET&#39;s own Timeout parameter, which uses the
+</span><span class=""> 5626: #   OS-level connect(2) timeout and works on all platforms.
 </span><span class=""> 5627: #
-</span><span class=""> 5628: # Exit status:
-</span><span class=""> 5629: #   Returns the raw WHOIS response string (may include CRLF line endings).
-</span><span class=""> 5630: #   Returns undef if the connection fails, the write fails, or the entire
-</span><span class=""> 5631: #   timeout expires before any data arrives.
+</span><span class=""> 5628: # Entry criteria:
+</span><span class=""> 5629: #   $query   -- the domain name or IP address to query (defined, non-empty).
+</span><span class=""> 5630: #   $server  -- the WHOIS server hostname (default: &#39;whois.iana.org&#39;).
+</span><span class=""> 5631: #   $self-&gt;{timeout} -- seconds; used for both connect and per-read waits.
 </span><span class=""> 5632: #
-</span><span class=""> 5633: # Side effects:
-</span><span class=""> 5634: #   Opens and closes one TCP socket to port 43 on $server.
-</span><span class=""> 5635: #   Writes one line (&quot;$query\r\n&quot;) to the socket.
-</span><span class=""> 5636: #   Calls _debug() with a trace line.
+</span><span class=""> 5633: # Exit status:
+</span><span class=""> 5634: #   Returns the raw WHOIS response string (may include CRLF line endings).
+</span><span class=""> 5635: #   Returns undef if the connection fails, the write fails, or the entire
+</span><span class=""> 5636: #   timeout expires before any data arrives.
 </span><span class=""> 5637: #
-</span><span class=""> 5638: # Notes:
-</span><span class=""> 5639: #   The IO::Select loop reads until the server closes the connection or
-</span><span class=""> 5640: #   $self-&gt;{timeout} seconds elapse without any new data.  Because WHOIS
-</span><span class=""> 5641: #   servers close the connection after sending the response, a clean EOF
-</span><span class=""> 5642: #   is the normal termination; the timeout is only needed for unresponsive
-</span><span class=""> 5643: #   servers.  Each call to select() resets the per-read deadline, so a
-</span><span class=""> 5644: #   slow server that sends data steadily will not time out even if the
-</span><span class=""> 5645: #   total response takes longer than $self-&gt;{timeout}.  This is intentional
-</span><span class=""> 5646: #   and consistent with the previous alarm()-based behaviour.
-</span><span class=""> 5647: sub _raw_whois {
-</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5648 → 5675 → 5684</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5648 → 5675 → 0</span></span> 5648:     my ($self, $query, $server) = @_;
-</span><span class=""> 5649: 
-</span><span class=""> 5650:     # Default to the IANA root WHOIS server
-</span><span class=""> 5651:     $server //= &#39;whois.iana.org&#39;;
-</span><span class=""> 5652:     $self-&gt;_debug(&quot;WHOIS $server -&gt; $query&quot;);
-</span><span class=""> 5653: 
-</span><span class=""> 5654:     # Connect -- IO::Socket::INET Timeout covers the TCP handshake only
-</span><span class=""> 5655:     my $sock = eval {
-</span><span class=""> 5656:         IO::Socket::INET-&gt;new(
-</span><span class=""> 5657:             PeerAddr =&gt; $server,
-</span><span class=""> 5658:             PeerPort =&gt; $WHOIS_PORT,
-</span><span class=""> 5659:             Proto    =&gt; &#39;tcp&#39;,
-</span><span class=""> 5660:             Timeout  =&gt; $self-&gt;{timeout},
-</span><span class=""> 5661:         );
-</span><span class=""> 5662:     };
-</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 5663:     return undef unless $sock;
+</span><span class=""> 5638: # Side effects:
+</span><span class=""> 5639: #   Opens and closes one TCP socket to port 43 on $server.
+</span><span class=""> 5640: #   Writes one line (&quot;$query\r\n&quot;) to the socket.
+</span><span class=""> 5641: #   Calls _debug() with a trace line.
+</span><span class=""> 5642: #
+</span><span class=""> 5643: # Notes:
+</span><span class=""> 5644: #   The IO::Select loop reads until the server closes the connection or
+</span><span class=""> 5645: #   $self-&gt;{timeout} seconds elapse without any new data.  Because WHOIS
+</span><span class=""> 5646: #   servers close the connection after sending the response, a clean EOF
+</span><span class=""> 5647: #   is the normal termination; the timeout is only needed for unresponsive
+</span><span class=""> 5648: #   servers.  Each call to select() resets the per-read deadline, so a
+</span><span class=""> 5649: #   slow server that sends data steadily will not time out even if the
+</span><span class=""> 5650: #   total response takes longer than $self-&gt;{timeout}.  This is intentional
+</span><span class=""> 5651: #   and consistent with the previous alarm()-based behaviour.
+</span><span class=""> 5652: sub _raw_whois {
+</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5653 → 5680 → 5689</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5653 → 5680 → 0</span></span> 5653:     my ($self, $query, $server) = @_;
+</span><span class=""> 5654: 
+</span><span class=""> 5655:     # Default to the IANA root WHOIS server
+</span><span class=""> 5656:     $server //= &#39;whois.iana.org&#39;;
+</span><span class=""> 5657:     $self-&gt;_debug(&quot;WHOIS $server -&gt; $query&quot;);
+</span><span class=""> 5658: 
+</span><span class=""> 5659:     # Connect -- IO::Socket::INET Timeout covers the TCP handshake only
+</span><span class=""> 5660:     my $sock = eval {
+</span><span class=""> 5661:         IO::Socket::INET-&gt;new(
+</span><span class=""> 5662:             PeerAddr =&gt; $server,
+</span><span class=""> 5663:             PeerPort =&gt; $WHOIS_PORT,
+</span><span class=""> 5664:             Proto    =&gt; &#39;tcp&#39;,
+</span><span class=""> 5665:             Timeout  =&gt; $self-&gt;{timeout},
+</span><span class=""> 5666:         );
+</span><span class=""> 5667:     };
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 5668:     return undef unless $sock;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
 					<ul>
-				<li><b>BOOL_NEGATE_5663_5: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
+				<li><b>BOOL_NEGATE_5668_5: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
 
 								<div class="suggested-test">
 								<div class="suggest-label">🧪 Suggested Test</div>
@@ -8094,7 +8099,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
 </pre>
 								</div>
-							</li><li><b>RETURN_UNDEF_5663_5: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
+							</li><li><b>RETURN_UNDEF_5668_5: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
 
 								<div class="suggested-test">
 								<div class="suggest-label">🧪 Suggested Test</div>
@@ -8103,14 +8108,14 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </pre>
 								</div>
 							</li></ul></details>
-<span class=""> 5664: 
-</span><span class=""> 5665:     # Send the query in WHOIS wire format (CRLF-terminated)
-</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 5666:     $sock-&gt;print(&quot;$query\r\n&quot;) or do { $sock-&gt;close(); return undef };
+<span class=""> 5669: 
+</span><span class=""> 5670:     # Send the query in WHOIS wire format (CRLF-terminated)
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 5671:     $sock-&gt;print(&quot;$query\r\n&quot;) or do { $sock-&gt;close(); return undef };
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
 					<ul>
-				<li><b>BOOL_NEGATE_5666_56: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
+				<li><b>BOOL_NEGATE_5671_56: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
 
 								<div class="suggested-test">
 								<div class="suggest-label">🧪 Suggested Test</div>
@@ -8118,7 +8123,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
 </pre>
 								</div>
-							</li><li><b>RETURN_UNDEF_5666_56: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
+							</li><li><b>RETURN_UNDEF_5671_56: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
 
 								<div class="suggested-test">
 								<div class="suggest-label">🧪 Suggested Test</div>
@@ -8127,25 +8132,25 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </pre>
 								</div>
 							</li></ul></details>
-<span class=""> 5667: 
-</span><span class=""> 5668:     # Read the response using IO::Select so we never call alarm()
-</span><span class=""> 5669:     require IO::Select;
-</span><span class=""> 5670:     my $sel      = IO::Select-&gt;new($sock);
-</span><span class=""> 5671:     my $response = &#39;&#39;;
-</span><span class=""> 5672:     my $buf      = &#39;&#39;;
-</span><span class=""> 5673: 
-</span><span class=""> 5674:     # Loop until the server closes the connection or we time out
-</span><span class=""> 5675:     while ($sel-&gt;can_read($self-&gt;{timeout})) {
-</span><span class=""> 5676:         # sysread is more portable than readline for non-blocking loops
-</span><span class=""> 5677:         my $n = sysread($sock, $buf, $WHOIS_READ_CHUNK);
+<span class=""> 5672: 
+</span><span class=""> 5673:     # Read the response using IO::Select so we never call alarm()
+</span><span class=""> 5674:     require IO::Select;
+</span><span class=""> 5675:     my $sel      = IO::Select-&gt;new($sock);
+</span><span class=""> 5676:     my $response = &#39;&#39;;
+</span><span class=""> 5677:     my $buf      = &#39;&#39;;
 </span><span class=""> 5678: 
-</span><span class=""> 5679:         # EOF (server closed connection) -- clean termination
-</span><span class="survived-3 tooltip" data-tooltip="Boundary mutation survived. Add tests around edge values (e.g. min, max, off-by-one)."> 5680:         last unless defined $n &amp;&amp; $n &gt; 0;
+</span><span class=""> 5679:     # Loop until the server closes the connection or we time out
+</span><span class=""> 5680:     while ($sel-&gt;can_read($self-&gt;{timeout})) {
+</span><span class=""> 5681:         # sysread is more portable than readline for non-blocking loops
+</span><span class=""> 5682:         my $n = sysread($sock, $buf, $WHOIS_READ_CHUNK);
+</span><span class=""> 5683: 
+</span><span class=""> 5684:         # EOF (server closed connection) -- clean termination
+</span><span class="survived-3 tooltip" data-tooltip="Boundary mutation survived. Add tests around edge values (e.g. min, max, off-by-one)."> 5685:         last unless defined $n &amp;&amp; $n &gt; 0;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 3, Killed: 0, Survived: 3)</summary>
 					<ul>
-				<li><b>NUM_BOUNDARY_5680_38_<: Numeric boundary flip > to <</b><br>HIGH: Likely missing edge-case test (boundary value)
+				<li><b>NUM_BOUNDARY_5685_38_<: Numeric boundary flip > to <</b><br>HIGH: Likely missing edge-case test (boundary value)
 
 								<div class="suggested-test">
 								<div class="suggest-label">🧪 Suggested Test</div>
@@ -8153,7 +8158,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 </pre>
 								</div>
-							</li><li><b>NUM_BOUNDARY_5680_38_>=: Numeric boundary flip > to >=</b><br>HIGH: Likely missing edge-case test (boundary value)
+							</li><li><b>NUM_BOUNDARY_5685_38_>=: Numeric boundary flip > to >=</b><br>HIGH: Likely missing edge-case test (boundary value)
 
 								<div class="suggested-test">
 								<div class="suggest-label">🧪 Suggested Test</div>
@@ -8161,7 +8166,7 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 </pre>
 								</div>
-							</li><li><b>NUM_BOUNDARY_5680_38_<=: Numeric boundary flip > to <=</b><br>HIGH: Likely missing edge-case test (boundary value)
+							</li><li><b>NUM_BOUNDARY_5685_38_<=: Numeric boundary flip > to <=</b><br>HIGH: Likely missing edge-case test (boundary value)
 
 								<div class="suggested-test">
 								<div class="suggest-label">🧪 Suggested Test</div>
@@ -8170,16 +8175,16 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 </pre>
 								</div>
 							</li></ul></details>
-<span class=""> 5681:         $response .= $buf;
-</span><span class=""> 5682:     }
-</span><span class=""> 5683: 
-</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5684 → 5685 → 0</span></span> 5684:     $sock-&gt;close();
-</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 5685:     return $response || undef;
+<span class=""> 5686:         $response .= $buf;
+</span><span class=""> 5687:     }
+</span><span class=""> 5688: 
+</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5689 → 5690 → 0</span></span> 5689:     $sock-&gt;close();
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 5690:     return $response || undef;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
 					<ul>
-				<li><b>BOOL_NEGATE_5685_5: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
+				<li><b>BOOL_NEGATE_5690_5: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
 
 								<div class="suggested-test">
 								<div class="suggest-label">🧪 Suggested Test</div>
@@ -8187,7 +8192,7 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
 </pre>
 								</div>
-							</li><li><b>RETURN_UNDEF_5685_5: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
+							</li><li><b>RETURN_UNDEF_5690_5: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
 
 								<div class="suggested-test">
 								<div class="suggest-label">🧪 Suggested Test</div>
@@ -8196,82 +8201,82 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </pre>
 								</div>
 							</li></ul></details>
-<span class=""> 5686: }
-</span><span class=""> 5687: 
-</span><span class=""> 5688: sub _parse_whois_text {
-</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5689 → 5692 → 5700</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5689 → 5692 → 0</span></span> 5689:     my ($self, $text) = @_;
-</span><span class=""> 5690:     return {} unless $text;
-</span><span class=""> 5691:     my %info;
-</span><span class=""> 5692:     for my $pat (
-</span><span class=""> 5693:         qr/^OrgName:\s*(.+)/mi,   qr/^org-name:\s*(.+)/mi,
-</span><span class=""> 5694:         qr/^owner:\s*(.+)/mi,     qr/^descr:\s*(.+)/mi,
-</span><span class=""> 5695:     ) {
-</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 5696:         if (!$info{org} &amp;&amp; $text =~ $pat) {
+<span class=""> 5691: }
+</span><span class=""> 5692: 
+</span><span class=""> 5693: sub _parse_whois_text {
+</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5694 → 5697 → 5705</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5694 → 5697 → 0</span></span> 5694:     my ($self, $text) = @_;
+</span><span class=""> 5695:     return {} unless $text;
+</span><span class=""> 5696:     my %info;
+</span><span class=""> 5697:     for my $pat (
+</span><span class=""> 5698:         qr/^OrgName:\s*(.+)/mi,   qr/^org-name:\s*(.+)/mi,
+</span><span class=""> 5699:         qr/^owner:\s*(.+)/mi,     qr/^descr:\s*(.+)/mi,
+</span><span class=""> 5700:     ) {
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 5701:         if (!$info{org} &amp;&amp; $text =~ $pat) {
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
 					<ul>
-				<li><b>COND_INV_5696_9: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+				<li><b>COND_INV_5701_9: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
 </li></ul></details>
-<span class=""> 5697:             ($info{org} = $1) =~ s/\s+$//;
-</span><span class=""> 5698:         }
-</span><span class=""> 5699:     }
-</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5700 → 5700 → 5708</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5700 → 5700 → 0</span></span> 5700:     for my $pat (
-</span><span class=""> 5701:         qr/OrgAbuseEmail:\s*(\S+@\S+)/mi,
-</span><span class=""> 5702:         qr/abuse-mailbox:\s*(\S+@\S+)/mi,
-</span><span class=""> 5703:     ) {
-</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 5704:         if (!$info{abuse} &amp;&amp; $text =~ $pat) {
+<span class=""> 5702:             ($info{org} = $1) =~ s/\s+$//;
+</span><span class=""> 5703:         }
+</span><span class=""> 5704:     }
+</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5705 → 5705 → 5713</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5705 → 5705 → 0</span></span> 5705:     for my $pat (
+</span><span class=""> 5706:         qr/OrgAbuseEmail:\s*(\S+@\S+)/mi,
+</span><span class=""> 5707:         qr/abuse-mailbox:\s*(\S+@\S+)/mi,
+</span><span class=""> 5708:     ) {
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 5709:         if (!$info{abuse} &amp;&amp; $text =~ $pat) {
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
 					<ul>
-				<li><b>COND_INV_5704_9: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+				<li><b>COND_INV_5709_9: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
 </li></ul></details>
-<span class=""> 5705:             ($info{abuse} = $1) =~ s/\s+$//;
-</span><span class=""> 5706:         }
-</span><span class=""> 5707:     }
-</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5708 → 5710 → 5713</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5708 → 5710 → 0</span></span> 5708:     $info{abuse} //= $1 if $text =~ /(abuse\@[\w.-]+)/i;
-</span><span class=""> 5709:     # Country &acirc;&#128;&#148; match case-insensitively but normalise to uppercase
-</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 5710:     if ($text =~ /^country:\s*([A-Za-z]{2})\s*$/m) {
-</span>
-					<details class="mutant-details">
-					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
-					<ul>
-				<li><b>COND_INV_5710_5: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
-</li></ul></details>
-<span class=""> 5711:         $info{country} = uc $1;
+<span class=""> 5710:             ($info{abuse} = $1) =~ s/\s+$//;
+</span><span class=""> 5711:         }
 </span><span class=""> 5712:     }
-</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5713 → 5713 → 0</span></span> 5713:     return \%info;
-</span><span class=""> 5714: }
-</span><span class=""> 5715: 
-</span><span class=""> 5716: # -----------------------------------------------------------------------
-</span><span class=""> 5717: # Private: utilities
-</span><span class=""> 5718: # -----------------------------------------------------------------------
-</span><span class=""> 5719: 
-</span><span class=""> 5720: sub _enrich_ip {
-</span><span class=""> 5721:     my ($self, $ip, $confidence, $note) = @_;
-</span><span class=""> 5722:     my $rdns  = $self-&gt;_reverse_dns($ip);
-</span><span class=""> 5723:     my $whois = $self-&gt;_whois_ip($ip);
-</span><span class=""> 5724:     return {
-</span><span class=""> 5725:         ip         =&gt; $ip,
-</span><span class=""> 5726:         rdns       =&gt; $rdns  // &#39;(no reverse DNS)&#39;,
-</span><span class=""> 5727:         org        =&gt; $whois-&gt;{org}     // &#39;(unknown)&#39;,
-</span><span class=""> 5728:         abuse      =&gt; $whois-&gt;{abuse}   // &#39;(unknown)&#39;,
-</span><span class=""> 5729:         country    =&gt; $whois-&gt;{country} // undef,
-</span><span class=""> 5730:         confidence =&gt; $confidence,
-</span><span class=""> 5731:         note       =&gt; $note,
-</span><span class=""> 5732:     };
-</span><span class=""> 5733: }
-</span><span class=""> 5734: 
-</span><span class=""> 5735: sub _header_value {
-</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5736 → 5737 → 5740</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5736 → 5737 → 0</span></span> 5736:     my ($self, $name) = @_;
-</span><span class=""> 5737:     for my $h (@{ $self-&gt;{_headers} }) {
-</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 5738:         return $h-&gt;{value} if $h-&gt;{name} eq lc($name);
+</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5713 → 5715 → 5718</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5713 → 5715 → 0</span></span> 5713:     $info{abuse} //= $1 if $text =~ /(abuse\@[\w.-]+)/i;
+</span><span class=""> 5714:     # Country &acirc;&#128;&#148; match case-insensitively but normalise to uppercase
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 5715:     if ($text =~ /^country:\s*([A-Za-z]{2})\s*$/m) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_5715_5: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 5716:         $info{country} = uc $1;
+</span><span class=""> 5717:     }
+</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5718 → 5718 → 0</span></span> 5718:     return \%info;
+</span><span class=""> 5719: }
+</span><span class=""> 5720: 
+</span><span class=""> 5721: # -----------------------------------------------------------------------
+</span><span class=""> 5722: # Private: utilities
+</span><span class=""> 5723: # -----------------------------------------------------------------------
+</span><span class=""> 5724: 
+</span><span class=""> 5725: sub _enrich_ip {
+</span><span class=""> 5726:     my ($self, $ip, $confidence, $note) = @_;
+</span><span class=""> 5727:     my $rdns  = $self-&gt;_reverse_dns($ip);
+</span><span class=""> 5728:     my $whois = $self-&gt;_whois_ip($ip);
+</span><span class=""> 5729:     return {
+</span><span class=""> 5730:         ip         =&gt; $ip,
+</span><span class=""> 5731:         rdns       =&gt; $rdns  // &#39;(no reverse DNS)&#39;,
+</span><span class=""> 5732:         org        =&gt; $whois-&gt;{org}     // &#39;(unknown)&#39;,
+</span><span class=""> 5733:         abuse      =&gt; $whois-&gt;{abuse}   // &#39;(unknown)&#39;,
+</span><span class=""> 5734:         country    =&gt; $whois-&gt;{country} // undef,
+</span><span class=""> 5735:         confidence =&gt; $confidence,
+</span><span class=""> 5736:         note       =&gt; $note,
+</span><span class=""> 5737:     };
+</span><span class=""> 5738: }
+</span><span class=""> 5739: 
+</span><span class=""> 5740: sub _header_value {
+</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5741 → 5742 → 5745</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5741 → 5742 → 0</span></span> 5741:     my ($self, $name) = @_;
+</span><span class=""> 5742:     for my $h (@{ $self-&gt;{_headers} }) {
+</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 5743:         return $h-&gt;{value} if $h-&gt;{name} eq lc($name);
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
 					<ul>
-				<li><b>BOOL_NEGATE_5738_9: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
+				<li><b>BOOL_NEGATE_5743_9: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
 
 								<div class="suggested-test">
 								<div class="suggest-label">🧪 Suggested Test</div>
@@ -8279,7 +8284,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
 </pre>
 								</div>
-							</li><li><b>RETURN_UNDEF_5738_9: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
+							</li><li><b>RETURN_UNDEF_5743_9: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
 
 								<div class="suggested-test">
 								<div class="suggest-label">🧪 Suggested Test</div>
@@ -8288,34 +8293,8 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </pre>
 								</div>
 							</li></ul></details>
-<span class=""> 5739:     }
-</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5740 → 5740 → 0</span></span> 5740:     return undef;
-</span>
-					<details class="mutant-details">
-					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
-					<ul>
-				<li><b>BOOL_NEGATE_5740_5: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
-
-								<div class="suggested-test">
-								<div class="suggest-label">🧪 Suggested Test</div>
-								<pre># Boolean branch test suggestion
-ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
-</pre>
-								</div>
-							</li><li><b>RETURN_UNDEF_5740_5: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
-
-								<div class="suggested-test">
-								<div class="suggest-label">🧪 Suggested Test</div>
-								<pre># Return value assertion
-is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
-</pre>
-								</div>
-							</li></ul></details>
-<span class=""> 5741: }
-</span><span class=""> 5742: 
-</span><span class=""> 5743: sub _ip_in_cidr {
-</span><span class=""> 5744:     my ($self, $ip, $cidr) = @_;
-</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 5745:     return $ip eq $cidr unless $cidr =~ m{/};
+<span class=""> 5744:     }
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5745 → 5745 → 0</span></span> 5745:     return undef;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -8337,82 +8316,16 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </pre>
 								</div>
 							</li></ul></details>
-<span class=""> 5746:     my ($net_addr, $prefix) = split m{/}, $cidr;
-</span><span class="survived-3 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boundary mutation survived. Add tests around edge values (e.g. min, max, off-by-one). Boolean logic mutation survived. Add tests covering both true and false paths."> 5747:     return 0 unless defined $prefix &amp;&amp; $prefix =~ /^\d+$/ &amp;&amp; $prefix &lt;= 32;
-</span>
-					<details class="mutant-details">
-					<summary>Mutants (Total: 5, Killed: 0, Survived: 5)</summary>
-					<ul>
-				<li><b>NUM_BOUNDARY_5747_70_<: Numeric boundary flip <= to <</b><br>HIGH: Likely missing edge-case test (boundary value)
-
-								<div class="suggested-test">
-								<div class="suggest-label">🧪 Suggested Test</div>
-								<pre># Boundary test suggestion
-is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
-</pre>
-								</div>
-							</li><li><b>NUM_BOUNDARY_5747_70_>: Numeric boundary flip <= to ></b><br>HIGH: Likely missing edge-case test (boundary value)
-
-								<div class="suggested-test">
-								<div class="suggest-label">🧪 Suggested Test</div>
-								<pre># Boundary test suggestion
-is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
-</pre>
-								</div>
-							</li><li><b>NUM_BOUNDARY_5747_70_>=: Numeric boundary flip <= to >=</b><br>HIGH: Likely missing edge-case test (boundary value)
-
-								<div class="suggested-test">
-								<div class="suggest-label">🧪 Suggested Test</div>
-								<pre># Boundary test suggestion
-is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
-</pre>
-								</div>
-							</li><li><b>BOOL_NEGATE_5747_5: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
-
-								<div class="suggested-test">
-								<div class="suggest-label">🧪 Suggested Test</div>
-								<pre># Boolean branch test suggestion
-ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
-</pre>
-								</div>
-							</li><li><b>RETURN_UNDEF_5747_5: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
-
-								<div class="suggested-test">
-								<div class="suggest-label">🧪 Suggested Test</div>
-								<pre># Return value assertion
-is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
-</pre>
-								</div>
-							</li></ul></details>
-<span class=""> 5748:     my $mask  = ~0 &lt;&lt; (32 - $prefix);
-</span><span class=""> 5749:     my $net_n = unpack &#39;N&#39;, (inet_aton($net_addr) // return 0);
-</span><span class=""> 5750:     my $ip_n  = unpack &#39;N&#39;, (inet_aton($ip)       // return 0);
-</span><span class="survived-1 tooltip" data-tooltip="Boundary mutation survived. Add tests around edge values (e.g. min, max, off-by-one)."> 5751:     return ($ip_n &amp; $mask) == ($net_n &amp; $mask);
-</span>
-					<details class="mutant-details">
-					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
-					<ul>
-				<li><b>NUM_BOUNDARY_5751_28_!=: Numeric boundary flip == to !=</b><br>HIGH: Likely missing edge-case test (boundary value)
-
-								<div class="suggested-test">
-								<div class="suggest-label">🧪 Suggested Test</div>
-								<pre># Boundary test suggestion
-is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
-</pre>
-								</div>
-							</li></ul></details>
-<span class=""> 5752: }
-</span><span class=""> 5753: 
-</span><span class=""> 5754: # Lightweight date-to-epoch for common WHOIS date formats:
-</span><span class=""> 5755: #   2024-11-01   2024-11-01T12:00:00Z   01-Nov-2024
-</span><span class=""> 5756: sub _parse_date_to_epoch {
-</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5757 → 5760 → 5763</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5757 → 5760 → 0</span></span> 5757:     my ($self, $str) = @_;
-</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 5758:     return undef unless $str;
+<span class=""> 5746: }
+</span><span class=""> 5747: 
+</span><span class=""> 5748: sub _ip_in_cidr {
+</span><span class=""> 5749:     my ($self, $ip, $cidr) = @_;
+</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 5750:     return $ip eq $cidr unless $cidr =~ m{/};
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
 					<ul>
-				<li><b>BOOL_NEGATE_5758_5: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
+				<li><b>BOOL_NEGATE_5750_5: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
 
 								<div class="suggested-test">
 								<div class="suggest-label">🧪 Suggested Test</div>
@@ -8420,7 +8333,7 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
 </pre>
 								</div>
-							</li><li><b>RETURN_UNDEF_5758_5: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
+							</li><li><b>RETURN_UNDEF_5750_5: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
 
 								<div class="suggested-test">
 								<div class="suggest-label">🧪 Suggested Test</div>
@@ -8429,17 +8342,77 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </pre>
 								</div>
 							</li></ul></details>
-<span class=""> 5759:     my ($y, $m, $d);
-</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 5760:     if    ($str =~ /^(\d{4})-(\d{2})-(\d{2})/)         { ($y,$m,$d)=($1,$2,$3) }
+<span class=""> 5751:     my ($net_addr, $prefix) = split m{/}, $cidr;
+</span><span class="survived-3 tooltip" data-tooltip="Boundary mutation survived. Add tests around edge values (e.g. min, max, off-by-one). Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 5752:     return 0 unless defined $prefix &amp;&amp; $prefix =~ /^\d+$/ &amp;&amp; $prefix &lt;= 32;
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 5, Killed: 0, Survived: 5)</summary>
+					<ul>
+				<li><b>NUM_BOUNDARY_5752_70_<: Numeric boundary flip <= to <</b><br>HIGH: Likely missing edge-case test (boundary value)
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boundary test suggestion
+is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>NUM_BOUNDARY_5752_70_>: Numeric boundary flip <= to ></b><br>HIGH: Likely missing edge-case test (boundary value)
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boundary test suggestion
+is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>NUM_BOUNDARY_5752_70_>=: Numeric boundary flip <= to >=</b><br>HIGH: Likely missing edge-case test (boundary value)
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boundary test suggestion
+is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>BOOL_NEGATE_5752_5: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boolean branch test suggestion
+ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>RETURN_UNDEF_5752_5: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Return value assertion
+is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
+</pre>
+								</div>
+							</li></ul></details>
+<span class=""> 5753:     my $mask  = ~0 &lt;&lt; (32 - $prefix);
+</span><span class=""> 5754:     my $net_n = unpack &#39;N&#39;, (inet_aton($net_addr) // return 0);
+</span><span class=""> 5755:     my $ip_n  = unpack &#39;N&#39;, (inet_aton($ip)       // return 0);
+</span><span class="survived-1 tooltip" data-tooltip="Boundary mutation survived. Add tests around edge values (e.g. min, max, off-by-one)."> 5756:     return ($ip_n &amp; $mask) == ($net_n &amp; $mask);
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
 					<ul>
-				<li><b>COND_INV_5760_5: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
-</li></ul></details>
-<span class=""> 5761:     elsif ($str =~ /^(\d{2})-([A-Za-z]{3})-(\d{4})/)   { ($d,$m,$y)=($1,$months{lc$2}//0,$3) }
-</span><span class=""> 5762:     elsif ($str =~ /^(\d{2})\/(\d{2})\/(\d{4})/)        { ($m,$d,$y)=($1,$2,$3) }
-</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5763 → 5764 → 5767</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5763 → 5764 → 0</span></span> 5763:     return undef unless $y &amp;&amp; $m &amp;&amp; $d;
+				<li><b>NUM_BOUNDARY_5756_28_!=: Numeric boundary flip == to !=</b><br>HIGH: Likely missing edge-case test (boundary value)
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boundary test suggestion
+is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
+</pre>
+								</div>
+							</li></ul></details>
+<span class=""> 5757: }
+</span><span class=""> 5758: 
+</span><span class=""> 5759: # Lightweight date-to-epoch for common WHOIS date formats:
+</span><span class=""> 5760: #   2024-11-01   2024-11-01T12:00:00Z   01-Nov-2024
+</span><span class=""> 5761: sub _parse_date_to_epoch {
+</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5762 → 5765 → 5768</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5762 → 5765 → 0</span></span> 5762:     my ($self, $str) = @_;
+</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 5763:     return undef unless $str;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -8461,34 +8434,22 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </pre>
 								</div>
 							</li></ul></details>
-<span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 5764:     if (eval { require Time::Local; 1 }) {
+<span class=""> 5764:     my ($y, $m, $d);
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 5765:     if    ($str =~ /^(\d{4})-(\d{2})-(\d{2})/)         { ($y,$m,$d)=($1,$2,$3) }
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
 					<ul>
-				<li><b>COND_INV_5764_5: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+				<li><b>COND_INV_5765_5: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
 </li></ul></details>
-<span class=""> 5765:         return eval { Time::Local::timegm(0,0,0,$d,$m-1,$y-1900) };
-</span><span class=""> 5766:     }
-</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot-uncovered">●</span><span class="lcsaj-tip-text">[NOT COVERED] 5767 → 5767 → 0</span></span> 5767:     return ($y-1970)*365.25*86400 + ($m-1)*30.5*86400 + ($d-1)*86400;
-</span><span class=""> 5768: }
-</span><span class=""> 5769: 
-</span><span class=""> 5770: # Parse a RFC 2822 date string to a Unix epoch.
-</span><span class=""> 5771: # Handles: &quot;Mon, 01 Jan 2024 00:00:00 +0000&quot; and common variants.
-</span><span class=""> 5772: # Returns undef if the string cannot be parsed.
-</span><span class=""> 5773: #
-</span><span class=""> 5774: # NOTE: timezone offsets (+0530, -0800 etc.) are intentionally ignored.
-</span><span class=""> 5775: # The function returns UTC-equivalent seconds assuming the time component
-</span><span class=""> 5776: # is UTC.  For the sole current use-case (7-day suspicious_date window)
-</span><span class=""> 5777: # the maximum error is ~14 hours, which is well within the 7-day tolerance.
-</span><span class=""> 5778: sub _parse_rfc2822_date {
-</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5779 → 5781 → 5789</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5779 → 5781 → 0</span></span> 5779:     my ($str) = @_;
-</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 5780:     return undef unless $str;
+<span class=""> 5766:     elsif ($str =~ /^(\d{2})-([A-Za-z]{3})-(\d{4})/)   { ($d,$m,$y)=($1,$months{lc$2}//0,$3) }
+</span><span class=""> 5767:     elsif ($str =~ /^(\d{2})\/(\d{2})\/(\d{4})/)        { ($m,$d,$y)=($1,$2,$3) }
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5768 → 5769 → 5772</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5768 → 5769 → 0</span></span> 5768:     return undef unless $y &amp;&amp; $m &amp;&amp; $d;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
 					<ul>
-				<li><b>BOOL_NEGATE_5780_5: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
+				<li><b>BOOL_NEGATE_5768_5: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
 
 								<div class="suggested-test">
 								<div class="suggest-label">🧪 Suggested Test</div>
@@ -8496,7 +8457,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
 </pre>
 								</div>
-							</li><li><b>RETURN_UNDEF_5780_5: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
+							</li><li><b>RETURN_UNDEF_5768_5: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
 
 								<div class="suggested-test">
 								<div class="suggest-label">🧪 Suggested Test</div>
@@ -8505,21 +8466,34 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </pre>
 								</div>
 							</li></ul></details>
-<span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 5781:     if ($str =~ /(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/) {
+<span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 5769:     if (eval { require Time::Local; 1 }) {
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
 					<ul>
-				<li><b>COND_INV_5781_5: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+				<li><b>COND_INV_5769_5: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
 </li></ul></details>
-<span class=""> 5782:         my ($d, $m, $y, $H, $M, $S) =
-</span><span class=""> 5783:             ($1, $months{ lc $2 } // 0, $3, $4, $5, $6);
-</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 5784:         return undef unless $m;
+<span class=""> 5770:         return eval { Time::Local::timegm(0,0,0,$d,$m-1,$y-1900) };
+</span><span class=""> 5771:     }
+</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot-uncovered">●</span><span class="lcsaj-tip-text">[NOT COVERED] 5772 → 5772 → 0</span></span> 5772:     return ($y-1970)*365.25*86400 + ($m-1)*30.5*86400 + ($d-1)*86400;
+</span><span class=""> 5773: }
+</span><span class=""> 5774: 
+</span><span class=""> 5775: # Parse a RFC 2822 date string to a Unix epoch.
+</span><span class=""> 5776: # Handles: &quot;Mon, 01 Jan 2024 00:00:00 +0000&quot; and common variants.
+</span><span class=""> 5777: # Returns undef if the string cannot be parsed.
+</span><span class=""> 5778: #
+</span><span class=""> 5779: # NOTE: timezone offsets (+0530, -0800 etc.) are intentionally ignored.
+</span><span class=""> 5780: # The function returns UTC-equivalent seconds assuming the time component
+</span><span class=""> 5781: # is UTC.  For the sole current use-case (7-day suspicious_date window)
+</span><span class=""> 5782: # the maximum error is ~14 hours, which is well within the 7-day tolerance.
+</span><span class=""> 5783: sub _parse_rfc2822_date {
+</span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5784 → 5786 → 5794</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">5784 → 5786 → 0</span></span> 5784:     my ($str) = @_;
+</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 5785:     return undef unless $str;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
 					<ul>
-				<li><b>BOOL_NEGATE_5784_9: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
+				<li><b>BOOL_NEGATE_5785_5: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
 
 								<div class="suggested-test">
 								<div class="suggest-label">🧪 Suggested Test</div>
@@ -8527,7 +8501,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
 </pre>
 								</div>
-							</li><li><b>RETURN_UNDEF_5784_9: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
+							</li><li><b>RETURN_UNDEF_5785_5: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
 
 								<div class="suggested-test">
 								<div class="suggest-label">🧪 Suggested Test</div>
@@ -8536,22 +8510,21 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </pre>
 								</div>
 							</li></ul></details>
-<span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 5785:         if (eval { require Time::Local; 1 }) {
+<span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 5786:     if ($str =~ /(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/) {
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
 					<ul>
-				<li><b>COND_INV_5785_9: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+				<li><b>COND_INV_5786_5: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
 </li></ul></details>
-<span class=""> 5786:             return eval { Time::Local::timegm($S, $M, $H, $d, $m - 1, $y - 1900) };
-</span><span class=""> 5787:         }
-</span><span class=""> 5788:     }
-</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."><span class="lcsaj-tip"><span class="lcsaj-dot-uncovered">●</span><span class="lcsaj-tip-text">[NOT COVERED] 5789 → 5789 → 0</span></span> 5789:     return undef;
+<span class=""> 5787:         my ($d, $m, $y, $H, $M, $S) =
+</span><span class=""> 5788:             ($1, $months{ lc $2 } // 0, $3, $4, $5, $6);
+</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 5789:         return undef unless $m;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
 					<ul>
-				<li><b>BOOL_NEGATE_5789_5: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
+				<li><b>BOOL_NEGATE_5789_9: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
 
 								<div class="suggested-test">
 								<div class="suggest-label">🧪 Suggested Test</div>
@@ -8559,7 +8532,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
 </pre>
 								</div>
-							</li><li><b>RETURN_UNDEF_5789_5: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
+							</li><li><b>RETURN_UNDEF_5789_9: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
 
 								<div class="suggested-test">
 								<div class="suggest-label">🧪 Suggested Test</div>
@@ -8568,132 +8541,164 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </pre>
 								</div>
 							</li></ul></details>
-<span class=""> 5790: }
-</span><span class=""> 5791: 
-</span><span class=""> 5792: sub _debug {
-</span><span class=""> 5793:     my ($self, $msg) = @_;
-</span><span class=""> 5794:     print STDERR &quot;[Email::Abuse::Investigator] $msg\n&quot; if $self-&gt;{verbose};
-</span><span class=""> 5795: }
+<span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 5790:         if (eval { require Time::Local; 1 }) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_5790_9: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 5791:             return eval { Time::Local::timegm($S, $M, $H, $d, $m - 1, $y - 1900) };
+</span><span class=""> 5792:         }
+</span><span class=""> 5793:     }
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."><span class="lcsaj-tip"><span class="lcsaj-dot-uncovered">●</span><span class="lcsaj-tip-text">[NOT COVERED] 5794 → 5794 → 0</span></span> 5794:     return undef;
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
+					<ul>
+				<li><b>BOOL_NEGATE_5794_5: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boolean branch test suggestion
+ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>RETURN_UNDEF_5794_5: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Return value assertion
+is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
+</pre>
+								</div>
+							</li></ul></details>
+<span class=""> 5795: }
 </span><span class=""> 5796: 
-</span><span class=""> 5797: 1;
-</span><span class=""> 5798: 
-</span><span class=""> 5799: __END__
-</span><span class=""> 5800: 
-</span><span class=""> 5801: =head1 ALGORITHM: DOMAIN INTELLIGENCE PIPELINE
-</span><span class=""> 5802: 
-</span><span class=""> 5803: For each unique non-infrastructure domain found in the email, the module
-</span><span class=""> 5804: runs the following pipeline:
+</span><span class=""> 5797: sub _debug {
+</span><span class=""> 5798:     my ($self, $msg) = @_;
+</span><span class=""> 5799:     print STDERR &quot;[Email::Abuse::Investigator] $msg\n&quot; if $self-&gt;{verbose};
+</span><span class=""> 5800: }
+</span><span class=""> 5801: 
+</span><span class=""> 5802: 1;
+</span><span class=""> 5803: 
+</span><span class=""> 5804: __END__
 </span><span class=""> 5805: 
-</span><span class=""> 5806:     Domain name
-</span><span class=""> 5807:         |
-</span><span class=""> 5808:         +-- A record  --&gt; web hosting IP  --&gt; RDAP --&gt; org + abuse contact
-</span><span class=""> 5809:         |
-</span><span class=""> 5810:         +-- MX record --&gt; mail server hostname --&gt; A --&gt; RDAP --&gt; org + abuse
-</span><span class=""> 5811:         |
-</span><span class=""> 5812:         +-- NS record --&gt; nameserver hostname  --&gt; A --&gt; RDAP --&gt; org + abuse
-</span><span class=""> 5813:         |
-</span><span class=""> 5814:         +-- WHOIS (TLD whois server via IANA referral)
-</span><span class=""> 5815:                +-- Registrar name + abuse contact
-</span><span class=""> 5816:                +-- Creation date  (-&gt; recently-registered flag if &lt; 180 days)
-</span><span class=""> 5817:                +-- Expiry date    (-&gt; expires-soon or expired flags)
-</span><span class=""> 5818: 
-</span><span class=""> 5819: Domains are collected from:
-</span><span class=""> 5820: 
-</span><span class=""> 5821:     From:/Reply-To:/Sender:/Return-Path: headers
-</span><span class=""> 5822:     DKIM-Signature: d=  (signing domain)
-</span><span class=""> 5823:     List-Unsubscribe:   (ESP / bulk sender domain)
-</span><span class=""> 5824:     Message-ID:         (often reveals real sending platform)
-</span><span class=""> 5825:     mailto: links and bare addresses in the body
-</span><span class=""> 5826: 
-</span><span class=""> 5827: =head1 WHY WEB HOSTING != MAIL HOSTING != DNS HOSTING
-</span><span class=""> 5828: 
-</span><span class=""> 5829: A fraudster registering C&lt;sminvestmentsupplychain.com&gt; might:
-</span><span class=""> 5830: 
-</span><span class=""> 5831: =over 4
-</span><span class=""> 5832: 
-</span><span class=""> 5833: =item * Register the domain at GoDaddy (registrar)
-</span><span class=""> 5834: 
-</span><span class=""> 5835: =item * Point the NS records at Cloudflare (DNS/CDN)
-</span><span class=""> 5836: 
-</span><span class=""> 5837: =item * Have no web server at all (A record absent)
-</span><span class=""> 5838: 
-</span><span class=""> 5839: =item * Route the MX records to Google Workspace or similar
-</span><span class=""> 5840: 
-</span><span class=""> 5841: =back
-</span><span class=""> 5842: 
-</span><span class=""> 5843: Each of these parties has an abuse contact, and each can independently
-</span><span class=""> 5844: take action to disrupt the spam/phishing operation.  The module reports
-</span><span class=""> 5845: all of them separately.
-</span><span class=""> 5846: 
-</span><span class=""> 5847: =head1 RECENTLY-REGISTERED FLAG
-</span><span class=""> 5848: 
-</span><span class=""> 5849: Phishing domains are very commonly registered hours or days before the
-</span><span class=""> 5850: spam run.  The module flags any domain whose WHOIS creation date is
-</span><span class=""> 5851: less than 180 days ago with C&lt;recently_registered =E&lt;gt&gt; 1&gt;.
-</span><span class=""> 5852: 
-</span><span class=""> 5853: =head1 SEE ALSO
-</span><span class=""> 5854: 
-</span><span class=""> 5855: =over 4
-</span><span class=""> 5856: 
-</span><span class=""> 5857: =item * L&lt;Test Dashboard|https://nigelhorne.github.io/Email-Abuse-Investigator/coverage/&gt;
-</span><span class=""> 5858: 
-</span><span class=""> 5859: =item * L&lt;ARIN RDAP|https://rdap.arin.net/&gt;
-</span><span class=""> 5860: 
-</span><span class=""> 5861: =item * L&lt;Net::DNS&gt;, L&lt;LWP::UserAgent&gt;, L&lt;HTML::LinkExtor&gt;, L&lt;MIME::QuotedPrint&gt;,
-</span><span class=""> 5862: 
-</span><span class=""> 5863: =back
-</span><span class=""> 5864: 
-</span><span class=""> 5865: =head1 REPOSITORY
-</span><span class=""> 5866: 
-</span><span class=""> 5867: L&lt;https://github.com/nigelhorne/Email-Abuse-Investigator&gt;
-</span><span class=""> 5868: 
-</span><span class=""> 5869: =head1 SUPPORT
-</span><span class=""> 5870: 
-</span><span class=""> 5871: This module is provided as-is without any warranty.
-</span><span class=""> 5872: 
-</span><span class=""> 5873: Please report any bugs or feature requests to C&lt;bug-email-abuse-investigator at rt.cpan.org&gt;,
-</span><span class=""> 5874: or through the web interface at
-</span><span class=""> 5875: L&lt;http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Email-Abuse-Investigator&gt;
-</span><span class=""> 5876: I will be notified, and then you&#39;ll
-</span><span class=""> 5877: automatically be notified of progress on your bug as I make changes.
-</span><span class=""> 5878: 
-</span><span class=""> 5879: You can find documentation for this module with the perldoc command.
-</span><span class=""> 5880: 
-</span><span class=""> 5881:     perldoc Email::Abuse::Investigator
-</span><span class=""> 5882: 
-</span><span class=""> 5883: You can also look for information at:
-</span><span class=""> 5884: 
-</span><span class=""> 5885: =over 4
-</span><span class=""> 5886: 
-</span><span class=""> 5887: =item * MetaCPAN
-</span><span class=""> 5888: 
-</span><span class=""> 5889: L&lt;https://metacpan.org/dist/Email-Abuse-Investigator&gt;
-</span><span class=""> 5890: 
-</span><span class=""> 5891: =item * RT: CPAN&#39;s request tracker
-</span><span class=""> 5892: 
-</span><span class=""> 5893: L&lt;https://rt.cpan.org/NoAuth/Bugs.html?Dist=Email-Abuse-Investigator&gt;
-</span><span class=""> 5894: 
-</span><span class=""> 5895: =item * CPAN Testers&#39; Matrix
-</span><span class=""> 5896: 
-</span><span class=""> 5897: L&lt;http://matrix.cpantesters.org/?dist=Email-Abuse-Investigator&gt;
-</span><span class=""> 5898: 
-</span><span class=""> 5899: =item * CPAN Testers Dependencies
-</span><span class=""> 5900: 
-</span><span class=""> 5901: L&lt;http://deps.cpantesters.org/?module=Email::Abuse::Investigator&gt;
-</span><span class=""> 5902: 
-</span><span class=""> 5903: =back
-</span><span class=""> 5904: 
-</span><span class=""> 5905: =head1 LICENCE AND COPYRIGHT
-</span><span class=""> 5906: 
-</span><span class=""> 5907: Copyright 2026 Nigel Horne.
-</span><span class=""> 5908: 
-</span><span class=""> 5909: Usage is subject to GPL2 licence terms.
-</span><span class=""> 5910: If you use it,
-</span><span class=""> 5911: please let me know.
-</span><span class=""> 5912: 
-</span><span class=""> 5913: =cut
-</span><span class=""> 5914: 
-</span><span class=""> 5915: 1;
+</span><span class=""> 5806: =head1 ALGORITHM: DOMAIN INTELLIGENCE PIPELINE
+</span><span class=""> 5807: 
+</span><span class=""> 5808: For each unique non-infrastructure domain found in the email, the module
+</span><span class=""> 5809: runs the following pipeline:
+</span><span class=""> 5810: 
+</span><span class=""> 5811:     Domain name
+</span><span class=""> 5812:         |
+</span><span class=""> 5813:         +-- A record  --&gt; web hosting IP  --&gt; RDAP --&gt; org + abuse contact
+</span><span class=""> 5814:         |
+</span><span class=""> 5815:         +-- MX record --&gt; mail server hostname --&gt; A --&gt; RDAP --&gt; org + abuse
+</span><span class=""> 5816:         |
+</span><span class=""> 5817:         +-- NS record --&gt; nameserver hostname  --&gt; A --&gt; RDAP --&gt; org + abuse
+</span><span class=""> 5818:         |
+</span><span class=""> 5819:         +-- WHOIS (TLD whois server via IANA referral)
+</span><span class=""> 5820:                +-- Registrar name + abuse contact
+</span><span class=""> 5821:                +-- Creation date  (-&gt; recently-registered flag if &lt; 180 days)
+</span><span class=""> 5822:                +-- Expiry date    (-&gt; expires-soon or expired flags)
+</span><span class=""> 5823: 
+</span><span class=""> 5824: Domains are collected from:
+</span><span class=""> 5825: 
+</span><span class=""> 5826:     From:/Reply-To:/Sender:/Return-Path: headers
+</span><span class=""> 5827:     DKIM-Signature: d=  (signing domain)
+</span><span class=""> 5828:     List-Unsubscribe:   (ESP / bulk sender domain)
+</span><span class=""> 5829:     Message-ID:         (often reveals real sending platform)
+</span><span class=""> 5830:     mailto: links and bare addresses in the body
+</span><span class=""> 5831: 
+</span><span class=""> 5832: =head1 WHY WEB HOSTING != MAIL HOSTING != DNS HOSTING
+</span><span class=""> 5833: 
+</span><span class=""> 5834: A fraudster registering C&lt;sminvestmentsupplychain.com&gt; might:
+</span><span class=""> 5835: 
+</span><span class=""> 5836: =over 4
+</span><span class=""> 5837: 
+</span><span class=""> 5838: =item * Register the domain at GoDaddy (registrar)
+</span><span class=""> 5839: 
+</span><span class=""> 5840: =item * Point the NS records at Cloudflare (DNS/CDN)
+</span><span class=""> 5841: 
+</span><span class=""> 5842: =item * Have no web server at all (A record absent)
+</span><span class=""> 5843: 
+</span><span class=""> 5844: =item * Route the MX records to Google Workspace or similar
+</span><span class=""> 5845: 
+</span><span class=""> 5846: =back
+</span><span class=""> 5847: 
+</span><span class=""> 5848: Each of these parties has an abuse contact, and each can independently
+</span><span class=""> 5849: take action to disrupt the spam/phishing operation.  The module reports
+</span><span class=""> 5850: all of them separately.
+</span><span class=""> 5851: 
+</span><span class=""> 5852: =head1 RECENTLY-REGISTERED FLAG
+</span><span class=""> 5853: 
+</span><span class=""> 5854: Phishing domains are very commonly registered hours or days before the
+</span><span class=""> 5855: spam run.  The module flags any domain whose WHOIS creation date is
+</span><span class=""> 5856: less than 180 days ago with C&lt;recently_registered =E&lt;gt&gt; 1&gt;.
+</span><span class=""> 5857: 
+</span><span class=""> 5858: =head1 SEE ALSO
+</span><span class=""> 5859: 
+</span><span class=""> 5860: =over 4
+</span><span class=""> 5861: 
+</span><span class=""> 5862: =item * L&lt;Test Dashboard|https://nigelhorne.github.io/Email-Abuse-Investigator/coverage/&gt;
+</span><span class=""> 5863: 
+</span><span class=""> 5864: =item * L&lt;ARIN RDAP|https://rdap.arin.net/&gt;
+</span><span class=""> 5865: 
+</span><span class=""> 5866: =item * L&lt;Net::DNS&gt;, L&lt;LWP::UserAgent&gt;, L&lt;HTML::LinkExtor&gt;, L&lt;MIME::QuotedPrint&gt;,
+</span><span class=""> 5867: 
+</span><span class=""> 5868: =back
+</span><span class=""> 5869: 
+</span><span class=""> 5870: =head1 REPOSITORY
+</span><span class=""> 5871: 
+</span><span class=""> 5872: L&lt;https://github.com/nigelhorne/Email-Abuse-Investigator&gt;
+</span><span class=""> 5873: 
+</span><span class=""> 5874: =head1 SUPPORT
+</span><span class=""> 5875: 
+</span><span class=""> 5876: This module is provided as-is without any warranty.
+</span><span class=""> 5877: 
+</span><span class=""> 5878: Please report any bugs or feature requests to C&lt;bug-email-abuse-investigator at rt.cpan.org&gt;,
+</span><span class=""> 5879: or through the web interface at
+</span><span class=""> 5880: L&lt;http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Email-Abuse-Investigator&gt;
+</span><span class=""> 5881: I will be notified, and then you&#39;ll
+</span><span class=""> 5882: automatically be notified of progress on your bug as I make changes.
+</span><span class=""> 5883: 
+</span><span class=""> 5884: You can find documentation for this module with the perldoc command.
+</span><span class=""> 5885: 
+</span><span class=""> 5886:     perldoc Email::Abuse::Investigator
+</span><span class=""> 5887: 
+</span><span class=""> 5888: You can also look for information at:
+</span><span class=""> 5889: 
+</span><span class=""> 5890: =over 4
+</span><span class=""> 5891: 
+</span><span class=""> 5892: =item * MetaCPAN
+</span><span class=""> 5893: 
+</span><span class=""> 5894: L&lt;https://metacpan.org/dist/Email-Abuse-Investigator&gt;
+</span><span class=""> 5895: 
+</span><span class=""> 5896: =item * RT: CPAN&#39;s request tracker
+</span><span class=""> 5897: 
+</span><span class=""> 5898: L&lt;https://rt.cpan.org/NoAuth/Bugs.html?Dist=Email-Abuse-Investigator&gt;
+</span><span class=""> 5899: 
+</span><span class=""> 5900: =item * CPAN Testers&#39; Matrix
+</span><span class=""> 5901: 
+</span><span class=""> 5902: L&lt;http://matrix.cpantesters.org/?dist=Email-Abuse-Investigator&gt;
+</span><span class=""> 5903: 
+</span><span class=""> 5904: =item * CPAN Testers Dependencies
+</span><span class=""> 5905: 
+</span><span class=""> 5906: L&lt;http://deps.cpantesters.org/?module=Email::Abuse::Investigator&gt;
+</span><span class=""> 5907: 
+</span><span class=""> 5908: =back
+</span><span class=""> 5909: 
+</span><span class=""> 5910: =head1 LICENCE AND COPYRIGHT
+</span><span class=""> 5911: 
+</span><span class=""> 5912: Copyright 2026 Nigel Horne.
+</span><span class=""> 5913: 
+</span><span class=""> 5914: Usage is subject to GPL2 licence terms.
+</span><span class=""> 5915: If you use it,
+</span><span class=""> 5916: please let me know.
+</span><span class=""> 5917: 
+</span><span class=""> 5918: =cut
+</span><span class=""> 5919: 
+</span><span class=""> 5920: 1;
 </span></pre>
 
 <script>

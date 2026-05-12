@@ -295,45 +295,45 @@ https://pjcj.net
 <tr><td class="h"><a id="L5560">5560</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless $server</td></tr>
 <tr><td class="h"><a id="L5577">5577</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if ($raw =~ /Registrar:\s*(.+)/i)</td></tr>
 <tr><td class="h"><a id="L5585">5585</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if (not $info{&#39;abuse&#39;} and $raw =~ /$pat/)</td></tr>
-<tr><td class="h"><a id="L5594">5594</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">unless $HAS_LWP</td></tr>
-<tr><td class="h"><a id="L5598">5598</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">unless $res and $res-&gt;is_success</td></tr>
-<tr><td class="h"><a id="L5601">5601</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $j =~ /&quot;name&quot;\s*:\s*&quot;([^&quot;]+)&quot;/</td></tr>
-<tr><td class="h"><a id="L5602">5602</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $j =~ /&quot;handle&quot;\s*:\s*&quot;([^&quot;]+)&quot;/</td></tr>
-<tr><td class="h"><a id="L5603">5603</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if ($j =~ /&quot;abuse&quot;.*?&quot;email&quot;\s*:\s*&quot;([^&quot;]+)&quot;/s) { }</td></tr>
+<tr><td class="h"><a id="L5595">5595</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">unless $HAS_LWP</td></tr>
+<tr><td class="h"><a id="L5602">5602</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">unless $res and $res-&gt;is_success</td></tr>
+<tr><td class="h"><a id="L5606">5606</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $j =~ /&quot;name&quot;\s*:\s*&quot;([^&quot;]+)&quot;/</td></tr>
+<tr><td class="h"><a id="L5607">5607</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $j =~ /&quot;handle&quot;\s*:\s*&quot;([^&quot;]+)&quot;/</td></tr>
+<tr><td class="h"><a id="L5608">5608</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if ($j =~ /&quot;abuse&quot;.*?&quot;email&quot;\s*:\s*&quot;([^&quot;]+)&quot;/s) { }</td></tr>
 <tr><td class="h"></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">elsif ($j =~ /&quot;email&quot;\s*:\s*&quot;([^\@&quot;]+\@[^&quot;]+)&quot;/) { }</td></tr>
-<tr><td class="h"><a id="L5609">5609</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $j =~ /&quot;country&quot;\s*:\s*&quot;([A-Z]{2})&quot;/</td></tr>
-<tr><td class="h"><a id="L5663">5663</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">unless $sock</td></tr>
-<tr><td class="h"><a id="L5666">5666</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">unless ($sock-&gt;print(&quot;$query\r\n&quot;))</td></tr>
-<tr><td class="h"><a id="L5680">5680</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless defined $n and $n &gt; 0</td></tr>
-<tr><td class="h"><a id="L5690">5690</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless $text</td></tr>
-<tr><td class="h"><a id="L5696">5696</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if (not $info{&#39;org&#39;} and $text =~ /$pat/)</td></tr>
-<tr><td class="h"><a id="L5704">5704</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if (not $info{&#39;abuse&#39;} and $text =~ /$pat/)</td></tr>
-<tr><td class="h"><a id="L5708">5708</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $text =~ /(abuse\@[\w.-]+)/i</td></tr>
-<tr><td class="h"><a id="L5710">5710</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($text =~ /^country:\s*([A-Za-z]{2})\s*$/m)</td></tr>
-<tr><td class="h"><a id="L5738">5738</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $h-&gt;{&#39;name&#39;} eq lc $name</td></tr>
-<tr><td class="h"><a id="L5745">5745</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless $cidr =~ m[/]</td></tr>
-<tr><td class="h"><a id="L5747">5747</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">unless defined $prefix and $prefix =~ /^\d+$/ and $prefix &lt;= 32</td></tr>
-<tr><td class="h"><a id="L5758">5758</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless $str</td></tr>
-<tr><td class="h"><a id="L5760">5760</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($str =~ /^(\d{4})-(\d{2})-(\d{2})/) { }</td></tr>
+<tr><td class="h"><a id="L5614">5614</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $j =~ /&quot;country&quot;\s*:\s*&quot;([A-Z]{2})&quot;/</td></tr>
+<tr><td class="h"><a id="L5668">5668</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">unless $sock</td></tr>
+<tr><td class="h"><a id="L5671">5671</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">unless ($sock-&gt;print(&quot;$query\r\n&quot;))</td></tr>
+<tr><td class="h"><a id="L5685">5685</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless defined $n and $n &gt; 0</td></tr>
+<tr><td class="h"><a id="L5695">5695</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless $text</td></tr>
+<tr><td class="h"><a id="L5701">5701</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if (not $info{&#39;org&#39;} and $text =~ /$pat/)</td></tr>
+<tr><td class="h"><a id="L5709">5709</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if (not $info{&#39;abuse&#39;} and $text =~ /$pat/)</td></tr>
+<tr><td class="h"><a id="L5713">5713</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $text =~ /(abuse\@[\w.-]+)/i</td></tr>
+<tr><td class="h"><a id="L5715">5715</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($text =~ /^country:\s*([A-Za-z]{2})\s*$/m)</td></tr>
+<tr><td class="h"><a id="L5743">5743</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $h-&gt;{&#39;name&#39;} eq lc $name</td></tr>
+<tr><td class="h"><a id="L5750">5750</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless $cidr =~ m[/]</td></tr>
+<tr><td class="h"><a id="L5752">5752</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">unless defined $prefix and $prefix =~ /^\d+$/ and $prefix &lt;= 32</td></tr>
+<tr><td class="h"><a id="L5763">5763</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless $str</td></tr>
+<tr><td class="h"><a id="L5765">5765</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($str =~ /^(\d{4})-(\d{2})-(\d{2})/) { }</td></tr>
 <tr><td class="h"></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">elsif ($str =~ /^(\d{2})-([A-Za-z]{3})-(\d{4})/) { }</td></tr>
 <tr><td class="h"></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">elsif ($str =~ m[^(\d{2})/(\d{2})/(\d{4})]) { }</td></tr>
-<tr><td class="h"><a id="L5763">5763</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless $y and $m and $d</td></tr>
-<tr><td class="h"><a id="L5764">5764</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if (eval {
+<tr><td class="h"><a id="L5768">5768</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless $y and $m and $d</td></tr>
+<tr><td class="h"><a id="L5769">5769</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if (eval {
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;do {
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;require Time::Local;
 1
 }
 })</td></tr>
-<tr><td class="h"><a id="L5780">5780</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">unless $str</td></tr>
-<tr><td class="h"><a id="L5781">5781</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if ($str =~ /(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/)</td></tr>
-<tr><td class="h"><a id="L5784">5784</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">unless $m</td></tr>
-<tr><td class="h"><a id="L5785">5785</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if (eval {
+<tr><td class="h"><a id="L5785">5785</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">unless $str</td></tr>
+<tr><td class="h"><a id="L5786">5786</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if ($str =~ /(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/)</td></tr>
+<tr><td class="h"><a id="L5789">5789</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">unless $m</td></tr>
+<tr><td class="h"><a id="L5790">5790</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if (eval {
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;do {
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;require Time::Local;
 1
 }
 })</td></tr>
-<tr><td class="h"><a id="L5794">5794</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $self-&gt;{&#39;verbose&#39;}</td></tr>
+<tr><td class="h"><a id="L5799">5799</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $self-&gt;{&#39;verbose&#39;}</td></tr>
 </table>
 </body>
 </html>
