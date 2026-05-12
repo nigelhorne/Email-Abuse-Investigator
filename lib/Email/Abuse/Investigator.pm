@@ -5597,22 +5597,22 @@ sub _rdap_lookup {
 	my $ua = LWP::UserAgent->new(timeout => $self->{timeout}, agent => "Email-Abuse-Investigator/$VERSION");
 
 	$ua->env_proxy(1);
-	$ua->conn_cache->total_capacity(undef);
 
-    my $res = eval { $ua->get("https://rdap.arin.net/registry/ip/$ip") };
-    return {} unless $res && $res->is_success;
-    my $j = $res->decoded_content;
-    my %info;
-    $info{org}    = $1 if $j =~ /"name"\s*:\s*"([^"]+)"/;
-    $info{handle} = $1 if $j =~ /"handle"\s*:\s*"([^"]+)"/;
-    if ($j =~ /"abuse".*?"email"\s*:\s*"([^"]+)"/s) {
-        $info{abuse} = $1;
-    } elsif ($j =~ /"email"\s*:\s*"([^@"]+@[^"]+)"/) {
-        $info{abuse} = $1;
-    }
-    # Country code from RDAP
-    $info{country} = $1 if $j =~ /"country"\s*:\s*"([A-Z]{2})"/;
-    return \%info;
+	my $res = eval { $ua->get("https://rdap.arin.net/registry/ip/$ip") };
+	return {} unless $res && $res->is_success();
+
+	my $j = $res->decoded_content();
+	my %info;
+	$info{org}    = $1 if $j =~ /"name"\s*:\s*"([^"]+)"/;
+	$info{handle} = $1 if $j =~ /"handle"\s*:\s*"([^"]+)"/;
+	if ($j =~ /"abuse".*?"email"\s*:\s*"([^"]+)"/s) {
+		$info{abuse} = $1;
+	} elsif ($j =~ /"email"\s*:\s*"([^@"]+@[^"]+)"/) {
+		$info{abuse} = $1;
+	}
+	# Country code from RDAP
+	$info{country} = $1 if $j =~ /"country"\s*:\s*"([A-Z]{2})"/;
+	return \%info;
 }
 
 # _raw_whois( $query, $server ) -> string | undef
