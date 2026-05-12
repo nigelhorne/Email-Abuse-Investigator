@@ -1,5 +1,5 @@
 ---
-
+# Run a mutation test.  They can take a long time so only run then on demand or every month, not on each commit
 name: Mutation Testing
 permissions:
   contents: write
@@ -44,7 +44,7 @@ jobs:
       - name: Install App::Test::Generator
         run: |
           if [ "${{ github.repository }}" != "nigelhorne/App-Test-Generator" ]; then
-            cpanm -iqn App::Test::Generator
+            cpanm -iqn Data::Random App::Test::Generator
           fi
 
       - name: Generate the mutants
