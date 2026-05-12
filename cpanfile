@@ -3,6 +3,7 @@
 requires 'perl', '5.010';
 
 requires 'IO::Socket::INET';
+requires 'IPC::System::Simple';
 requires 'MIME::Base64';
 requires 'MIME::QuotedPrint';
 requires 'Object::Configure';

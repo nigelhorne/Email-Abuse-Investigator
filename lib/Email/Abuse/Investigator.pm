@@ -4305,6 +4305,8 @@ connections when that module is installed.
 
 =over 4
 
+=item * L<Test Dashboard|https://nigelhorne.github.io/Email-Abuse-Investigator/coverage/>
+
 =item * L<ARIN RDAP|https://rdap.arin.net/>
 
 =item * L<Net::DNS>, L<LWP::UserAgent>, L<HTML::LinkExtor>
@@ -4321,7 +4323,7 @@ L<https://github.com/nigelhorne/Email-Abuse-Investigator>
 
 This module is provided as-is without any warranty.
 
-Please report any bugs or feature requests to C<bug-cgi-info at rt.cpan.org>,
+Please report any bugs or feature requests to C<bug-email-abuse-investigator at rt.cpan.org>,
 or through the web interface at
 L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Email-Abuse-Investigator>.
 I will be notified, and then you'll

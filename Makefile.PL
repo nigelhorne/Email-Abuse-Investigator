@@ -30,6 +30,7 @@ WriteMakefile(
 		'IO::Socket::INET' => 0,
 		'MIME::QuotedPrint' => 0,
 		'MIME::Base64' => 0,
+		'IPC::System::Simple' => 0,
 		'Object::Configure' => 0,
 		'Params::Get' => 0,
 		'Params::Validate::Strict' => 0,
