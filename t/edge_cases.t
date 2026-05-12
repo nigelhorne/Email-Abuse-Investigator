@@ -2,21 +2,6 @@
 # =============================================================================
 # t/edge-cases.t  -- Destructive, pathological and boundary-condition tests
 #					for Email::Abuse::Investigator
-#
-# Philosophy
-# ----------
-# Every test here probes a specific boundary, limit, degenerate input, or
-# adversarial condition.  Tests are grouped by the module component they
-# stress.  The goal is to prove the module does not die, corrupt internal
-# state, produce wrong results, or behave non-deterministically when fed
-# malformed, extreme, or deliberately crafted input.
-#
-# No real network I/O is performed.  Private methods are called directly
-# where necessary to reach code paths that the public API cannot exercise
-# without live DNS/WHOIS.
-#
-# Run:
-#   prove -lv t/edge-cases.t
 # =============================================================================
 
 use strict;
@@ -32,9 +17,6 @@ use FindBin qw( $Bin );
 use lib "$Bin/../lib", "$Bin/..";
 use_ok('Email::Abuse::Investigator');
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 my %_ORIG;
 BEGIN {
 	for my $fn (qw(_reverse_dns _resolve_host _whois_ip
@@ -60,15 +42,6 @@ sub restore_net {
 	}
 }
 
-# lives_ok: succeeds if the code block does not throw an exception
-# sub lives_ok (&;$) {
-	# my ($code, $name) = @_;
-	# my $ok = eval { $code->(); 1 };
-	# ok $ok, $name // 'lives';
-	# diag "Exception: $@" if !$ok && $@;
-	# return $ok;
-# }
-
 sub bare_email {
 	my ($hdrs, $body) = @_;
 	$body //= 'body';
@@ -81,14 +54,12 @@ sub bare_email {
 
 subtest 'new() -- timeout=>0 stored correctly (// not ||)' => sub {
 	restore_net();
-	# // treats only undef as false, so 0 is stored as-is
 	my $a = new_ok('Email::Abuse::Investigator', [timeout => 0]);
 	is $a->{timeout}, 0, 'timeout=>0 stored correctly via // operator';
 };
 
 subtest 'new() -- unknown options silently ignored' => sub {
 	restore_net();
-
 	dies_ok { my $a = Email::Abuse::Investigator->new(no_such_option => 42) } 'unknown constructor option dies';
 };
 
@@ -98,7 +69,6 @@ subtest 'new() -- verbose flag only enables debug, does not alter analysis' => s
 	my $noisy   = new_ok('Email::Abuse::Investigator', [verbose => 1]);
 	my $raw = "Received: from h [91.198.174.1] by mx\nFrom: x\@y.com\n\nbody";
 	$silent->parse_email($raw);
-	# Capture STDERR from the verbose object
 	open my $save, '>&', \*STDERR or die $!;
 	close STDERR; open STDERR, '>>', \my $captured or die $!;
 	$noisy->parse_email($raw);
@@ -249,13 +219,12 @@ subtest 'Received: -- 0.0.0.0 excluded as this-network address' => sub {
 	restore_net();
 };
 
-subtest 'Received: -- 255.255.255.255 excluded as broadcast (qr/^255./ range)' => sub {
+subtest 'Received: -- 255.255.255.255 excluded as broadcast' => sub {
 	null_net();
 	my $a = new_ok('Email::Abuse::Investigator');
 	$a->parse_email(bare_email(
 		"Received: from bc [255.255.255.255] by mx\nFrom: x\@y.com\n"));
-	my $orig = $a->originating_ip();
-	is $orig, undef,
+	is $a->originating_ip(), undef,
 		'255.255.255.255 excluded by qr/^255./ PRIVATE_RANGES entry';
 	restore_net();
 };
@@ -653,7 +622,6 @@ subtest 'mailto_domains -- 200 distinct domains all extracted' => sub {
 	null_net();
 	my $a = new_ok('Email::Abuse::Investigator');
 	my $body = join ' ', map { "info\@domain$_.example" } 1..200;
-	# Use domain1.example in From/Return-Path so they don't add an extra domain
 	$a->parse_email("From: x\@domain1.example\nReturn-Path: <x\@domain1.example>\n\n$body");
 	my @d;
 	lives_ok { @d = $a->mailto_domains() }
@@ -686,14 +654,13 @@ subtest 'mailto_domains -- domain object not mutated by abuse_contacts()' => sub
 		domain	=> 'test.example',
 		source	=> 'body',
 		mx_abuse  => 'abuse@mx.example',
-		mx_host   => undef,   # deliberately undef
+		mx_host   => undef,
 		mx_ip	 => undef,
 		mx_org	=> undef,
 	}];
 	my @before = map { +{ %$_ } } @{ $a->{_mailto_domains} };
 	$a->abuse_contacts();
 	my @after = @{ $a->{_mailto_domains} };
-	# The mx_host/ip/org should NOT have been mutated by abuse_contacts()
 	is $after[0]{mx_host}, $before[0]{mx_host},
 		'abuse_contacts() does not mutate mx_host in domain hashref';
 	is $after[0]{mx_ip},   $before[0]{mx_ip},
@@ -735,7 +702,7 @@ subtest '_registrable -- non-ccTLD-pair two-char TLD' => sub {
 # 12. risk_assessment -- SCORE THRESHOLD BOUNDARIES
 # =============================================================================
 
-subtest 'risk_assessment -- score >= 9 is HIGH (three spf/dkim/dmarc fail)' => sub {
+subtest 'risk_assessment -- score >= 9 is HIGH' => sub {
 	null_net();
 	my $a = new_ok('Email::Abuse::Investigator');
 	$a->parse_email(
@@ -755,11 +722,9 @@ subtest 'risk_assessment -- score 5..8 is MEDIUM' => sub {
 	my $a = new_ok('Email::Abuse::Investigator');
 	$a->parse_email(
 		"Received: from h (h [91.198.174.1]) by mx\n"
-	  . "From: x\@gmail.com\n"	   # free_webmail MEDIUM(2)
-	  . "Reply-To: y\@other.com\n"   # reply_to_differs MEDIUM(2)
-	  . "To: undisclosed-recipients:;\n\nbody");  # undisclosed MEDIUM(2)
-	# Pre-inject _origin with rDNS to prevent no_reverse_dns HIGH flag
-	# (which would push score to 9+ and make level HIGH not MEDIUM)
+	  . "From: x\@gmail.com\n"
+	  . "Reply-To: y\@other.com\n"
+	  . "To: undisclosed-recipients:;\n\nbody");
 	$a->{_origin} = {
 		ip=>'91.198.174.1', rdns=>'mail.isp.example', confidence=>'medium',
 		org=>'ISP', abuse=>'abuse@isp.example', note=>'', country=>undef,
@@ -993,7 +958,6 @@ subtest '_parse_whois_text -- trailing whitespace stripped from abuse email' => 
 
 subtest '_parse_whois_text -- country code normalised to uppercase' => sub {
 	my $a = new_ok('Email::Abuse::Investigator');
-	# Regex matches [A-Za-z]{2} and stores uc($1), so both cases give uppercase
 	is $a->_parse_whois_text("country: au\n")->{country}, 'AU',
 		'lowercase country code matched and normalised to uppercase';
 	is $a->_parse_whois_text("country: AU\n")->{country}, 'AU',
@@ -1087,7 +1051,6 @@ subtest 'two objects have independent state' => sub {
 	isnt $a->originating_ip()->{ip}, $b->originating_ip()->{ip},
 		'two objects have independent originating IPs';
 
-	# Mutate A's cache; B must be unaffected
 	$a->{_risk} = { level => 'MUTATED', score => 999, flags => [] };
 	my $risk_b = $b->risk_assessment();
 	isnt $risk_b->{level}, 'MUTATED',
@@ -1136,5 +1099,187 @@ subtest '_provider_abuse_for_host -- completely unknown host returns undef' => s
 	is $a->_provider_abuse_for_host('completely.unknown.example'),
 	   undef, 'unknown host returns undef';
 };
+
+
+# NEW SECTIONS: Tests for TODO-implemented features
+# =============================================================================
+
+# 19. CHI cross-message cache: graceful degradation when cache unavailable
+subtest 'CHI absent -- all methods work when class-level cache is undef' => sub {
+	no warnings qw(redefine once);
+	local *Email::Abuse::Investigator::_reverse_dns  = sub { 'mail.test.example' };
+	local *Email::Abuse::Investigator::_resolve_host = sub { '1.2.3.4' };
+	local *Email::Abuse::Investigator::_whois_ip	 = sub { { org => 'Test', abuse => 'a@b' } };
+	local *Email::Abuse::Investigator::_domain_whois = sub { undef };
+
+	# Temporarily remove the class-level cache
+	my $saved = $Email::Abuse::Investigator::_cache;
+	$Email::Abuse::Investigator::_cache = undef;
+
+	my $a = Email::Abuse::Investigator->new();
+	$a->parse_email("Received: from h [91.198.174.1] by mx\nFrom: x\@y.com\n\nbody");
+	lives_ok { $a->originating_ip() } 'originating_ip lives without CHI cache';
+	lives_ok { $a->embedded_urls()   } 'embedded_urls lives without CHI cache';
+	lives_ok { $a->risk_assessment() } 'risk_assessment lives without CHI cache';
+	lives_ok { $a->report()		  } 'report lives without CHI cache';
+
+	$Email::Abuse::Investigator::_cache = $saved;
+	restore_net();
+};
+
+# 20. IPv6 private range coverage
+subtest '_is_private -- full IPv6 private range coverage' => sub {
+	my $a = new_ok('Email::Abuse::Investigator');
+	ok  $a->_is_private('2001:db8::1'),		  '2001:db8::1 documentation range (private)';
+	ok  $a->_is_private('2001:db8:ffff::1'),	  '2001:db8:ffff:: documentation range (private)';
+	ok  $a->_is_private('fe80::1'),			   'fe80::1 link-local (private)';
+	ok  $a->_is_private('fe80:0:0:0:1:2:3:4'),	'fe80:: full form (private)';
+	ok  $a->_is_private('64:ff9b::1'),			'64:ff9b:: NAT64 prefix (private)';
+	ok !$a->_is_private('2a00:1450:4001::1'),	 '2a00: Google IPv6 not private';
+	ok !$a->_is_private('2001:500:4::1'),		  '2001:500: IANA IPv6 not private';
+};
+
+subtest 'IPv6 Received: header -- originating_ip does not die' => sub {
+	null_net();
+	my $a = new_ok('Email::Abuse::Investigator');
+	lives_ok {
+		$a->parse_email(
+			"Received: from mail.example.com (mail.example.com [2001:db8::1]) by mx\n"
+		  . "From: x\@y.com\n\nbody")
+	} 'parse_email with IPv6 Received: does not die';
+	my $orig;
+	lives_ok { $orig = $a->originating_ip() }
+		'originating_ip does not die on IPv6-only Received:';
+	restore_net();
+};
+
+# 21. parse_email input sanitisation
+subtest 'parse_email -- NUL and C0 controls stripped from _raw' => sub {
+	my $a = new_ok('Email::Abuse::Investigator');
+	$a->parse_email("From: x\@y.com\n\n\x00NUL\x01SOH\x07BEL bytes");
+	ok $a->{_raw} !~ /\x00/, 'NUL (0x00) stripped';
+	ok $a->{_raw} !~ /\x01/, 'SOH (0x01) stripped';
+	ok $a->{_raw} !~ /\x07/, 'BEL (0x07) stripped';
+};
+
+subtest 'parse_email -- valid UTF-8 high bytes preserved in _raw' => sub {
+	my $a = new_ok('Email::Abuse::Investigator');
+	$a->parse_email("From: x\@y.com\n\nCaf\xC3\xA9");
+	ok $a->{_raw} =~ /\xC3\xA9/, 'UTF-8 high bytes preserved';
+};
+
+subtest 'parse_email -- DEL (0x7F) stripped from _raw' => sub {
+	my $a = new_ok('Email::Abuse::Investigator');
+	$a->parse_email("From: x\@y.com\n\ndel\x7Fchar");
+	ok $a->{_raw} !~ /\x7F/, 'DEL (0x7F) stripped';
+};
+
+# 22. _sanitise_output: full C0 control character coverage
+subtest '_sanitise_output -- all C0 controls stripped except tab/LF/CR' => sub {
+	my $fn = \&Email::Abuse::Investigator::_sanitise_output;
+	for my $byte (0x01..0x08, 0x0B, 0x0C, 0x0E..0x1F) {
+		my $result = $fn->("pre" . chr($byte) . "post");
+		is $result, 'prepost', sprintf('0x%02X stripped', $byte);
+	}
+};
+
+subtest '_sanitise_output -- tab LF CR preserved' => sub {
+	my $fn = \&Email::Abuse::Investigator::_sanitise_output;
+	is $fn->("col1\tcol2"),   "col1\tcol2",   'tab (0x09) preserved';
+	is $fn->("line1\nline2"), "line1\nline2", 'LF (0x0A) preserved';
+	is $fn->("cr\rhere"),	 "cr\rhere",	 'CR (0x0D) preserved';
+};
+
+subtest '_sanitise_output -- DEL (0x7F) stripped' => sub {
+	my $fn = \&Email::Abuse::Investigator::_sanitise_output;
+	is $fn->("del\x7Fchar"), 'delchar', 'DEL (0x7F) stripped';
+};
+
+subtest '_sanitise_output -- high bytes 0x80-0xFF preserved' => sub {
+	my $fn = \&Email::Abuse::Investigator::_sanitise_output;
+	my $high = join '', map { chr $_ } 0x80..0xFF;
+	is $fn->($high), $high, 'high bytes 0x80-0xFF preserved unchanged';
+};
+
+subtest '_sanitise_output -- undef returns empty string without dying' => sub {
+	my $fn = \&Email::Abuse::Investigator::_sanitise_output;
+	my $r;
+	lives_ok { $r = $fn->(undef) } 'undef does not die';
+	is $r, '', 'undef returns empty string';
+};
+
+# 23. _decode_multipart depth boundary (recursion guard)
+subtest '_decode_multipart -- depth threshold is exactly 20' => sub {
+	my $bnd  = 'DTEST';
+	my $body = "--$bnd\r\nContent-Type: text/plain\r\n\r\ntext\r\n--$bnd--\r\n";
+
+	# depth 19 (below limit): content processed, no carp
+	{
+		my $a = Email::Abuse::Investigator->new();
+		$a->{_body_plain} = ''; $a->{_body_html} = '';
+		my $carped = 0;
+		{ no warnings 'redefine'; local *Carp::carp = sub { $carped++ };
+		  $a->_decode_multipart($body, $bnd, 19); }
+		is $carped, 0,	'depth 19: no carp (below limit)';
+		like $a->{_body_plain}, qr/text/, 'depth 19: content processed';
+	}
+
+	# depth 20 (at limit): carp once, content NOT processed
+	{
+		my $a = Email::Abuse::Investigator->new();
+		$a->{_body_plain} = ''; $a->{_body_html} = '';
+		my $carped = 0;
+		{ no warnings 'redefine'; local *Carp::carp = sub { $carped++ };
+		  $a->_decode_multipart($body, $bnd, 20); }
+		is $carped, 1,	'depth 20: carp called exactly once (at limit)';
+		is $a->{_body_plain}, '', 'depth 20: content NOT processed';
+	}
+
+	# depth 25 (beyond limit): still one carp (immediate return)
+	{
+		my $a = Email::Abuse::Investigator->new();
+		$a->{_body_plain} = ''; $a->{_body_html} = '';
+		my $carped = 0;
+		{ no warnings 'redefine'; local *Carp::carp = sub { $carped++ };
+		  $a->_decode_multipart($body, $bnd, 25); }
+		is $carped, 1, 'depth 25: carp called once (beyond limit, immediate return)';
+	}
+};
+
+# 24. AnyEvent::DNS parallel resolver graceful degradation
+subtest '_parallel_resolve_hosts -- empty hashref does not die' => sub {
+	my $a = new_ok('Email::Abuse::Investigator');
+	lives_ok { $a->_parallel_resolve_hosts({}, {}) }
+		'_parallel_resolve_hosts({},{}) does not die';
+};
+
+subtest 'AnyEvent::DNS absent -- embedded_urls works via sequential fallback' => sub {
+	null_net();
+	no warnings 'redefine';
+	local *Email::Abuse::Investigator::_resolve_host = sub { '1.2.3.4' };
+	local *Email::Abuse::Investigator::_whois_ip	 = sub { { org=>'T', abuse=>'a@b' } };
+
+	my $a = new_ok('Email::Abuse::Investigator');
+	$a->parse_email("From: x\@y.com\n\n"
+		. 'https://anyevent-test1.example/a https://anyevent-test2.example/b');
+	my @urls;
+	lives_ok { @urls = $a->embedded_urls() }
+		'embedded_urls does not die without AnyEvent::DNS';
+	is scalar @urls, 2, 'both URLs extracted via sequential fallback';
+	restore_net();
+};
+
+# 25. IO::Socket::IP fallback
+subtest '_raw_whois -- does not die regardless of IO::Socket::IP availability' => sub {
+	# In a test environment _raw_whois will fail to connect (no live WHOIS server)
+	# but must not die; it should return undef gracefully.
+	my $a = new_ok('Email::Abuse::Investigator', [timeout => 1]);
+	my $result;
+	lives_ok { $result = $a->_raw_whois('test.example', 'whois.iana.org') }
+		'_raw_whois does not die';
+	ok !defined($result) || length($result) > 0,
+		'_raw_whois returns undef or non-empty string (network-dependent)';
+};
+
 
 done_testing();
