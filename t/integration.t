@@ -1726,6 +1726,38 @@ subtest 'Scenario 26c: Object::Configure — passthrough preserves constructor d
 	restore_stubs();
 };
 
+# =============================================================================
+# Object::Configure integration contract
+# =============================================================================
+subtest 'new() — Object::Configure::configure() is called' => sub {
+	my @calls;
+	{
+		no warnings 'redefine';
+		local *Object::Configure::configure = sub {
+			push @calls, { class => $_[0], params => $_[1] };
+			return $_[1];
+		};
+		my $a = Email::Abuse::Investigator->new(timeout => 7);
+		ok scalar @calls > 0, 'Object::Configure::configure() called during new()';
+		is $calls[0]{class}, 'Email::Abuse::Investigator',
+			'configure() receives correct class name';
+		is ref($calls[0]{params}), 'HASH', 'configure() receives hashref';
+	}
+};
+
+subtest 'new() — Object::Configure overlay takes effect' => sub {
+	{
+		no warnings 'redefine';
+		local *Object::Configure::configure = sub {
+			return { %{ $_[1] }, timeout => 42, verbose => 1 };
+		};
+		my $a = Email::Abuse::Investigator->new();
+		is $a->{timeout}, 42, 'configure() overlay applied to timeout';
+		is $a->{verbose},  1, 'configure() overlay applied to verbose';
+	}
+};
+
+
 # ---------------------------------------------------------------------------
 # Scenario 27 — CHI cross-message cache: WHOIS not repeated across objects
 #
