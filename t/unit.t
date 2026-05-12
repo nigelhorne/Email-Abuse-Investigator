@@ -13,6 +13,8 @@
 #   prove -lv t/unit.t
 # =============================================================================
 
+# Mock DNS, RDAP, and WHOIS responses to test the logic without live network calls.
+
 use strict;
 use warnings;
 
