@@ -1,5 +1,27 @@
 package Email::Abuse::Investigator;
 
+# Possible TODOs:
+
+# Replace alarm with non‑blocking I/O – Use IO::Socket::INET’s timeout and set sysread with a select loop, or switch to Net::Whois::Raw which handles timeouts better.
+
+# Add a recursion guard – Limit multipart nesting depth to, say, 20.
+
+# Use the Public Suffix List – Replace the homemade _registrable with Domain::PublicSuffix (or Mojo::DOM::PublicSuffix) for accurate domain normalisation.
+
+# Add IPv6 support – Extend regexes and DNS resolution to handle IPv6 addresses.
+
+# Allow loading %PROVIDER_ABUSE, %TRUSTED_DOMAINS, %URL_SHORTENERS from Object::Configure
+
+# Introduce cross‑message caching – Use a persistent cache (e.g., a simple %CACHE with a CLEAR method) or a caching library like CHI to avoid repeated WHOIS lookups across multiple messages processed by the same process.
+
+# Parallelise network queries – For a list of domains, use forks or AnyEvent::DNS to perform multiple DNS/WHOIS lookups concurrently, drastically reducing total time.
+
+# Add input validation and output sanitisation – Ensure that all data displayed in reports is plain text, and escape any control characters if the report may be displayed on a terminal or HTML.
+
+# Remove non‑standard dependencies – Replace Object::Configure and Params::Get with standard modules like Config::Any and Params::Validate.
+
+# Write comprehensive tests – Mock DNS, RDAP, and WHOIS responses to test the logic without live network calls.
+
 use strict;
 use warnings;
 
@@ -153,21 +175,21 @@ my @RECEIVED_IP_RE = (
 # Domains we never bother reporting on - they are the infrastructure,
 # not the criminal.
 my %TRUSTED_DOMAINS = map { $_ => 1 } qw(
-    gmail.com googlemail.com yahoo.com outlook.com hotmail.com
-    google.com microsoft.com apple.com amazon.com
-    googlegroups.com groups.google.com
-    w3.org
-    fedex.com ups.com dhl.com usps.com royalmail.com
+	gmail.com googlemail.com yahoo.com outlook.com hotmail.com
+	google.com microsoft.com apple.com amazon.com
+	googlegroups.com groups.google.com
+	w3.org
+	fedex.com ups.com dhl.com usps.com royalmail.com
 );
 
 # Known URL shortener / redirect domains — real destination is hidden
 my %URL_SHORTENERS = map { $_ => 1 } qw(
-    bit.ly      bitly.com   tinyurl.com  t.co        ow.ly
-    goo.gl      is.gd       buff.ly      ift.tt       dlvr.it
-    short.link  rebrand.ly  tiny.cc      cutt.ly      rb.gy
-    shorturl.at bl.ink      smarturl.it  yourls.org   clicky.me
-    snip.ly     adf.ly      bc.vc        lnkd.in      fb.me
-    youtu.be
+	bit.ly      bitly.com   tinyurl.com  t.co        ow.ly
+	goo.gl      is.gd       buff.ly      ift.tt       dlvr.it
+	short.link  rebrand.ly  tiny.cc      cutt.ly      rb.gy
+	shorturl.at bl.ink      smarturl.it  yourls.org   clicky.me
+	snip.ly     adf.ly      bc.vc        lnkd.in      fb.me
+	youtu.be
 );
 
 # Well-known providers: use their specific abuse address / report URL

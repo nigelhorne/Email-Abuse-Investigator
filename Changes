@@ -72,6 +72,17 @@ Revision history for Email-Abuse-Investigator
     submit_abuse_report.pl now delegates its _print_unresolved() helper
     to this method rather than reimplementing the filtering logic inline.
 
+  - Added six new constructor options to allow per-object override or
+    replacement of the three built-in lookup tables:
+    provider_abuse / replace_provider_abuse,
+    trusted_domains / replace_trusted_domains,
+    url_shorteners / replace_url_shorteners.
+    Default behaviour is merge (caller entries added on top of the
+    built-in defaults); set replace_* => 1 to discard the defaults.
+    All six options are also readable from an Object::Configure
+    configuration file.  The three tables are now stored per-object
+    so two objects with different overrides are fully independent.
+
   - Replaced alarm()-based read timeout in _raw_whois() with IO::Select
     so that WHOIS queries time out reliably on Windows and threaded Perls.
     The magic numbers 43 (WHOIS port) and 4096 (read chunk) are now
@@ -86,7 +97,8 @@ Revision history for Email-Abuse-Investigator
     the monitoring address.  In --dry-run mode the BCC address is shown
     in the output header but no mail is sent.
 
-  - When the analysis finds domains or URL hosts in the message but cannot determine
+  When the
+    analysis finds domains or URL hosts in the message but cannot determine
     an abuse contact for them, they are now listed so the user knows where
     to look for manual follow-up.  The list appears in three places: after
     the "No abuse contacts could be determined" message, at the end of
