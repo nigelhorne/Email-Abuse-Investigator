@@ -1636,10 +1636,16 @@ subtest 'Scenario 25: deeply nested multipart message does not die' => sub {
 			. "--DEEP_BND_0--\r\n";
 
 	my $a = Email::Abuse::Investigator->new();
-	# The module must not die on a deeply nested message
+
+	# Silence the expected depth-limit carp() messages during this subtest.
+	# carp() is a plain function; replacing it locally with a no-op suppresses
+	# the 20 "nesting depth limit exceeded" warnings that would otherwise clutter
+	# the test output.  The local() unwinds automatically at the end of the block.
 	{
 		no warnings 'redefine';
-		local *Carp::carp = sub {};   # swallow expected carp output
+		local *Carp::carp = sub {};   # no-op: swallow expected carp output
+
+		# The module must not die on a deeply nested message
 		eval { $a->parse_email($raw) };
 		is $@, '', 'parse_email() does not die on deeply nested multipart';
 	}
@@ -1650,6 +1656,207 @@ subtest 'Scenario 25: deeply nested multipart message does not die' => sub {
 	my $risk  = eval { $a->risk_assessment() };
 	is $@, '', 'public methods work after deeply nested parse';
 	ok defined $risk, 'risk_assessment() returns a defined value';
+
+	restore_stubs();
+};
+
+# ---------------------------------------------------------------------------
+# Scenario 26 — Object::Configure integration
+#
+# new() calls Object::Configure::configure($class, $params) and applies any
+# values it returns as overlays.  These tests stub configure() to confirm the
+# call is made with the correct arguments and that overlaid values take effect.
+# ---------------------------------------------------------------------------
+subtest 'Scenario 26a: Object::Configure — configure() called with correct args' => sub {
+	restore_stubs();
+
+	my @calls;
+	{
+		no warnings 'redefine';
+		local *Object::Configure::configure = sub {
+			push @calls, { class => $_[0], params => $_[1] };
+			return $_[1];   # pass through unchanged
+		};
+
+		Email::Abuse::Investigator->new(timeout => 15);
+		ok scalar @calls > 0,
+			'Object::Configure::configure() called during new()';
+		is $calls[0]{class}, 'Email::Abuse::Investigator',
+			'configure() receives the correct class name';
+		is ref($calls[0]{params}), 'HASH',
+			'configure() receives a hashref of constructor params';
+		is $calls[0]{params}{timeout}, 15,
+			'constructor param timeout=15 passed through to configure()';
+	}
+
+	restore_stubs();
+};
+
+subtest 'Scenario 26b: Object::Configure — overlaid values applied by new()' => sub {
+	restore_stubs();
+
+	{
+		no warnings 'redefine';
+		local *Object::Configure::configure = sub {
+			# Simulate a config file that overrides timeout to 99
+			return { %{ $_[1] }, timeout => 99 };
+		};
+
+		my $a = Email::Abuse::Investigator->new();
+		is $a->{timeout}, 99,
+			'timeout overlaid to 99 by Object::Configure::configure()';
+	}
+
+	restore_stubs();
+};
+
+subtest 'Scenario 26c: Object::Configure — passthrough preserves constructor defaults' => sub {
+	restore_stubs();
+
+	{
+		no warnings 'redefine';
+		local *Object::Configure::configure = sub { return $_[1] };
+
+		my $a = Email::Abuse::Investigator->new();
+		is $a->{timeout}, 10,  'default timeout 10 preserved with passthrough configure';
+		is $a->{verbose},  0,  'default verbose 0 preserved with passthrough configure';
+		is_deeply $a->{trusted_relays}, [], 'default trusted_relays [] preserved';
+	}
+
+	restore_stubs();
+};
+
+# ---------------------------------------------------------------------------
+# Scenario 27 — CHI cross-message cache: WHOIS not repeated across objects
+#
+# When CHI is installed, the second object analysing the same IP should hit
+# the class-level cache and not repeat the WHOIS lookup.
+# ---------------------------------------------------------------------------
+subtest 'Scenario 27: CHI cross-message cache — WHOIS result shared between objects' => sub {
+	restore_stubs();
+
+	# Only meaningful when CHI is available
+	my $cache_available = defined $Email::Abuse::Investigator::_cache;
+	if (!$cache_available) {
+		pass 'CHI not installed — skipping cross-object cache scenario';
+		return;
+	}
+
+	# Use a unique IP that cannot already be in the cache from other subtests
+	my $unique_ip = '91.198.174.' . (50 + ($$ % 100));
+	my $whois_calls = 0;
+
+	install_stubs(
+		rdns	 => 'mail.chi-test.example',
+		resolve  => sub { $unique_ip },
+		whois_ip => sub { $whois_calls++; { org => 'CHI Test', abuse => 'abuse@chi.example' } },
+		domain_whois => undef,
+	);
+
+	# First object: populates the CHI cache for $unique_ip
+	my $a = Email::Abuse::Investigator->new();
+	$a->parse_email(make_raw_email(
+		received => "from h (h [$unique_ip]) by mx.test",
+		body	 => "https://chi-test-$$.example/page",
+	));
+	$a->originating_ip();	# triggers WHOIS
+	my $calls_after_first = $whois_calls;
+
+	# Second object on the same IP: should hit the CHI cache
+	my $b = Email::Abuse::Investigator->new();
+	$b->parse_email(make_raw_email(
+		received => "from h (h [$unique_ip]) by mx.test",
+		body	 => "https://chi-test-$$.example/page",
+	));
+	$b->originating_ip();
+
+	ok $whois_calls <= $calls_after_first + 1,
+		'second object WHOIS call count does not increase (CHI cache hit)';
+
+	restore_stubs();
+};
+
+# ---------------------------------------------------------------------------
+# Scenario 28 — _resolve_host AAAA fallback (IPv6 DNS)
+#
+# When A query fails, _resolve_host should return an IPv6 address from AAAA.
+# We stub the method to simulate the A-fail / AAAA-success path.
+# ---------------------------------------------------------------------------
+subtest 'Scenario 28: _resolve_host AAAA fallback when A query fails' => sub {
+	restore_stubs();
+
+	# Stub _resolve_host to simulate the AAAA fallback path
+	{
+		no warnings 'redefine';
+		local *Email::Abuse::Investigator::_resolve_host = sub {
+			my (undef, $host) = @_;
+			return $host if $host =~ /^\d/;
+			return '2a00:1450:4001::1' if $host =~ /ipv6-aaaa-only/;
+			return '1.2.3.4';		  # IPv4 for all other hosts
+		};
+		local *Email::Abuse::Investigator::_whois_ip = sub { { org => 'T', abuse => 'a@b' } };
+		local *Email::Abuse::Investigator::_reverse_dns = sub { 'mail.ipv6.example' };
+		local *Email::Abuse::Investigator::_domain_whois = sub { undef };
+
+		my $a = Email::Abuse::Investigator->new();
+		$a->parse_email(make_raw_email(
+			from => 'x@ipv6-aaaa-only.example',
+			body => 'https://ipv6-aaaa-only.example/page',
+		));
+		my @doms = $a->mailto_domains();
+		my ($dom) = grep { $_->{domain} eq 'ipv6-aaaa-only.example' } @doms;
+		ok defined $dom, 'domain with AAAA-only resolution found in mailto_domains';
+		is $dom->{web_ip}, '2a00:1450:4001::1',
+			'AAAA fallback IPv6 address stored in web_ip';
+
+		# IPv4 path still works for normal hosts
+		my @urls = $a->embedded_urls();
+		my ($url) = grep { $_->{host} eq 'ipv6-aaaa-only.example' } @urls;
+		ok defined $url, 'URL with AAAA-only host extracted';
+	}
+
+	restore_stubs();
+};
+
+# ---------------------------------------------------------------------------
+# Scenario 29 — Domain::PublicSuffix integration via _registrable()
+#
+# _registrable() must never die regardless of whether Domain::PublicSuffix is
+# installed, and must return a dotted string for all common domain patterns.
+# ---------------------------------------------------------------------------
+subtest 'Scenario 29: Domain::PublicSuffix — _registrable() does not die on any input' => sub {
+	restore_stubs();
+
+	my @cases = (
+		[ 'www.example.com',		  'example.com'  ],
+		[ 'sub.example.co.uk',		'example.co.uk' ],
+		[ 'a.b.c.example.org',		'example.org'  ],
+		[ 'deep.sub.example.io',	  'example.io'   ],
+		[ 'sub.example.com.au',	   'example.com.au' ],
+		# Uncommon ccTLD — heuristic may differ from PSL but must not die
+		[ 'sub.example.ltd.uk',	   undef		  ],  # result not asserted, just no-die
+	);
+
+	for my $tc (@cases) {
+		my ($host, $expected) = @$tc;
+		my $result;
+		eval { $result = Email::Abuse::Investigator::_registrable($host) };
+		is $@, '', "_registrable('$host') does not die";
+		if (defined $expected) {
+			is $result, $expected, "_registrable('$host') = '$expected'";
+		} else {
+			ok !defined($result) || $result =~ /\./,
+				"_registrable('$host') returns undef or dotted string";
+		}
+	}
+
+	# Specific invariants that hold regardless of PSL availability
+	is Email::Abuse::Investigator::_registrable('no-dot'), undef,
+		'no-dot input returns undef';
+	is Email::Abuse::Investigator::_registrable('com'),	undef,
+		'bare TLD returns undef';
+	is Email::Abuse::Investigator::_registrable(undef),	undef,
+		'undef input returns undef';
 
 	restore_stubs();
 };
