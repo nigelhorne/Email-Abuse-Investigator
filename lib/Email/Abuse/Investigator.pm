@@ -142,27 +142,27 @@ BEGIN {
 # -----------------------------------------------------------------------
 
 # WHOIS protocol constants
-Readonly::Scalar my $WHOIS_PORT       => 43;    # IANA-assigned WHOIS port
-Readonly::Scalar my $WHOIS_READ_CHUNK => 4096;  # bytes per sysread call
+Readonly::Scalar my $WHOIS_PORT	=> 43;	# IANA-assigned WHOIS port
+Readonly::Scalar my $WHOIS_READ_CHUNK => 4096;	# bytes per sysread call
 # Constants
 # -----------------------------------------------------------------------
 
 my @PRIVATE_RANGES = (
-    qr/^0\./,                         # 0.0.0.0/8  this-network (RFC 1122)
-    qr/^127\./,                       # 127.0.0.0/8 loopback
-    qr/^10\./,                        # 10.0.0.0/8  RFC 1918
-    qr/^192\.168\./,                 # 192.168.0.0/16 RFC 1918
-    qr/^172\.(?:1[6-9]|2\d|3[01])\./, # 172.16.0.0/12  RFC 1918
-    qr/^169\.254\./,                 # 169.254.0.0/16 link-local
-    qr/^100\.(?:6[4-9]|[7-9]\d|1(?:[01]\d|2[0-7]))\./,  # 100.64.0.0/10 shared address space (RFC 6598)
-    qr/^192\.0\.0\./,              # 192.0.0.0/24  IETF protocol (RFC 6890)
-    qr/^192\.0\.2\./,              # 192.0.2.0/24  TEST-NET-1 (RFC 5737)
-    qr/^198\.51\.100\./,           # 198.51.100.0/24 TEST-NET-2 (RFC 5737)
-    qr/^203\.0\.113\./,            # 203.0.113.0/24 TEST-NET-3 (RFC 5737)
-    qr/^255\./,                      # 255.0.0.0/8 broadcast
-    qr/^::1$/,                        # IPv6 loopback
-    qr/^fc/i,                         # IPv6 ULA fc00::/7
-    qr/^fd/i,                         # IPv6 ULA fd00::/8
+	qr/^0\./,                         # 0.0.0.0/8  this-network (RFC 1122)
+	qr/^127\./,                       # 127.0.0.0/8 loopback
+	qr/^10\./,                        # 10.0.0.0/8  RFC 1918
+	qr/^192\.168\./,                 # 192.168.0.0/16 RFC 1918
+	qr/^172\.(?:1[6-9]|2\d|3[01])\./, # 172.16.0.0/12  RFC 1918
+	qr/^169\.254\./,                 # 169.254.0.0/16 link-local
+	qr/^100\.(?:6[4-9]|[7-9]\d|1(?:[01]\d|2[0-7]))\./,  # 100.64.0.0/10 shared address space (RFC 6598)
+	qr/^192\.0\.0\./,              # 192.0.0.0/24  IETF protocol (RFC 6890)
+	qr/^192\.0\.2\./,              # 192.0.2.0/24  TEST-NET-1 (RFC 5737)
+	qr/^198\.51\.100\./,           # 198.51.100.0/24 TEST-NET-2 (RFC 5737)
+	qr/^203\.0\.113\./,            # 203.0.113.0/24 TEST-NET-3 (RFC 5737)
+	qr/^255\./,                      # 255.0.0.0/8 broadcast
+	qr/^::1$/,                        # IPv6 loopback
+	qr/^fc/i,                         # IPv6 ULA fc00::/7
+	qr/^fd/i,                         # IPv6 ULA fd00::/8
 );
 
 my @RECEIVED_IP_RE = (
@@ -5378,12 +5378,12 @@ sub _domains_from_text {
 #   of analysis.
 
 sub _analyse_domain {
-    my ($self, $domain) = @_;
-    return $self->{_domain_info}{$domain}
-        if $self->{_domain_info}{$domain};
+	my ($self, $domain) = @_;
 
-    $self->_debug("Analysing domain: $domain");
-    my %info;
+	return $self->{_domain_info}{$domain} if $self->{_domain_info}{$domain};
+
+	$self->_debug("Analysing domain: $domain");
+	my %info;
 
     # --- A record -> web hosting ---
     my $web_ip = $self->_resolve_host($domain);
@@ -5485,8 +5485,8 @@ sub _analyse_domain {
         }
     }
 
-    $self->{_domain_info}{$domain} = \%info;
-    return \%info;
+	$self->{_domain_info}{$domain} = \%info;
+	return \%info;
 }
 
 # -----------------------------------------------------------------------
@@ -5494,8 +5494,8 @@ sub _analyse_domain {
 # -----------------------------------------------------------------------
 
 sub _resolve_host {
-    my ($self, $host) = @_;
-    return $host if $host =~ /^\d{1,3}(?:\.\d{1,3}){3}$/;
+	my ($self, $host) = @_;
+	return $host if $host =~ /^\d{1,3}(?:\.\d{1,3}){3}$/;
 
     if ($HAS_NET_DNS) {
         my $res   = Net::DNS::Resolver->new(
@@ -5590,10 +5590,15 @@ sub _parse_domain_whois_abuse {
 }
 
 sub _rdap_lookup {
-    my ($self, $ip) = @_;
-    return {} unless $HAS_LWP;
-    my $ua  = LWP::UserAgent->new(timeout => $self->{timeout},
-                                  agent   => "Email-Abuse-Investigator/$VERSION");
+	my ($self, $ip) = @_;
+
+	return {} unless $HAS_LWP;
+
+	my $ua = LWP::UserAgent->new(timeout => $self->{timeout}, agent => "Email-Abuse-Investigator/$VERSION");
+
+	$ua->env_proxy(1);
+	$ua->conn_cache->total_capacity(undef);
+
     my $res = eval { $ua->get("https://rdap.arin.net/registry/ip/$ip") };
     return {} unless $res && $res->is_success;
     my $j = $res->decoded_content;
