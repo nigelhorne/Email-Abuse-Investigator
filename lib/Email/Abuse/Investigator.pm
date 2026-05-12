@@ -1,32 +1,100 @@
 package Email::Abuse::Investigator;
 
-# Possible TODOs:
-# Split the module – Separate parsing, enrichment, risk assessment, and reporting into smaller, testable classes.
-
-# Replace alarm with non‑blocking I/O – Use IO::Socket::INET’s timeout and set sysread with a select loop, or switch to Net::Whois::Raw which handles timeouts better.
-
-# Add a recursion guard – Limit multipart nesting depth to, say, 20.
-
-# Use the Public Suffix List – Replace the homemade _registrable with Domain::PublicSuffix (or Mojo::DOM::PublicSuffix) for accurate domain normalisation.
-
-# Add IPv6 support – Extend regexes and DNS resolution to handle IPv6 addresses.
-
-# Allow loading %PROVIDER_ABUSE, %TRUSTED_DOMAINS, %URL_SHORTENERS from Object::Configure
-
-# Introduce cross‑message caching – Use a persistent cache (e.g., a simple %CACHE with a CLEAR method) or a caching library like CHI to avoid repeated WHOIS lookups across multiple messages processed by the same process.
-
-# Parallelise network queries – For a list of domains, use forks or AnyEvent::DNS to perform multiple DNS/WHOIS lookups concurrently, drastically reducing total time.
-
-# Add input validation and output sanitisation – Ensure that all data displayed in reports is plain text, and escape any control characters if the report may be displayed on a terminal or HTML.
-
-# Remove non‑standard dependencies – Replace Object::Configure and Params::Get with standard modules like Config::Any and Params::Validate.
-
-# Write comprehensive tests – Mock DNS, RDAP, and WHOIS responses to test the logic without live network calls.
-
 use strict;
 use warnings;
 
+our $VERSION = '0.07';
+
+=encoding utf8
+
+=head1 NAME
+
+Email::Abuse::Investigator - Analyse spam email to identify originating hosts,
+hosted URLs, and suspicious domains, similar to SpamCop
+
+=head1 SYNOPSIS
+
+    use Email::Abuse::Investigator;
+
+    my $analyser = Email::Abuse::Investigator->new( verbose => 1 );
+    $analyser->parse_email($raw_email_text);
+
+    # Originating IP and its network owner
+    my $origin = $analyser->originating_ip();
+
+    # All HTTP/HTTPS URLs found in the body
+    my @urls  = $analyser->embedded_urls();
+
+    # All domains extracted from mailto: links and bare addresses in the body
+    my @mdoms = $analyser->mailto_domains();
+
+    # All domains mentioned anywhere (union of the above)
+    my @adoms = $analyser->all_domains();
+
+    # Full printable report
+    print $analyser->report();
+
+=head1 DESCRIPTION
+
+C<Email::Abuse::Investigator> examines the raw source of a spam/phishing e-mail
+and answers the questions SpamCop and manual abuse investigators ask:
+
+=over 4
+
+=item 1. Where did the message really come from?
+
+Walks the C<Received:> chain, skips private/trusted IPs, and identifies the
+first external hop.  Enriches with rDNS, WHOIS/RDAP org name and abuse
+contact.
+
+=item 2. Who hosts the advertised web sites?
+
+Extracts every C<http://> and C<https://> URL from both plain-text and HTML
+parts, resolves each hostname to an IP, and looks up the network owner.
+
+=item 3. Who owns the reply-to / contact domains?
+
+Extracts domains from C<mailto:> links, bare e-mail addresses in the body,
+the C<From:>/C<Reply-To:>/C<Sender:>/C<Return-Path:> headers, C<DKIM-Signature: d=>
+(the signing domain), C<List-Unsubscribe:> (the ESP or bulk-sender domain), and the
+C<Message-ID:> domain.  For each unique domain it gathers:
+
+=over 8
+
+=item * Domain registrar and registrant (WHOIS)
+
+=item * Web-hosting IP and network owner (A record -> RDAP)
+
+=item * Mail-hosting IP and network owner (MX record -> RDAP)
+
+=item * DNS nameserver operator (NS record -> RDAP)
+
+=item * Whether the domain was recently registered (potential flag)
+
+=back
+
+=back
+
+=head1 REQUIRED MODULES
+
+The following modules are mandatory:
+
+    Readonly::Values::Months
+    Socket              (core since Perl 5)
+    IO::Socket::INET    (core since Perl 5)
+    MIME::QuotedPrint   (core since Perl 5.8)
+    MIME::Base64        (core since Perl 5.8)
+
+The following are optional but strongly recommended:
+
+    Net::DNS            -- enables MX and NS record lookups
+    LWP::UserAgent      -- enables RDAP (faster and richer than raw WHOIS)
+    HTML::LinkExtor     -- enables structural HTML link extraction
+
+=cut
+
 use utf8;
+use IO::Select;
 use IO::Socket::INET;
 use MIME::QuotedPrint qw( decode_qp );
 use MIME::Base64 qw( decode_base64 );
@@ -51,49 +119,55 @@ BEGIN {
 # Constants
 # -----------------------------------------------------------------------
 
+# WHOIS protocol constants
+Readonly::Scalar my $WHOIS_PORT       => 43;    # IANA-assigned WHOIS port
+Readonly::Scalar my $WHOIS_READ_CHUNK => 4096;  # bytes per sysread call
+# Constants
+# -----------------------------------------------------------------------
+
 my @PRIVATE_RANGES = (
-	qr/^0\./,                         # 0.0.0.0/8  this-network (RFC 1122)
-	qr/^127\./,                       # 127.0.0.0/8 loopback
-	qr/^10\./,                        # 10.0.0.0/8  RFC 1918
-	qr/^192\.168\./,                 # 192.168.0.0/16 RFC 1918
-	qr/^172\.(?:1[6-9]|2\d|3[01])\./, # 172.16.0.0/12  RFC 1918
-	qr/^169\.254\./,                 # 169.254.0.0/16 link-local
-	qr/^100\.(?:6[4-9]|[7-9]\d|1(?:[01]\d|2[0-7]))\./,  # 100.64.0.0/10 shared address space (RFC 6598)
-	qr/^192\.0\.0\./,              # 192.0.0.0/24  IETF protocol (RFC 6890)
-	qr/^192\.0\.2\./,              # 192.0.2.0/24  TEST-NET-1 (RFC 5737)
-	qr/^198\.51\.100\./,           # 198.51.100.0/24 TEST-NET-2 (RFC 5737)
-	qr/^203\.0\.113\./,            # 203.0.113.0/24 TEST-NET-3 (RFC 5737)
-	qr/^255\./,                      # 255.0.0.0/8 broadcast
-	qr/^::1$/,                        # IPv6 loopback
-	qr/^fc/i,                         # IPv6 ULA fc00::/7
-	qr/^fd/i,                         # IPv6 ULA fd00::/8
+    qr/^0\./,                         # 0.0.0.0/8  this-network (RFC 1122)
+    qr/^127\./,                       # 127.0.0.0/8 loopback
+    qr/^10\./,                        # 10.0.0.0/8  RFC 1918
+    qr/^192\.168\./,                 # 192.168.0.0/16 RFC 1918
+    qr/^172\.(?:1[6-9]|2\d|3[01])\./, # 172.16.0.0/12  RFC 1918
+    qr/^169\.254\./,                 # 169.254.0.0/16 link-local
+    qr/^100\.(?:6[4-9]|[7-9]\d|1(?:[01]\d|2[0-7]))\./,  # 100.64.0.0/10 shared address space (RFC 6598)
+    qr/^192\.0\.0\./,              # 192.0.0.0/24  IETF protocol (RFC 6890)
+    qr/^192\.0\.2\./,              # 192.0.2.0/24  TEST-NET-1 (RFC 5737)
+    qr/^198\.51\.100\./,           # 198.51.100.0/24 TEST-NET-2 (RFC 5737)
+    qr/^203\.0\.113\./,            # 203.0.113.0/24 TEST-NET-3 (RFC 5737)
+    qr/^255\./,                      # 255.0.0.0/8 broadcast
+    qr/^::1$/,                        # IPv6 loopback
+    qr/^fc/i,                         # IPv6 ULA fc00::/7
+    qr/^fd/i,                         # IPv6 ULA fd00::/8
 );
 
 my @RECEIVED_IP_RE = (
-	qr/\[\s*([\d.]+)\s*\]/,
-	qr/\(\s*[\w.-]*\s*\[?\s*([\d.]+)\s*\]?\s*\)/,
-	qr/from\s+[\w.-]+\s+([\d.]+)/,
-	qr/([\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3})/,
+    qr/\[\s*([\d.]+)\s*\]/,
+    qr/\(\s*[\w.-]*\s*\[?\s*([\d.]+)\s*\]?\s*\)/,
+    qr/from\s+[\w.-]+\s+([\d.]+)/,
+    qr/([\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3})/,
 );
 
 # Domains we never bother reporting on - they are the infrastructure,
 # not the criminal.
 my %TRUSTED_DOMAINS = map { $_ => 1 } qw(
-	gmail.com googlemail.com yahoo.com outlook.com hotmail.com
-	google.com microsoft.com apple.com amazon.com
-	googlegroups.com groups.google.com
-	w3.org
-	fedex.com ups.com dhl.com usps.com royalmail.com
+    gmail.com googlemail.com yahoo.com outlook.com hotmail.com
+    google.com microsoft.com apple.com amazon.com
+    googlegroups.com groups.google.com
+    w3.org
+    fedex.com ups.com dhl.com usps.com royalmail.com
 );
 
 # Known URL shortener / redirect domains — real destination is hidden
 my %URL_SHORTENERS = map { $_ => 1 } qw(
-	bit.ly      bitly.com   tinyurl.com  t.co        ow.ly
-	goo.gl      is.gd       buff.ly      ift.tt       dlvr.it
-	short.link  rebrand.ly  tiny.cc      cutt.ly      rb.gy
-	shorturl.at bl.ink      smarturl.it  yourls.org   clicky.me
-	snip.ly     adf.ly      bc.vc        lnkd.in      fb.me
-	youtu.be
+    bit.ly      bitly.com   tinyurl.com  t.co        ow.ly
+    goo.gl      is.gd       buff.ly      ift.tt       dlvr.it
+    short.link  rebrand.ly  tiny.cc      cutt.ly      rb.gy
+    shorturl.at bl.ink      smarturl.it  yourls.org   clicky.me
+    snip.ly     adf.ly      bc.vc        lnkd.in      fb.me
+    youtu.be
 );
 
 # Well-known providers: use their specific abuse address / report URL
@@ -182,15 +256,16 @@ my %PROVIDER_ABUSE = (
     # Mailgun
     'mailgun.com'         => { email => 'abuse@mailgun.com',       note => 'ESP abuse' },
     'mailgun.org'         => { email => 'abuse@mailgun.com',       note => 'Mailgun sending infrastructure' },
-	# Postmark
-	'postmarkapp.com'     => { email => 'abuse@postmarkapp.com',   note => 'ESP abuse' },
-	# WordPress.com -- Automattic-hosted blogs frequently used as spam
-	# landing pages.  Subdomains (e.g. spammer.wordpress.com) are handled
-	# by subdomain stripping to wordpress.com.
-	'wordpress.com'       => { email => 'abuse@wordpress.com',     note => 'WordPress.com hosted blog -- report via https://en.wordpress.com/abuse/' },
-	'wp.com'              => { email => 'abuse@wordpress.com',     note => 'WordPress.com short domain' },
-	# Substack -- newsletter platform abused for spam and phishing content
-	'substack.com'        => { email => 'abuse@substack.com',      note => 'Substack newsletter platform abuse' },
+    # Postmark
+    'postmarkapp.com'     => { email => 'abuse@postmarkapp.com',   note => 'ESP abuse' },
+    # WordPress.com -- Automattic-hosted blogs frequently used as spam
+    # landing pages.  Subdomains (e.g. spammer.wordpress.com) are handled
+    # by subdomain stripping to wordpress.com.
+    'wordpress.com'       => { email => 'abuse@wordpress.com',     note => 'WordPress.com hosted blog -- report via https://en.wordpress.com/abuse/' },
+    'wp.com'              => { email => 'abuse@wordpress.com',     note => 'WordPress.com short domain' },
+    # Substack -- newsletter platform abused for spam and phishing content.
+    # Customer subdomains (e.g. evilnews.substack.com) strip to substack.com.
+    'substack.com'        => { email => 'abuse@substack.com',      note => 'Substack newsletter platform abuse' },
     # ActiveCampaign
     # Main sending domain plus ac-tinker.com which is used for tracking links.
     # Note: ac-tinker.com cannot be reached via subdomain stripping from
@@ -198,7 +273,7 @@ my %PROVIDER_ABUSE = (
     # must be listed explicitly.
     'activecampaign.com'  => { email => 'abuse@activecampaign.com', note => 'ActiveCampaign ESP' },
     'ac-tinker.com'       => { email => 'abuse@activecampaign.com', note => 'ActiveCampaign tracking infrastructure' },
-        # Salesforce Marketing Cloud (ExactTarget)
+    # Salesforce Marketing Cloud (ExactTarget)
     # Sending infrastructure domains follow the pattern *.mc.salesforce.com,
     # *.exacttarget.com, and customer subdomains routed through their MTAs.
     'salesforce.com'      => { email => 'abuse@salesforce.com',    note => 'Salesforce Marketing Cloud / ExactTarget ESP' },
@@ -225,6 +300,19 @@ my %PROVIDER_ABUSE = (
         form_upload => 'Take a screenshot of the report as a .png or .jpg, or export it as a .pdf.  MarkMonitor does not accept .eml files.',
         note        => 'Brand-protection registrar -- email reports not processed',
     },
+    # URL shorteners -- report to the shortener operator, not their registrar.
+    # The registrar has no visibility into or control over how the shortener
+    # service is used; only the operator can investigate and disable malicious
+    # shortened URLs.
+    'is.gd'             => { email => 'abuse@is.gd',           note => 'URL shortener -- report via https://is.gd/contact.php' },
+    'bitly.com'         => { email => 'abuse@bitly.com',        note => 'URL shortener abuse' },
+    'bit.ly'            => { email => 'abuse@bitly.com',        note => 'URL shortener abuse' },
+    'tinyurl.com'       => { email => 'abuse@tinyurl.com',      note => 'URL shortener abuse' },
+    'ow.ly'             => { email => 'abuse@hootsuite.com',    note => 'Hootsuite URL shortener' },
+    'buff.ly'           => { email => 'abuse@buffer.com',       note => 'Buffer URL shortener' },
+    'rb.gy'             => { email => 'abuse@rb.gy',            note => 'URL shortener abuse' },
+    'cutt.ly'           => { email => 'abuse@cutt.ly',          note => 'URL shortener abuse' },
+    'shorturl.at'       => { email => 'abuse@shorturl.at',      note => 'URL shortener abuse' },
     # Dynadot -- registrar that explicitly rejects email abuse reports per
     # autoresponse; web form only.
     'dynadot.com'           => {
@@ -249,101 +337,21 @@ my %PROVIDER_ABUSE = (
         form_upload => 'Attach the original spam message as an .eml file.',
         note        => 'Registrar -- email reports explicitly not accepted',
     },
-    # URL shorteners -- report to the shortener operator, not their registrar.
-    'is.gd'             => { email => 'abuse@is.gd',           note => 'URL shortener -- report via https://is.gd/contact.php' },
-    'bitly.com'         => { email => 'abuse@bitly.com',        note => 'URL shortener abuse' },
-    'bit.ly'            => { email => 'abuse@bitly.com',        note => 'URL shortener abuse' },
-    'tinyurl.com'       => { email => 'abuse@tinyurl.com',      note => 'URL shortener abuse' },
-    'ow.ly'             => { email => 'abuse@hootsuite.com',    note => 'Hootsuite URL shortener' },
-    'buff.ly'           => { email => 'abuse@buffer.com',       note => 'Buffer URL shortener' },
-    'rb.gy'             => { email => 'abuse@rb.gy',            note => 'URL shortener abuse' },
-    'cutt.ly'           => { email => 'abuse@cutt.ly',          note => 'URL shortener abuse' },
-    'shorturl.at'       => { email => 'abuse@shorturl.at',      note => 'URL shortener abuse' },
     # TPG / Internode (Australia)
     'tpgi.com.au'       => { email => 'abuse@tpg.com.au',      note => 'TPG Telecom Australia' },
     'tpg.com.au'        => { email => 'abuse@tpg.com.au',      note => 'TPG Telecom Australia' },
     'internode.on.net'  => { email => 'abuse@internode.on.net',note => 'Internode Australia' },
 );
 
-=head1 NAME
-
-Email::Abuse::Investigator - Analyse spam email to identify originating hosts,
-hosted URLs, and suspicious domains
-
-=head1 VERSION
-
-Version 0.07
-
-=cut
-
-our $VERSION = '0.07';
-
-=head1 SYNOPSIS
-
-    use Email::Abuse::Investigator;
-
-    my $analyser = Email::Abuse::Investigator->new( verbose => 1 );
-    $analyser->parse_email($raw_email_text);
-
-    # Originating IP and its network owner
-    my $origin = $analyser->originating_ip();
-
-    # All HTTP/HTTPS URLs found in the body
-    my @urls  = $analyser->embedded_urls();
-
-    # All domains extracted from mailto: links and bare addresses in the body
-    my @mdoms = $analyser->mailto_domains();
-
-    # All domains mentioned anywhere (union of the above)
-    my @adoms = $analyser->all_domains();
-
-    # Full printable report
-    print $analyser->report();
-
-=head1 DESCRIPTION
-
-C<Email::Abuse::Investigator> examines the raw source of a spam/phishing e-mail
-and answers the questions abuse investigators ask:
-
-=over 4
-
-=item 1. Where did the message really come from?
-
-Walks the C<Received:> chain, skips private/trusted IPs, and identifies the
-first external hop.  Enriches with rDNS, WHOIS/RDAP org name and abuse
-contact.
-
-=item 2. Who hosts the advertised web sites?
-
-Extracts every C<http://> and C<https://> URL from both plain-text and HTML
-parts, resolves each hostname to an IP, and looks up the network owner.
-
-=item 3. Who owns the reply-to / contact domains?
-
-Extracts domains from C<mailto:> links, bare e-mail addresses in the body,
-the C<From:>/C<Reply-To:>/C<Sender:>/C<Return-Path:> headers, C<DKIM-Signature: d=>
-(the signing domain), C<List-Unsubscribe:> (the ESP or bulk-sender domain), and the
-C<Message-ID:> domain.  For each unique domain it gathers:
-
-=over 8
-
-=item * Domain registrar and registrant (WHOIS)
-
-=item * Web-hosting IP and network owner (A record -> RDAP)
-
-=item * Mail-hosting IP and network owner (MX record -> RDAP)
-
-=item * DNS nameserver operator (NS record -> RDAP)
-
-=item * Whether the domain was recently registered (potential flag)
-
-=back
-
-=back
+# -----------------------------------------------------------------------
+# Constructor
+# -----------------------------------------------------------------------
 
 =head1 METHODS
 
 =head2 new( %options )
+
+=head3 Purpose
 
 Constructs and returns a new C<Email::Abuse::Investigator> analyser object.  The
 object is stateless until C<parse_email()> is called; all analysis results
@@ -452,10 +460,10 @@ thread or per-request.
 
 =item *
 
-The C<alarm()> mechanism used by the raw WHOIS client is not reliable on
-Windows or inside threaded Perl interpreters.  All other functionality
-works on those platforms; only WHOIS TCP connections may not respect the
-timeout on affected platforms.
+WHOIS read timeouts are implemented using C<IO::Select> rather than
+C<alarm()>, so they work correctly on Windows and inside threaded Perl
+interpreters.  The connect timeout is handled by the OS-level C<connect(2)>
+timeout via C<IO::Socket::INET>'s C<Timeout> parameter.
 
 =back
 
@@ -547,7 +555,13 @@ sub new {
 	}, $class;
 }
 
+# -----------------------------------------------------------------------
+# Public: parse
+# -----------------------------------------------------------------------
+
 =head2 parse_email( $text )
+
+=head3 Purpose
 
 Feeds a raw RFC 2822 email message to the analyser and prepares it for
 subsequent interrogation.  This is the only method that must be called
@@ -748,7 +762,13 @@ sub parse_email {
 	return $self;
 }
 
+# -----------------------------------------------------------------------
+# Public: originating host
+# -----------------------------------------------------------------------
+
 =head2 originating_ip()
+
+=head3 Purpose
 
 Identifies the IP address of the machine that originally injected the
 message into the mail system, as opposed to any intermediate relay that
@@ -791,15 +811,6 @@ return the same hashref without repeating any network I/O.
 None.  C<parse_email()> must have been called first.
 
 =head3 Returns
-
-  {
-    ip         => '209.85.218.67',
-    rdns       => 'mail-ej1-f67.google.com',
-    org        => 'Google LLC',
-    abuse      => 'network-abuse@google.com',
-    confidence => 'high',
-    note       => 'First external hop in Received: chain',
-  }
 
 On success, a hashref with the following keys (all always present):
 
@@ -1025,13 +1036,18 @@ for the unknown case: C<$orig-E<gt>{abuse} eq '(unknown)'>.
 =cut
 
 sub originating_ip {
-	my $self = $_[0];
-
-	$self->{_origin} //= $self->_find_origin();
-	return $self->{_origin};
+    my ($self) = @_;
+    $self->{_origin} //= $self->_find_origin();
+    return $self->{_origin};
 }
 
+# -----------------------------------------------------------------------
+# Public: HTTP/HTTPS URLs
+# -----------------------------------------------------------------------
+
 =head2 embedded_urls()
+
+=head3 Purpose
 
 Extracts every HTTP and HTTPS URL from the message body and enriches each
 one with the hosting IP address, network organisation name, abuse contact,
@@ -1086,14 +1102,6 @@ None.  C<parse_email()> must have been called first.
 A list (not an arrayref) of hashrefs, one per unique URL found in the body,
 in the order they were first encountered.  Returns an empty list if the body
 contains no HTTP or HTTPS URLs, or if C<parse_email()> has not been called.
-
-    {
-        url   => 'https://spamsite.example/offer',
-        host  => 'spamsite.example',
-        ip    => '198.51.100.7',
-        org   => 'Dodgy Hosting Ltd',
-        abuse => 'abuse@dodgy.example',
-    }
 
 Each hashref contains the following keys (all always present):
 
@@ -1291,13 +1299,18 @@ position it was first seen).
 =cut
 
 sub embedded_urls {
-	my $self = $_[0];
-
-	$self->{_urls} //= $self->_extract_and_resolve_urls();
-	return @{ $self->{_urls} };
+    my ($self) = @_;
+    $self->{_urls} //= $self->_extract_and_resolve_urls();
+    return @{ $self->{_urls} };
 }
 
+# -----------------------------------------------------------------------
+# Public: mailto / reply-to / from domains
+# -----------------------------------------------------------------------
+
 =head2 mailto_domains()
+
+=head3 Purpose
 
 Identifies every domain associated with the message as a contact, reply,
 or delivery address, then runs a full intelligence pipeline on each one to
@@ -1348,37 +1361,6 @@ A list (not an arrayref) of hashrefs, one per unique non-infrastructure
 domain, in the order each domain was first encountered across all sources.
 Returns an empty list if no qualifying domains are found, or if
 C<parse_email()> has not been called.
-
-    {
-        domain      => 'sminvestmentsupplychain.com',
-        source      => 'mailto in body',
-
-        # Web hosting
-        web_ip      => '104.21.30.10',
-        web_org     => 'Cloudflare Inc',
-        web_abuse   => 'abuse@cloudflare.com',
-
-        # Mail hosting (MX)
-        mx_host     => 'mail.example.com',
-        mx_ip       => '198.51.100.5',
-        mx_org      => 'Hosting Corp',
-        mx_abuse    => 'abuse@hostingcorp.example',
-
-        # DNS authority (NS)
-        ns_host     => 'ns1.example.com',
-        ns_ip       => '198.51.100.1',
-        ns_org      => 'DNS Provider Inc',
-        ns_abuse    => 'abuse@dnsprovider.example',
-
-        # Domain registration (WHOIS)
-        registrar   => 'GoDaddy.com LLC',
-        registered  => '2024-11-01',
-        expires     => '2025-11-01',
-        recently_registered => 1,   # flag: < 180 days old
-
-        # Raw domain WHOIS text (first 2 KB)
-        whois_raw   => '...',
-    }
 
 Each hashref contains the following keys.  Keys marked "(optional)" are
 absent from the hashref when the corresponding information is unavailable;
@@ -1691,13 +1673,14 @@ before truncation, so truncation does not affect the structured fields.
 =cut
 
 sub mailto_domains {
-	my $self = $_[0];
-
-	$self->{_mailto_domains} //= $self->_extract_and_analyse_domains();
-	return @{ $self->{_mailto_domains} };
+    my ($self) = @_;
+    $self->{_mailto_domains} //= $self->_extract_and_analyse_domains();
+    return @{ $self->{_mailto_domains} };
 }
 
 =head2 all_domains()
+
+=head3 Purpose
 
 Returns the union of every registrable domain seen anywhere in the message:
 URL hosts from C<embedded_urls()> and contact domains from
@@ -1877,23 +1860,26 @@ called afterwards to retrieve their full detail.
 =cut
 
 sub all_domains {
-	my $self = $_[0];
-	my %seen;
-	my @out;
-
-	for my $u ($self->embedded_urls()) {
-		my $dom = _registrable($u->{host});
-		push @out, $dom if $dom && !$seen{$dom}++;
-	}
-	for my $d ($self->mailto_domains()) {
-		# mailto_domains() stores the full domain from the address;
-		# normalise to registrable domain so sub.spamco.example and
-		# a URL at www.spamco.example both collapse to spamco.example.
-		my $dom = _registrable($d->{domain}) // $d->{domain};
-		push @out, $dom if $dom && !$seen{$dom}++;
-	}
-	return @out;
+    my ($self) = @_;
+    my %seen;
+    my @out;
+    for my $u ($self->embedded_urls()) {
+        my $dom = _registrable($u->{host});
+        push @out, $dom if $dom && !$seen{$dom}++;
+    }
+    for my $d ($self->mailto_domains()) {
+        # mailto_domains() stores the full domain from the address;
+        # normalise to registrable domain so sub.spamco.example and
+        # a URL at www.spamco.example both collapse to spamco.example.
+        my $dom = _registrable($d->{domain}) // $d->{domain};
+        push @out, $dom if $dom && !$seen{$dom}++;
+    }
+    return @out;
 }
+
+# -----------------------------------------------------------------------
+# Public: unresolved contacts
+# -----------------------------------------------------------------------
 
 =head2 unresolved_contacts()
 
@@ -1926,7 +1912,7 @@ A list of hashrefs, each with:
 =cut
 
 sub unresolved_contacts {
-	my $self = $_[0];
+    my ($self) = @_;
 
     # Build a set of domains already covered by email or form contacts
     my %covered;
@@ -1975,16 +1961,19 @@ sub unresolved_contacts {
     return @out;
 }
 
+# -----------------------------------------------------------------------
+# Public: sending software fingerprint
+# -----------------------------------------------------------------------
+
 =head2 sending_software()
+
+=head3 Purpose
 
 Returns information extracted from headers that identify the software or
 server-side infrastructure used to compose or inject the message.  These
 headers are injected by email clients, bulk-mailing libraries, and shared
 hosting control panels, and are often the most direct evidence of how the
 spam was sent and from which server.
-
-Headers examined: C<X-Mailer>, C<User-Agent>, C<X-PHP-Originating-Script>,
-C<X-Source>, C<X-Source-Args>, C<X-Source-Host>.
 
 The C<X-PHP-Originating-Script>, C<X-Source>, and C<X-Source-Host> headers
 in particular are injected automatically by many shared hosting providers
@@ -2030,12 +2019,6 @@ A list (not an arrayref) of hashrefs, one per recognised software-fingerprint
 header that was present in the message, in alphabetical order of header name.
 Returns an empty list if none of the watched headers are present, or if
 C<parse_email()> has not been called.
-
-    {
-        header => 'X-PHP-Originating-Script',
-        value  => '1000:newsletter.php',
-        note   => 'PHP script on shared hosting - report to hosting abuse team',
-    }
 
 Each hashref contains exactly three keys, all always present:
 
@@ -2206,13 +2189,17 @@ begins with C<x->.
 =cut
 
 sub sending_software {
-	my $self = $_[0];
-
-	return @{ $self->{_sending_sw} };
+    my ($self) = @_;
+    return @{ $self->{_sending_sw} };
 }
 
+# -----------------------------------------------------------------------
+# Public: per-hop tracking IDs from Received: chain
+# -----------------------------------------------------------------------
 
 =head2 received_trail()
+
+=head3 Purpose
 
 Returns the per-hop tracking data extracted from the C<Received:> header
 chain: the IP address, envelope recipient address, and server-assigned
@@ -2264,12 +2251,6 @@ is the outermost relay, the last element is the most recent hop before your
 own server).  Returns an empty list if no C<Received:> headers are present
 or none yielded any extractable data, or if C<parse_email()> has not been
 called.
-
-    (
-      { received => '...raw header...', ip => '1.2.3.4',
-        for => 'victim@example.com', id => 'ABC123' },
-      ...
-    )
 
 Each hashref contains exactly four keys:
 
@@ -2447,12 +2428,43 @@ newlines.
 =cut
 
 sub received_trail {
-	my $self = $_[0];
-
-	return @{ $self->{_rcvd_tracking} };
+    my ($self) = @_;
+    return @{ $self->{_rcvd_tracking} };
 }
 
+
+
+sub _decode_mime_words {
+    my ($self, $str) = @_;
+    return '' unless defined $str;
+    $str =~ s/=\?([^?]+)\?([BbQq])\?([^?]*)\?=/_decode_ew($1,$2,$3)/ge;
+    return $str;
+}
+
+sub _decode_ew {
+    my ($charset, $enc, $text) = @_;
+    my $raw;
+    if (uc($enc) eq 'B') {
+        $raw = decode_base64($text);
+    } else {
+        $text =~ s/_/ /g;
+        $raw  = decode_qp($text);
+    }
+    # Best-effort UTF-8; silently ignore decode errors
+    if (lc($charset) ne 'utf-8') {
+        # For non-UTF-8 charsets just return the raw bytes — good enough
+        # for display-name spoof detection which only needs ASCII matching
+    }
+    return $raw;
+}
+
+# -----------------------------------------------------------------------
+# Public: risk assessment
+# -----------------------------------------------------------------------
+
 =head2 risk_assessment()
+
+=head3 Purpose
 
 Evaluates the message against a set of heuristic checks and returns an
 overall risk level, a weighted numeric score, and a list of every specific
@@ -2505,23 +2517,6 @@ called, performing all associated network I/O.
 None.  C<parse_email()> must have been called first.
 
 =head3 Returns
-
-Returns a hashref with an overall risk level and a list of specific
-red flags found in the message:
-
-    {
-        level => 'HIGH',          # HIGH | MEDIUM | LOW | INFO
-        score => 7,               # raw weighted score
-        flags => [
-            { severity => 'HIGH',   flag => 'recently_registered_domain',
-              detail => 'firmluminary.com registered 2025-09-01 (< 180 days ago)' },
-            { severity => 'MEDIUM', flag => 'residential_sending_ip',
-              detail => 'rDNS 120-88-161-249.tpgi.com.au looks like a broadband line' },
-            { severity => 'MEDIUM', flag => 'url_shortener',
-              detail => 'bit.ly used - real destination hidden' },
-            ...
-        ],
-    }
 
 A hashref with exactly three keys, all always present:
 
@@ -2691,6 +2686,15 @@ than 7 days in the future relative to the time of analysis.  Timezone
 offsets are ignored during comparison (maximum error: approximately 14
 hours, well within the 7-day window).
 
+=item C<implausible_timezone> (MEDIUM, weight 2)
+
+The C<Date:> header contains a numeric timezone offset outside the range
+of all real and historical timezones: positive offsets beyond C<+1400>
+(Line Islands, UTC+14) or negative offsets beyond C<-1200> (Baker Island,
+UTC-12), or a minutes field of 60 or more.  Such values cannot appear in
+legitimate mail and are a reliable indicator of a machine-generated or
+forged header.
+
 =back
 
 B<Group 4 -- Header identity and consistency>:
@@ -2850,11 +2854,11 @@ C<level =E<gt> 'INFO'>, C<score =E<gt> 0>, and C<flags =E<gt> []>.
 =cut
 
 sub risk_assessment {
-	my ($self) = @_;
-	return $self->{_risk} if $self->{_risk};
+    my ($self) = @_;
+    return $self->{_risk} if $self->{_risk};
 
-	my @flags;
-	my $score = 0;
+    my @flags;
+    my $score = 0;
 
     my $flag = sub {
         my ($severity, $name, $detail) = @_;
@@ -3042,7 +3046,7 @@ sub risk_assessment {
             $self->_decode_mime_words($subj_raw) . "')");
     }
 
-	# ---- URL checks ----
+    # ---- URL checks ----
     my (%shortener_seen, %url_host_seen);
     for my $u ($self->embedded_urls()) {
         # Skip trusted infrastructure domains -- W3C namespace URLs,
@@ -3055,7 +3059,7 @@ sub risk_assessment {
         # URL shorteners
         if ($URL_SHORTENERS{$bare} && !$shortener_seen{$bare}++) {
             $flag->('MEDIUM', 'url_shortener',
-                "$u->{host} is a URL shortener - the real destination is hidden");
+                "$u->{host} is a URL shortener — the real destination is hidden");
         }
         # HTTP not HTTPS
         if ($u->{url} =~ m{^http://}i && !$url_host_seen{ $u->{host} }++) {
@@ -3104,11 +3108,86 @@ sub risk_assessment {
               : $score >= 2 ? 'LOW'
               :               'INFO';
 
-	$self->{_risk} = { level => $level, score => $score, flags => \@flags };
-	return $self->{_risk};
+    $self->{_risk} = { level => $level, score => $score, flags => \@flags };
+    return $self->{_risk};
 }
 
+sub _parse_auth_results_cached {
+    my ($self) = @_;
+    return $self->{_auth_results} if $self->{_auth_results};
+    my %auth;
+    my $raw = join('; ',
+        map { $_->{value} }
+        grep { $_->{name} eq 'authentication-results' }
+        @{ $self->{_headers} }
+    );
+    $auth{spf}   = $1 if $raw =~ /\bspf=(\S+)/i;
+    $auth{dkim}  = $1 if $raw =~ /\bdkim=(\S+)/i;
+    $auth{dmarc} = $1 if $raw =~ /\bdmarc=(\S+)/i;
+    $auth{arc}   = $1 if $raw =~ /\barc=(\S+)/i;
+    # Strip trailing punctuation captured by \S+
+    for my $k (qw(spf dkim dmarc arc)) {
+        $auth{$k} =~ s/[;,\s]+$// if defined $auth{$k};
+    }
+
+    # Extract DKIM signing domains from all DKIM-Signature: d= tags.
+    # Multiple signatures are common: the first is usually the customer
+    # domain, the second the ESP infrastructure domain (e.g. Salesforce,
+    # SendGrid).  Prefer the first domain whose registrable parent is in
+    # the provider table (it identifies the actionable ESP); fall back to
+    # the first domain found.  All domains are stored in dkim_domains (an
+    # arrayref) for use by the domain pipeline; dkim_domain holds the
+    # primary one for risk_assessment and abuse_contacts.
+    my @dkim_domains;
+    for my $h (grep { $_->{name} eq 'dkim-signature' } @{ $self->{_headers} }) {
+        if ($h->{value} =~ /\bd=([^;,\s]+)/) {
+            push @dkim_domains, lc $1;
+        }
+    }
+    if (@dkim_domains) {
+        # Prefer a domain that matches the provider table (the ESP)
+        my $preferred;
+        for my $d (@dkim_domains) {
+            if ($self->_provider_abuse_for_host($d)) {
+                $preferred = $d;
+                last;
+            }
+        }
+        $auth{dkim_domain}  = $preferred // $dkim_domains[0];
+        $auth{dkim_domains} = \@dkim_domains;
+    }
+
+    $self->{_auth_results} = \%auth;
+    return \%auth;
+}
+
+sub _registrable {
+    my ($host) = @_;
+    return undef unless $host && $host =~ /\./;
+    my @labels = split /\./, lc $host;
+    return $host if @labels <= 2;
+    if ($labels[-1] =~ /^[a-z]{2}$/ &&
+        $labels[-2] =~ /^(?:co|com|net|org|gov|edu|ac|me)$/) {
+        return join('.', @labels[-3..-1]);
+    }
+    return join('.', @labels[-2..-1]);
+}
+
+sub _country_name {
+    my ($cc) = @_;
+    my %names = ( CN => 'China', RU => 'Russia', NG => 'Nigeria',
+                  VN => 'Vietnam', IN => 'India', PK => 'Pakistan',
+                  BD => 'Bangladesh' );
+    return $names{$cc} // $cc;
+}
+
+# -----------------------------------------------------------------------
+# Public: ready-to-send abuse report text
+# -----------------------------------------------------------------------
+
 =head2 abuse_report_text()
+
+=head3 Purpose
 
 Produces a compact, plain-text string intended to be sent as the body of
 an abuse report email to an ISP or hosting provider.  It summarises the
@@ -3285,37 +3364,37 @@ header section will be blank.  The method will not die.
 =cut
 
 sub abuse_report_text {
-	my $self = $_[0];
-	my @out;
+    my ($self) = @_;
+    my @out;
 
-	push @out, "This is an automated abuse report generated by Email::Abuse::Investigator.";
-	push @out, "Please investigate the following spam/phishing message.";
-	push @out, '';
+    push @out, "This is an automated abuse report generated by Email::Abuse::Investigator.";
+    push @out, "Please investigate the following spam/phishing message.";
+    push @out, "";
 
-	my $risk = $self->risk_assessment();
-	push @out, "RISK LEVEL: $risk->{level} (score: $risk->{score})";
-	push @out, '';
+    my $risk = $self->risk_assessment();
+    push @out, "RISK LEVEL: $risk->{level} (score: $risk->{score})";
+    push @out, "";
 
     if (@{ $risk->{flags} }) {
         push @out, "RED FLAGS IDENTIFIED:";
         for my $f (@{ $risk->{flags} }) {
             push @out, "  [$f->{severity}] $f->{detail}";
         }
-        push @out, '';
+        push @out, "";
     }
 
     my $orig = $self->originating_ip();
     if ($orig) {
         push @out, "ORIGINATING IP: $orig->{ip} ($orig->{rdns})";
         push @out, "NETWORK OWNER:  $orig->{org}";
-        push @out, '';
+        push @out, "";
     }
 
     my @contacts = $self->abuse_contacts();
     if (@contacts) {
         push @out, "ABUSE CONTACTS:";
         push @out, "  $_->{address} ($_->{role})" for @contacts;
-        push @out, '';
+        push @out, "";
     }
 
     my @form_cs = $self->form_contacts();
@@ -3332,20 +3411,25 @@ sub abuse_report_text {
         push @out, "";
     }
 
-	push @out, '-' x 72;
-	push @out, 'ORIGINAL MESSAGE HEADERS:';
-	push @out, '-' x 72;
+    push @out, "-" x 72;
+    push @out, "ORIGINAL MESSAGE HEADERS:";
+    push @out, "-" x 72;
+    # Emit only the headers (not the body) to keep report concise
+    for my $h (@{ $self->{_headers} }) {
+        push @out, "$h->{name}: $h->{value}";
+    }
+    push @out, "";
 
-	# Emit only the headers (not the body) to keep report concise
-	for my $h (@{ $self->{_headers} }) {
-		push @out, "$h->{name}: $h->{value}";
-	}
-	push @out, '';
-
-	return join("\n", @out);
+    return join("\n", @out);
 }
 
+# -----------------------------------------------------------------------
+# Public: consolidated abuse contact list
+# -----------------------------------------------------------------------
+
 =head2 abuse_contacts()
+
+=head3 Purpose
 
 Collates the complete set of parties that should receive an abuse report
 for this message: the ISP that owns the sending IP, the operators of every
@@ -3399,30 +3483,6 @@ A list (not an arrayref) of hashrefs, one per unique abuse contact address,
 in the order they were first discovered.  Returns an empty list if no
 actionable abuse contacts can be determined, or if C<parse_email()> has
 not been called.
-
-Returns a de-duplicated list of hashrefs, one per party that should
-receive an abuse report, in priority order:
-
-    {
-        role    => 'Sending ISP',          # human-readable role
-        address => 'abuse@senderisp.example',
-        note    => 'IP block 120.88.0.0/14 owner',
-        via     => 'ip-whois',             # ip-whois | domain-whois | provider-table | rdap
-    }
-
-Roles produced (in order):
-
-  Sending ISP            - network owner of the originating IP
-  URL host               - network owner of each unique web-server IP
-  Mail host (MX)         - network owner of the domain's MX record IP
-  DNS host (NS)          - network owner of the authoritative NS IP
-  Domain registrar       - registrar abuse contact from domain WHOIS
-  Account provider       - e.g. Gmail / Outlook for the From:/Sender: account
-  DKIM signer            - the organisation whose key signed the message
-  ESP / bulk sender      - identified via List-Unsubscribe: domain
-
-Addresses are deduplicated so the same address never appears twice,
-even if it is discovered through multiple routes.
 
 Each hashref contains the following keys, all always present:
 
@@ -3682,8 +3742,8 @@ malformed messages.
 =cut
 
 sub abuse_contacts {
-	my $self = $_[0];
-	my (@contacts, %seen_idx);
+    my ($self) = @_;
+    my (@contacts, %seen_idx);
 
     # $add records an abuse contact.  If the address has already been seen,
     # the new role is appended to the existing entry rather than discarded.
@@ -3694,7 +3754,7 @@ sub abuse_contacts {
         my (%args) = @_;
         my $addr = lc($args{address} // '');
         return unless $addr && $addr =~ /\@/;
-	# Suppress addresses whose domain belongs to a form-only provider
+        # Suppress addresses whose domain belongs to a form-only provider
         # (a %PROVIDER_ABUSE entry that has a form key but no email key).
         # Such addresses are nominally valid but explicitly non-functional
         # per the provider's own autoresponse (e.g. MarkMonitor's
@@ -3768,18 +3828,16 @@ sub abuse_contacts {
         }
     }
 
-	# 2. URL hosts
+    # 2. URL hosts
     my (%url_host_seen);
     for my $u ($self->embedded_urls()) {
         next if $url_host_seen{ $u->{host} }++;
-
         # Skip trusted infrastructure domains -- W3C namespace/DTD URLs,
         # Google, Microsoft etc. appearing in HTML boilerplate are not
         # actionable abuse targets.
         my $bare_host = lc $u->{host};
         $bare_host =~ s/^www\.//;
         next if $TRUSTED_DOMAINS{$bare_host};
-
         my $pa = $self->_provider_abuse_for_host($u->{host});
         if ($pa) {
             $add->(role    => "URL host: $u->{host}",
@@ -3839,17 +3897,27 @@ sub abuse_contacts {
                    via     => 'ip-whois');
         }
 
-        # Domain registrar
+        # Domain registrar -- but skip when the domain appears only in
+        # spoofable sending headers (From:, Return-Path:, Sender:) and
+        # nowhere else.  Those headers are trivially forged; reporting the
+        # registrar of an innocent victim's domain is a false positive.
+        # If the same domain also appears as a URL host or in the body,
+        # the spammer controls it and the registrar contact is valid.
+        # Reply-To:, DKIM, List-Unsubscribe:, Message-ID:, and body
+        # sources all indicate deliberate spammer choice.
         if ($d->{registrar_abuse}) {
-		my $spoofable_only = $d->{source} =~ /^(?:From:|Return-Path:|Sender:) header$/ &&
-			!scalar(grep { $_->{host} && _registrable($_->{host}) eq (_registrable($dom) // $dom) } $self->embedded_urls());
-		unless ($spoofable_only) {
-			$add->(role    => "Domain registrar for $dom",
-			address => $d->{registrar_abuse},
-			note    => 'Registrar: ' . ($d->{registrar} // '(unknown)'),
-			via     => 'domain-whois');
-		}
-	}
+            my $spoofable_only =
+                $d->{source} =~ /^(?:From:|Return-Path:|Sender:) header$/ &&
+                !scalar(grep { $_->{host} &&
+                               _registrable($_->{host}) eq (_registrable($dom) // $dom)
+                             } $self->embedded_urls());
+            unless ($spoofable_only) {
+                $add->(role    => "Domain registrar for $dom",
+                       address => $d->{registrar_abuse},
+                       note    => 'Registrar: ' . ($d->{registrar} // '(unknown)'),
+                       via     => 'domain-whois');
+            }
+        }
     }
 
     # 4. From: / Reply-To: / Return-Path: / Sender: account provider
@@ -3878,14 +3946,25 @@ sub abuse_contacts {
         # Pull the domain from the right-hand side of the @ in the addr-spec.
         my ($addr_domain) = $addr_spec =~ /\@([\w.-]+)/;
         next unless $addr_domain;
-	next if $addr_spec =~ /\+SRS[0-9]?=/i;  # skip SRS-rewritten forwarder addresses
+
+        # Skip SRS-rewritten addresses (Sender Rewriting Scheme).  These are
+        # generated by mail forwarders to preserve SPF validity and take the
+        # form: localpart+SRS=hash=timestamp=orig-domain=orig-local@forwarder
+        # The forwarding domain is not responsible for the spam content and
+        # would be a false abuse target.  SRS addresses are most commonly
+        # seen in Return-Path: and Sender: headers.
+        next if $addr_spec =~ /\+SRS[0-9]?=/i;
 
         # Look up the domain (and its parents via subdomain stripping) in
         # the built-in provider table.  A hit means the account is hosted
         # by a known webmail or ESP provider we can contact directly.
-	my $pa = $self->_provider_abuse_for_host($addr_domain);
+        my $pa = $self->_provider_abuse_for_host($addr_domain);
         if ($pa) {
-            my $role_addr = $addr_spec =~ /@/ ? $addr_spec : $val;
+            # Use just the email address in the role string, not the full
+            # header value which may include a display name like
+            # "Evil Spammer <spam@gmail.com>" -- the address alone is
+            # sufficient and keeps the merged role string readable.
+            my $role_addr = $addr_spec =~ /\@/ ? $addr_spec : $val;
             $role_addr =~ s/^\s+|\s+$//g;
             $add->(role    => "Account provider ($hname: $role_addr)",
                    address => $pa->{email},
@@ -3894,7 +3973,7 @@ sub abuse_contacts {
         }
     }
 
-    # 5. DKIM signing domain
+    # 5. DKIM signing domain — the organisation that vouches for the message
     # The full domain pipeline (web/MX/NS/WHOIS) is already run on the DKIM
     # domain via mailto_domains(), so here we only need the provider-table
     # lookup for fast resolution of well-known ESPs.
@@ -3949,6 +4028,7 @@ sub abuse_contacts {
         next if $body_addr_seen{$addr_dom}++;
         my $pa = $self->_provider_abuse_for_host($addr_dom);
         next unless $pa && $pa->{email};
+        # Find the full address(es) for this domain in the body for the role string
         my ($example_addr) = $combined_body =~ /(\S+\@\Q$addr_dom\E)/i;
         $example_addr //= "\@$addr_dom";
         $add->(role    => "Reply address in body ($example_addr)",
@@ -3960,189 +4040,32 @@ sub abuse_contacts {
     return @contacts;
 }
 
-=head2 form_contacts()
-
-Returns the list of parties that require abuse reports to be submitted via
-a web form rather than (or in addition to) email.  These are providers whose
-C<%PROVIDER_ABUSE> entry has a C<form> key.  Each hashref contains the form
-URL, instructions on what to paste, instructions on what to upload (if
-applicable), the role, and the discovery note.
-
-Returns a list (not an arrayref) of hashrefs, one per unique form contact,
-in discovery order.  Returns an empty list if no form-only or form-plus-email
-contacts are found.
-
-Each hashref contains:
-
-=over 4
-
-=item C<form> (string) -- the URL of the web form
-
-=item C<role> (string) -- human-readable role, same format as C<abuse_contacts()>
-
-=item C<note> (string) -- supporting detail about the provider
-
-=item C<form_paste> (string, optional) -- what text to paste into the form
-
-=item C<form_upload> (string, optional) -- what file to attach to the form
-
-=item C<via> (string) -- always C<'provider-table'>
-
-=back
-
-=cut
-
-sub form_contacts {
-	my $self = $_[0];
-	my (@contacts, %seen);
-
-	my $add = sub {
-		my (%args) = @_;
-		my $form = $args{form} // '';
-		return unless $form;
-		return if $seen{$form}++;
-		push @contacts, \%args;
-	};
-
-	# Route 1 -- Sending ISP
-	my $orig = $self->originating_ip();
-	if ($orig) {
-		my $pa = $self->_provider_abuse_for_ip($orig->{ip}, $orig->{rdns});
-		if ($pa && $pa->{form}) {
-			$add->(
-				role        => 'Sending ISP',
-				form        => $pa->{form},
-				note        => $pa->{note} // '',
-				form_paste  => $pa->{form_paste}  // '',
-				form_upload => $pa->{form_upload} // '',
-				via         => 'provider-table',
-			);
-		}
-	}
-
-	# Route 2 -- URL hosts
-	my %url_host_seen;
-	for my $u ($self->embedded_urls()) {
-		next if $url_host_seen{ $u->{host} }++;
-		my $pa = $self->_provider_abuse_for_host($u->{host});
-		if ($pa && $pa->{form}) {
-			$add->(
-				role        => 'URL host',
-				form        => $pa->{form},
-				form_domain => $u->{host},
-				note        => $pa->{note} // '',
-				form_paste  => $pa->{form_paste}  // '',
-				form_upload => $pa->{form_upload} // '',
-				via         => 'provider-table',
-			);
-		}
-	}
-
-	# Route 3 -- Contact domains (web host + registrar)
-	for my $d ($self->mailto_domains()) {
-		my $dom = $d->{domain};
-		my $pa  = $self->_provider_abuse_for_host($dom);
-		if ($pa && $pa->{form}) {
-			$add->(
-				role        => "Web host of $dom)",
-				form        => $pa->{form},
-				form_domain => $dom,
-				note        => $pa->{note} // '',
-				form_paste  => $pa->{form_paste}  // '',
-				form_upload => $pa->{form_upload} // '',
-				via         => 'provider-table',
-			);
-		}
-		# Registrar identified via WHOIS -- check whether the registrar has
-		# a provider-table entry with a web form.  Derive the registrar's
-		# domain from the registrar_abuse email address (e.g.
-		# "abusecomplaints@markmonitor.com" -> "markmonitor.com") and look
-		# that up via _provider_abuse_for_host().  Self-extending: any new
-		# form-only registrar added to %PROVIDER_ABUSE is picked up here
-		# automatically without changing this code.
-		if ($d->{registrar_abuse} && $d->{registrar_abuse} =~ /\@([\w.-]+)/) {
-			my $reg_domain = lc $1;
-			my $rpa = $self->_provider_abuse_for_host($reg_domain);
-			if ($rpa && $rpa->{form}) {
-				$add->(
-					role        => "Domain registrar for $dom (web form only)",
-					form        => $rpa->{form},
-					form_domain => $dom,
-					note        => $rpa->{note} // '',
-					form_paste  => $rpa->{form_paste}  // '',
-					form_upload => $rpa->{form_upload} // '',
-					via         => 'provider-table',
-				);
-			}
-		}
-	}
-
-	# Route 4 -- Account provider headers
-	for my $hname (qw(from reply-to return-path sender)) {
-		my $val = $self->_header_value($hname) // next;
-		my $addr_spec = ($val =~ /<([^>]*)>\s*$/) ? $1 : $val;
-		my ($addr_domain) = $addr_spec =~ /\@([\w.-]+)/;
-		next unless $addr_domain;
-		next if $addr_spec =~ /\+SRS[0-9]?=/i;  # skip SRS-rewritten forwarder addresses
-		my $pa = $self->_provider_abuse_for_host($addr_domain);
-        if ($pa && $pa->{form}) {
-            my $role_addr = $addr_spec =~ /@/ ? $addr_spec : $val;
-            $role_addr =~ s/^\s+|\s+$//g;
-            $add->(
-                role        => "Account provider ($hname: $role_addr)",
-				form        => $pa->{form},
-				note        => $pa->{note} // '',
-				form_paste  => $pa->{form_paste}  // '',
-				form_upload => $pa->{form_upload} // '',
-				via         => 'provider-table',
-			);
-		}
-	}
-
-	# Route 5 -- DKIM signer
-	my $auth = $self->_parse_auth_results_cached();
-	if ($auth->{dkim_domain}) {
-		my $pa = $self->_provider_abuse_for_host($auth->{dkim_domain});
-		if ($pa && $pa->{form}) {
-			$add->(
-				role        => "DKIM signer: $auth->{dkim_domain}",
-				form        => $pa->{form},
-				note        => $pa->{note} // '',
-				form_paste  => $pa->{form_paste}  // '',
-				form_upload => $pa->{form_upload} // '',
-				via         => 'provider-table',
-			);
-		}
-	}
-
-	# Route 6 -- List-Unsubscribe
-	my $unsub = $self->_header_value('list-unsubscribe');
-	if ($unsub) {
-		my @unsub_domains;
-		while ($unsub =~ m{https?://([^/:?\s>]+)}gi) { push @unsub_domains, lc $1 }
-		while ($unsub =~ m{mailto:[^@\s>]+\@([\w.-]+)}gi) { push @unsub_domains, lc $1 }
-		my %useen;
-		for my $dom (grep { !$useen{$_}++ } @unsub_domains) {
-			my $pa = $self->_provider_abuse_for_host($dom);
-			if ($pa && $pa->{form}) {
-				$add->(
-					role        => "ESP / bulk sender (List-Unsubscribe: $dom)",
-					form        => $pa->{form},
-					note        => $pa->{note} // '',
-					form_paste  => $pa->{form_paste}  // '',
-					form_upload => $pa->{form_upload} // '',
-					via         => 'provider-table',
-				);
-			}
-		}
-	}
-
-	return @contacts;
+# Look up provider abuse contact by plain domain name
+sub _provider_abuse_for_host {
+    my ($self, $host) = @_;
+    $host = lc $host;
+    # Try exact match, then strip successive subdomains
+    while ($host =~ /\./) {
+        return $PROVIDER_ABUSE{$host} if $PROVIDER_ABUSE{$host};
+        $host =~ s/^[^.]+\.//;
+    }
+    return undef;
 }
+
+# Look up provider abuse contact by IP and/or rDNS hostname
+sub _provider_abuse_for_ip {
+    my ($self, $ip, $rdns) = @_;
+    return $self->_provider_abuse_for_host($rdns) if $rdns;
+    return undef;
+}
+
+# -----------------------------------------------------------------------
+# Public: report
+# -----------------------------------------------------------------------
 
 =head2 report()
 
-Returns a formatted plain-text abuse report.
+=head3 Purpose
 
 Produces a comprehensive, analyst-facing plain-text report covering all
 findings from every analysis method.  It is the single-document summary
@@ -4192,7 +4115,9 @@ this fixed order:
 
 =item 1. Banner
 
+    ========================================================================
       Email::Abuse::Investigator Report  (vX.XX)
+    ========================================================================
 
 A row of 72 equals signs, the module name and version number, and a
 closing row of 72 equals signs.
@@ -4401,14 +4326,194 @@ at the time C<report()> is called.
 
 =cut
 
-sub report {
-	my $self = $_[0];
-	my @out;
+=head2 form_contacts()
 
-	push @out, '=' x 72;
-	push @out, "  Email::Abuse::Investigator Report  (v$VERSION)";
-	push @out, '=' x 72;
-	push @out, '';
+Returns the list of parties that require abuse reports to be submitted via
+a web form rather than (or in addition to) email.  These are providers whose
+C<%PROVIDER_ABUSE> entry has a C<form> key.  Each hashref contains the form
+URL, instructions on what to paste, instructions on what to upload (if
+applicable), the role, and the discovery note.
+
+Returns a list (not an arrayref) of hashrefs, one per unique form contact,
+in discovery order.  Returns an empty list if no form-only or form-plus-email
+contacts are found.
+
+Each hashref contains:
+
+=over 4
+
+=item C<form> (string) -- the URL of the web form
+
+=item C<role> (string) -- human-readable role, same format as C<abuse_contacts()>
+
+=item C<note> (string) -- supporting detail about the provider
+
+=item C<form_paste> (string, optional) -- what text to paste into the form
+
+=item C<form_upload> (string, optional) -- what file to attach to the form
+
+=item C<via> (string) -- always C<'provider-table'>
+
+=back
+
+=cut
+
+sub form_contacts {
+	my ($self) = @_;
+	my (@contacts, %seen);
+
+	my $add = sub {
+		my (%args) = @_;
+		my $form = $args{form} // '';
+		return unless $form;
+		return if $seen{$form}++;
+		push @contacts, \%args;
+	};
+
+	# Route 1 -- Sending ISP
+	my $orig = $self->originating_ip();
+	if ($orig) {
+		my $pa = $self->_provider_abuse_for_ip($orig->{ip}, $orig->{rdns});
+		if ($pa && $pa->{form}) {
+			$add->(
+				role        => 'Sending ISP',
+				form        => $pa->{form},
+				note        => $pa->{note} // '',
+				form_paste  => $pa->{form_paste}  // '',
+				form_upload => $pa->{form_upload} // '',
+				via         => 'provider-table',
+			);
+		}
+	}
+
+	# Route 2 -- URL hosts
+	my %url_host_seen;
+	for my $u ($self->embedded_urls()) {
+		next if $url_host_seen{ $u->{host} }++;
+		my $pa = $self->_provider_abuse_for_host($u->{host});
+		if ($pa && $pa->{form}) {
+			$add->(
+				role        => "URL host: $u->{host}",
+				form        => $pa->{form},
+				form_domain => $u->{host},
+				note        => $pa->{note} // '',
+				form_paste  => $pa->{form_paste}  // '',
+				form_upload => $pa->{form_upload} // '',
+				via         => 'provider-table',
+			);
+		}
+	}
+
+	# Route 3 -- Contact domains (web host + registrar)
+	for my $d ($self->mailto_domains()) {
+		my $dom = $d->{domain};
+		my $pa  = $self->_provider_abuse_for_host($dom);
+		if ($pa && $pa->{form}) {
+			$add->(
+				role        => "Web host of $dom",
+				form        => $pa->{form},
+				form_domain => $dom,
+				note        => $pa->{note} // '',
+				form_paste  => $pa->{form_paste}  // '',
+				form_upload => $pa->{form_upload} // '',
+				via         => 'provider-table',
+			);
+		}
+		# Registrar identified via WHOIS -- check whether the registrar has
+		# a provider-table entry with a web form.  Derive the registrar's
+		# domain from the registrar_abuse email address (e.g.
+		# "abusecomplaints@markmonitor.com" -> "markmonitor.com") and look
+		# that up via _provider_abuse_for_host().  Self-extending: any new
+		# form-only registrar added to %PROVIDER_ABUSE is picked up here
+		# automatically without changing this code.
+		if ($d->{registrar_abuse} && $d->{registrar_abuse} =~ /\@([\w.-]+)/) {
+			my $reg_domain = lc $1;
+			my $rpa = $self->_provider_abuse_for_host($reg_domain);
+			if ($rpa && $rpa->{form}) {
+				$add->(
+					role        => "Domain registrar for $dom (web form only)",
+					form        => $rpa->{form},
+					form_domain => $dom,
+					note        => $rpa->{note} // '',
+					form_paste  => $rpa->{form_paste}  // '',
+					form_upload => $rpa->{form_upload} // '',
+					via         => 'provider-table',
+				);
+			}
+		}
+	}
+
+	# Route 4 -- Account provider headers
+	for my $hname (qw(from reply-to return-path sender)) {
+		my $val = $self->_header_value($hname) // next;
+		my $addr_spec = ($val =~ /<([^>]*)>\s*$/) ? $1 : $val;
+		my ($addr_domain) = $addr_spec =~ /\@([\w.-]+)/;
+		next unless $addr_domain;
+		next if $addr_spec =~ /\+SRS[0-9]?=/i;  # skip SRS-rewritten forwarder addresses
+		my $pa = $self->_provider_abuse_for_host($addr_domain);
+		if ($pa && $pa->{form}) {
+			my $role_addr = $addr_spec =~ /@/ ? $addr_spec : $val;
+			$role_addr =~ s/^\s+|\s+$//g;
+			$add->(
+				role        => "Account provider ($hname: $role_addr)",
+				form        => $pa->{form},
+				note        => $pa->{note} // '',
+				form_paste  => $pa->{form_paste}  // '',
+				form_upload => $pa->{form_upload} // '',
+				via         => 'provider-table',
+			);
+		}
+	}
+
+	# Route 5 -- DKIM signer
+	my $auth = $self->_parse_auth_results_cached();
+	if ($auth->{dkim_domain}) {
+		my $pa = $self->_provider_abuse_for_host($auth->{dkim_domain});
+		if ($pa && $pa->{form}) {
+			$add->(
+				role        => "DKIM signer: $auth->{dkim_domain}",
+				form        => $pa->{form},
+				note        => $pa->{note} // '',
+				form_paste  => $pa->{form_paste}  // '',
+				form_upload => $pa->{form_upload} // '',
+				via         => 'provider-table',
+			);
+		}
+	}
+
+	# Route 6 -- List-Unsubscribe
+	my $unsub = $self->_header_value('list-unsubscribe');
+	if ($unsub) {
+		my @unsub_domains;
+		while ($unsub =~ m{https?://([^/:?\s>]+)}gi) { push @unsub_domains, lc $1 }
+		while ($unsub =~ m{mailto:[^@\s>]+\@([\w.-]+)}gi) { push @unsub_domains, lc $1 }
+		my %useen;
+		for my $dom (grep { !$useen{$_}++ } @unsub_domains) {
+			my $pa = $self->_provider_abuse_for_host($dom);
+			if ($pa && $pa->{form}) {
+				$add->(
+					role        => "ESP / bulk sender (List-Unsubscribe: $dom)",
+					form        => $pa->{form},
+					note        => $pa->{note} // '',
+					form_paste  => $pa->{form_paste}  // '',
+					form_upload => $pa->{form_upload} // '',
+					via         => 'provider-table',
+				);
+			}
+		}
+	}
+
+	return @contacts;
+}
+
+sub report {
+    my ($self) = @_;
+    my @out;
+
+    push @out, "=" x 72;
+    push @out, "  Email::Abuse::Investigator Report  (v$VERSION)";
+    push @out, "=" x 72;
+    push @out, "";
 
     # ---- envelope summary ----
     for my $f (qw(from reply-to return-path subject date message-id)) {
@@ -4419,7 +4524,7 @@ sub report {
         push @out, sprintf("  %-14s : %s", $label,
             $decoded ne $v ? "$decoded  [encoded: $v]" : $v);
     }
-    push @out, '';
+    push @out, "";
 
     # ---- risk assessment ----
     my $risk = $self->risk_assessment();
@@ -4431,7 +4536,7 @@ sub report {
     } else {
         push @out, "  (no specific red flags detected)";
     }
-    push @out, '';
+    push @out, "";
 
     # ---- originating host ----
     push @out, "[ ORIGINATING HOST ]";
@@ -4447,7 +4552,7 @@ sub report {
     } else {
         push @out, "  (could not determine originating IP)";
     }
-    push @out, '';
+    push @out, "";
 
     # ---- Sending software / infrastructure clues ----
     my @sw = $self->sending_software();
@@ -4456,7 +4561,7 @@ sub report {
         for my $s (@sw) {
             push @out, sprintf("  %-14s : %s", $s->{header}, $s->{value});
             push @out, "  Note           : $s->{note}";
-            push @out, '';
+            push @out, "";
         }
     }
 
@@ -4466,12 +4571,12 @@ sub report {
     if (@trail) {
         push @out, "[ RECEIVED CHAIN TRACKING IDs ]";
         push @out, "  (Supply these to the relevant ISP abuse team to trace the session)";
-        push @out, '';
+        push @out, "";
         for my $hop (@trail) {
             push @out, "  IP           : " . ($hop->{ip} // '(unknown)');
             push @out, "  Envelope for : $hop->{for}" if $hop->{for};
             push @out, "  Server ID    : $hop->{id}"  if $hop->{id};
-            push @out, '';
+            push @out, "";
         }
     }
 
@@ -4509,11 +4614,11 @@ sub report {
                 push @out, "  URLs (" . scalar(@paths) . ")     :";
                 push @out, "    $_" for @paths;
             }
-            push @out, '';
+            push @out, "";
         }
     } else {
         push @out, "  (none found)";
-        push @out, '';
+        push @out, "";
     }
 
     # ---- contact / reply domains ----
@@ -4556,11 +4661,11 @@ sub report {
                 push @out, "  NS abuse     : $d->{ns_abuse}" if $d->{ns_abuse};
             }
 
-            push @out, '';
+            push @out, "";
         }
     } else {
         push @out, "  (none found)";
-        push @out, '';
+        push @out, "";
     }
 
     # ---- Abuse contacts summary ----
@@ -4572,11 +4677,11 @@ sub report {
             push @out, "  Send to      : $c->{address}";
             push @out, "  Note         : $c->{note}" if $c->{note};
             push @out, "  Discovered   : $c->{via}";
-            push @out, '';
+            push @out, "";
         }
     } else {
-        push @out, '  (no abuse contacts could be determined)';
-        push @out, '';
+        push @out, "  (no abuse contacts could be determined)";
+        push @out, "";
     }
 
     # ---- Web-form contacts (providers that do not accept email) ----
@@ -4592,6 +4697,7 @@ sub report {
             push @out, "  Domain/URL   : $c->{form_domain}" if $c->{form_domain};
             push @out, "  Note         : $c->{note}" if $c->{note};
             if ($c->{form_paste}) {
+                # Word-wrap the paste hint at 66 chars so it fits the 72-char column
                 my $hint = $c->{form_paste};
                 my @words = split /\s+/, $hint;
                 my (@lines, $line);
@@ -4612,9 +4718,13 @@ sub report {
         }
     }
 
-	push @out, '=' x 72;
-	return join("\n", @out) . "\n";
+    push @out, "=" x 72;
+    return join("\n", @out) . "\n";
 }
+
+# -----------------------------------------------------------------------
+# Private: message parsing
+# -----------------------------------------------------------------------
 
 # _split_message( $text )
 #
@@ -4706,8 +4816,8 @@ sub _split_message {
 
     # ---- Sending software fingerprints ----
     my %sw_notes = (
-        'x-php-originating-script' => 'PHP script on shared hosting - report to hosting abuse team',
-        'x-source'                 => 'Source file on shared hosting - report to hosting abuse team',
+        'x-php-originating-script' => 'PHP script on shared hosting — report to hosting abuse team',
+        'x-source'                 => 'Source file on shared hosting — report to hosting abuse team',
         'x-source-host'            => 'Sending hostname injected by shared hosting provider',
         'x-source-args'            => 'Command-line args injected by shared hosting provider',
         'x-mailer'                 => 'Email client or bulk-mailer identifier',
@@ -4793,17 +4903,20 @@ sub _decode_multipart {
 }
 
 sub _decode_body {
-	my ($self, $body, $cte) = @_;
-
-	$cte //= '';
-
-	return decode_qp($body)     if $cte =~ /quoted-printable/i;
-	return decode_base64($body) if $cte =~ /base64/i;
-	return $body;
+    my ($self, $body, $cte) = @_;
+    $cte //= '';
+    return decode_qp($body)     if $cte =~ /quoted-printable/i;
+    return decode_base64($body) if $cte =~ /base64/i;
+    return $body;
 }
+
+# -----------------------------------------------------------------------
+# Private: Received-chain -> originating IP
+# -----------------------------------------------------------------------
 
 # _find_origin()
 #
+# Purpose:
 #   Identifies the IP address of the machine that originally injected the
 #   message into the public mail system by walking the Received: chain and
 #   discarding every hop that belongs to private, reserved, or
@@ -4858,15 +4971,15 @@ sub _decode_body {
 #   dotted-quad IPv4 addresses are considered.
 
 sub _find_origin {
-	my $self = $_[0];
-	my @candidates;
+    my ($self) = @_;
+    my @candidates;
 
-	for my $hdr (reverse @{ $self->{_received} }) {
-		my $ip = $self->_extract_ip_from_received($hdr) // next;
-		next if $self->_is_private($ip);
-		next if $self->_is_trusted($ip);
-		push @candidates, $ip;
-	}
+    for my $hdr (reverse @{ $self->{_received} }) {
+        my $ip = $self->_extract_ip_from_received($hdr) // next;
+        next if $self->_is_private($ip);
+        next if $self->_is_trusted($ip);
+        push @candidates, $ip;
+    }
 
     unless (@candidates) {
         my $xoip = $self->_header_value('x-originating-ip');
@@ -4903,7 +5016,9 @@ sub _extract_ip_from_received {
 # only RFC 1918, loopback, and link-local.  We additionally need to exclude
 # CGN (100.64.0.0/10, RFC 6598), the three RFC 5737 documentation ranges,
 # 0.0.0.0/8, broadcast, and IPv6 ULA -- all of which appear in real or test
-# Received: headers and must not be reported as origins.
+# Received: headers and must not be reported as origins.  Using our own
+# @PRIVATE_RANGES keeps the complete exclusion list visible in one place
+# without adding a non-core CPAN dependency.
 sub _is_private {
     my ($self, $ip) = @_;
     return 1 unless defined $ip && $ip ne '';
@@ -4918,6 +5033,10 @@ sub _is_trusted {
     }
     return 0;
 }
+
+# -----------------------------------------------------------------------
+# Private: HTTP/HTTPS URL extraction
+# -----------------------------------------------------------------------
 
 sub _extract_and_resolve_urls {
     my ($self) = @_;
@@ -4936,10 +5055,11 @@ sub _extract_and_resolve_urls {
             my $whois = $ip ne '(unresolved)' ? $self->_whois_ip($ip) : {};
 
             # If IP resolution failed or WHOIS returned nothing useful,
-            # fall back to a domain WHOIS lookup on the registrable parent.
-            # This recovers the registrar abuse contact for URL hosts that
-            # are unreachable at analysis time (e.g. freshly-registered
-            # spam domains, or hosts behind protocol-relative URLs).
+            # fall back to a lightweight domain WHOIS lookup on the
+            # registrable parent to recover the registrar abuse contact.
+            # This avoids the full _analyse_domain() pipeline (which would
+            # call _whois_ip() again and break the one-call-per-host cache
+            # contract tested by the unit tests).
             if (!$whois->{abuse}) {
                 my $reg = _registrable($host) // $host;
                 my $dw  = $self->_parse_domain_whois_abuse($reg);
@@ -5003,10 +5123,14 @@ sub _extract_http_urls {
 	return @all;
 }
 
+# -----------------------------------------------------------------------
+# Private: domain extraction and full analysis
+# -----------------------------------------------------------------------
+
 sub _extract_and_analyse_domains {
-	my $self = $_[0];
-	my %seen;
-	my @domains_with_source;
+    my ($self) = @_;
+    my %seen;
+    my @domains_with_source;
 
     # Build a set of recipient domains to exclude from analysis.
     # The To: and Cc: headers identify the message recipients -- the victims,
@@ -5041,15 +5165,13 @@ sub _extract_and_analyse_domains {
         return if $TRUSTED_DOMAINS{$dom};
         return if $recipient_domains{$dom};
         return if $recipient_domains{ _registrable($dom) // $dom };
-
-	# Discard non-routable hostnames: single-label names (no dot),
-	# .local / .internal / .lan / .arpa pseudo-TLDs, and anything
-	# without at least one alphabetic-only TLD of 2+ characters.
-	# These are MTA-internal identifiers that have no WHOIS record
-	# and no actionable abuse contact (e.g. iad4s13mta756.xt.local).
-	return unless $dom =~ /\.[a-zA-Z]{2,}$/;
-	return if $dom =~ /\.(?:local|internal|lan|localdomain|arpa)$/i;
-
+        # Discard non-routable hostnames: single-label names (no dot),
+        # .local / .internal / .lan / .arpa pseudo-TLDs, and anything
+        # without at least one alphabetic-only TLD of 2+ characters.
+        # These are MTA-internal identifiers that have no WHOIS record
+        # and no actionable abuse contact (e.g. iad4s13mta756.xt.local).
+        return unless $dom =~ /\.[a-zA-Z]{2,}$/;
+        return if $dom =~ /\.(?:local|internal|lan|localdomain|arpa)$/i;
         return if $seen{$dom}++;
         push @domains_with_source, { domain => $dom, source => $source };
     };
@@ -5079,12 +5201,12 @@ sub _extract_and_analyse_domains {
             unless $TRUSTED_DOMAINS{$mid_dom} || $TRUSTED_DOMAINS{$mid_reg};
     }
 
-	# DKIM signing domain(s) -- the organisation(s) that vouch for the message.
-	# All d= domains are recorded; dkim_domain is the preferred (ESP) one.
-	my $auth = $self->_parse_auth_results_cached();
-	for my $dkim_d (@{ $auth->{dkim_domains} // [] }) {
-		$record->($dkim_d, 'DKIM-Signature: d= (signing domain)');
-	}
+    # DKIM signing domain(s) — the organisation(s) that vouch for the message.
+    # All d= domains are recorded; dkim_domain is the preferred (ESP) one.
+    my $auth = $self->_parse_auth_results_cached();
+    for my $dkim_d (@{ $auth->{dkim_domains} // [] }) {
+        $record->($dkim_d, 'DKIM-Signature: d= (signing domain)');
+    }
 
     # List-Unsubscribe domain — identifies the ESP / bulk sender
     my $unsub = $self->_header_value('list-unsubscribe');
@@ -5136,6 +5258,7 @@ sub _domains_from_text {
 #
 # _analyse_domain( $domain )
 #
+# Purpose:
 #   Runs the complete intelligence pipeline for a single domain name:
 #   resolves its web-hosting IP (A record), mail-hosting IP (MX record),
 #   DNS-hosting IP (NS record), and queries WHOIS for registrar, creation
@@ -5231,13 +5354,14 @@ sub _domains_from_text {
 #   (not 0) when the domain is not recently registered or when no creation
 #   date was found.  The threshold is 180 days before time() at the moment
 #   of analysis.
+
 sub _analyse_domain {
-	my ($self, $domain) = @_;
+    my ($self, $domain) = @_;
+    return $self->{_domain_info}{$domain}
+        if $self->{_domain_info}{$domain};
 
-	return $self->{_domain_info}{$domain} if $self->{_domain_info}{$domain};
-
-	$self->_debug("Analysing domain: $domain");
-	my %info;
+    $self->_debug("Analysing domain: $domain");
+    my %info;
 
     # --- A record -> web hosting ---
     my $web_ip = $self->_resolve_host($domain);
@@ -5343,6 +5467,10 @@ sub _analyse_domain {
     return \%info;
 }
 
+# -----------------------------------------------------------------------
+# Private: DNS helpers
+# -----------------------------------------------------------------------
+
 sub _resolve_host {
     my ($self, $host) = @_;
     return $host if $host =~ /^\d{1,3}(?:\.\d{1,3}){3}$/;
@@ -5382,6 +5510,10 @@ sub _reverse_dns {
 
     return scalar gethostbyaddr(inet_aton($ip), Socket::AF_INET());
 }
+
+# -----------------------------------------------------------------------
+# Private: WHOIS / RDAP
+# -----------------------------------------------------------------------
 
 # IP WHOIS: RDAP preferred, raw WHOIS TCP fallback
 sub _whois_ip {
@@ -5436,53 +5568,98 @@ sub _parse_domain_whois_abuse {
 }
 
 sub _rdap_lookup {
-	my ($self, $ip) = @_;
-	return {} unless $HAS_LWP;
-	# FIXME: Don't create a new LWP::UserAgent on each lookup
-	my $ua  = LWP::UserAgent->new(timeout => $self->{timeout},
-		keep_alive => 1,
-		agent   => "Email-Abuse-Investigator/$VERSION");
-	$ua->env_proxy(1);
-	$ua->conn_cache->total_capacity(undef);
-	my $res = eval { $ua->get("https://rdap.arin.net/registry/ip/$ip") };
-	return {} unless $res && $res->is_success;
-	my $j = $res->decoded_content;
-	my %info;
-	$info{org}    = $1 if $j =~ /"name"\s*:\s*"([^"]+)"/;
-	$info{handle} = $1 if $j =~ /"handle"\s*:\s*"([^"]+)"/;
-	if ($j =~ /"abuse".*?"email"\s*:\s*"([^"]+)"/s) {
-		$info{abuse} = $1;
-	} elsif ($j =~ /"email"\s*:\s*"([^@"]+@[^"]+)"/) {
-		$info{abuse} = $1;
-	}
-	# Country code from RDAP
-	$info{country} = $1 if $j =~ /"country"\s*:\s*"([A-Z]{2})"/;
-	return \%info;
+    my ($self, $ip) = @_;
+    return {} unless $HAS_LWP;
+    my $ua  = LWP::UserAgent->new(timeout => $self->{timeout},
+                                  agent   => "Email-Abuse-Investigator/$VERSION");
+    my $res = eval { $ua->get("https://rdap.arin.net/registry/ip/$ip") };
+    return {} unless $res && $res->is_success;
+    my $j = $res->decoded_content;
+    my %info;
+    $info{org}    = $1 if $j =~ /"name"\s*:\s*"([^"]+)"/;
+    $info{handle} = $1 if $j =~ /"handle"\s*:\s*"([^"]+)"/;
+    if ($j =~ /"abuse".*?"email"\s*:\s*"([^"]+)"/s) {
+        $info{abuse} = $1;
+    } elsif ($j =~ /"email"\s*:\s*"([^@"]+@[^"]+)"/) {
+        $info{abuse} = $1;
+    }
+    # Country code from RDAP
+    $info{country} = $1 if $j =~ /"country"\s*:\s*"([A-Z]{2})"/;
+    return \%info;
 }
 
+# _raw_whois( $query, $server ) -> string | undef
+#
+# Purpose:
+#   Open a TCP connection to a WHOIS server on port 43, send the query,
+#   and return the full response as a string.  Uses IO::Select for all
+#   read timeouts so that alarm() is never needed -- alarm() is unreliable
+#   on Windows and inside threaded Perl interpreters.  The connect timeout
+#   is handled by IO::Socket::INET's own Timeout parameter, which uses the
+#   OS-level connect(2) timeout and works on all platforms.
+#
+# Entry criteria:
+#   $query   -- the domain name or IP address to query (defined, non-empty).
+#   $server  -- the WHOIS server hostname (default: 'whois.iana.org').
+#   $self->{timeout} -- seconds; used for both connect and per-read waits.
+#
+# Exit status:
+#   Returns the raw WHOIS response string (may include CRLF line endings).
+#   Returns undef if the connection fails, the write fails, or the entire
+#   timeout expires before any data arrives.
+#
+# Side effects:
+#   Opens and closes one TCP socket to port 43 on $server.
+#   Writes one line ("$query\r\n") to the socket.
+#   Calls _debug() with a trace line.
+#
+# Notes:
+#   The IO::Select loop reads until the server closes the connection or
+#   $self->{timeout} seconds elapse without any new data.  Because WHOIS
+#   servers close the connection after sending the response, a clean EOF
+#   is the normal termination; the timeout is only needed for unresponsive
+#   servers.  Each call to select() resets the per-read deadline, so a
+#   slow server that sends data steadily will not time out even if the
+#   total response takes longer than $self->{timeout}.  This is intentional
+#   and consistent with the previous alarm()-based behaviour.
 sub _raw_whois {
     my ($self, $query, $server) = @_;
+
+    # Default to the IANA root WHOIS server
     $server //= 'whois.iana.org';
     $self->_debug("WHOIS $server -> $query");
+
+    # Connect -- IO::Socket::INET Timeout covers the TCP handshake only
     my $sock = eval {
         IO::Socket::INET->new(
             PeerAddr => $server,
-            PeerPort => 43,
+            PeerPort => $WHOIS_PORT,
             Proto    => 'tcp',
             Timeout  => $self->{timeout},
         );
     };
     return undef unless $sock;
-    print $sock "$query\r\n";
+
+    # Send the query in WHOIS wire format (CRLF-terminated)
+    $sock->print("$query\r\n") or do { $sock->close(); return undef };
+
+    # Read the response using IO::Select so we never call alarm()
+    require IO::Select;
+    my $sel      = IO::Select->new($sock);
     my $response = '';
-    eval {
-        local $SIG{ALRM} = sub { die "timeout\n" };
-        alarm($self->{timeout});
-        while (my $line = <$sock>) { $response .= $line }
-        alarm(0);
-    };
-    alarm(0);
-    close $sock;
+    my $buf      = '';
+
+    # Loop until the server closes the connection or we time out
+    while ($sel->can_read($self->{timeout})) {
+        # sysread is more portable than readline for non-blocking loops
+        my $n = sysread($sock, $buf, $WHOIS_READ_CHUNK);
+
+        # EOF (server closed connection) -- clean termination
+        last unless defined $n && $n > 0;
+        $response .= $buf;
+    }
+
+    $sock->close();
     return $response || undef;
 }
 
@@ -5513,6 +5690,10 @@ sub _parse_whois_text {
     }
     return \%info;
 }
+
+# -----------------------------------------------------------------------
+# Private: utilities
+# -----------------------------------------------------------------------
 
 sub _enrich_ip {
     my ($self, $ip, $confidence, $note) = @_;
@@ -5551,22 +5732,17 @@ sub _ip_in_cidr {
 # Lightweight date-to-epoch for common WHOIS date formats:
 #   2024-11-01   2024-11-01T12:00:00Z   01-Nov-2024
 sub _parse_date_to_epoch {
-	my ($self, $str) = @_;
-
-	return undef unless $str;
-
-	my ($y, $m, $d);
-	if    ($str =~ /^(\d{4})-(\d{2})-(\d{2})/)         { ($y,$m,$d)=($1,$2,$3) }
-	elsif ($str =~ /^(\d{2})-([A-Za-z]{3})-(\d{4})/)   { ($d,$m,$y)=($1,$months{lc$2}//0,$3) }	# Readonly::Values::Months
-	elsif ($str =~ /^(\d{2})\/(\d{2})\/(\d{4})/)        { ($m,$d,$y)=($1,$2,$3) }
-
-	return unless $y && $m && $d;
-
-	if (eval { require Time::Local; 1 }) {
-		return eval { Time::Local::timegm(0,0,0,$d,$m-1,$y-1900) };
-	}
-
-	return ($y-1970)*365.25*86400 + ($m-1)*30.5*86400 + ($d-1)*86400;
+    my ($self, $str) = @_;
+    return undef unless $str;
+    my ($y, $m, $d);
+    if    ($str =~ /^(\d{4})-(\d{2})-(\d{2})/)         { ($y,$m,$d)=($1,$2,$3) }
+    elsif ($str =~ /^(\d{2})-([A-Za-z]{3})-(\d{4})/)   { ($d,$m,$y)=($1,$months{lc$2}//0,$3) }
+    elsif ($str =~ /^(\d{2})\/(\d{2})\/(\d{4})/)        { ($m,$d,$y)=($1,$2,$3) }
+    return undef unless $y && $m && $d;
+    if (eval { require Time::Local; 1 }) {
+        return eval { Time::Local::timegm(0,0,0,$d,$m-1,$y-1900) };
+    }
+    return ($y-1970)*365.25*86400 + ($m-1)*30.5*86400 + ($d-1)*86400;
 }
 
 # Parse a RFC 2822 date string to a Unix epoch.
@@ -5578,154 +5754,27 @@ sub _parse_date_to_epoch {
 # is UTC.  For the sole current use-case (7-day suspicious_date window)
 # the maximum error is ~14 hours, which is well within the 7-day tolerance.
 sub _parse_rfc2822_date {
-	my $str = $_[0];
-
-	return undef unless $str;
-
-	if ($str =~ /(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/) {
-		# Readonly::Values::Months
-		my ($d, $m, $y, $H, $M, $S) = ($1, $months{ lc $2 } // 0, $3, $4, $5, $6);
-		return undef unless $m;
-		if (eval { require Time::Local; 1 }) {
-			return eval { Time::Local::timegm($S, $M, $H, $d, $m - 1, $y - 1900) };
-		}
-	}
-	return undef;
-}
-
-sub _decode_mime_words {
-	my ($self, $str) = @_;
-
-	return '' unless defined $str;
-
-	$str =~ s/=\?([^?]+)\?([BbQq])\?([^?]*)\?=/_decode_ew($1,$2,$3)/ge;
-	return $str;
-}
-
-sub _decode_ew {
-    my ($charset, $enc, $text) = @_;
-    my $raw;
-    if (uc($enc) eq 'B') {
-        $raw = decode_base64($text);
-    } else {
-        $text =~ s/_/ /g;
-        $raw  = decode_qp($text);
-    }
-    # Best-effort UTF-8; silently ignore decode errors
-    if (lc($charset) ne 'utf-8') {
-        # For non-UTF-8 charsets just return the raw bytes — good enough
-        # for display-name spoof detection which only needs ASCII matching
-    }
-	return $raw;
-}
-
-sub _parse_auth_results_cached {
-	my $self = $_[0];
-
-	return $self->{_auth_results} if $self->{_auth_results};
-
-    my %auth;
-    my $raw = join('; ',
-        map { $_->{value} }
-        grep { $_->{name} eq 'authentication-results' }
-        @{ $self->{_headers} }
-    );
-    $auth{spf}   = $1 if $raw =~ /\bspf=(\S+)/i;
-    $auth{dkim}  = $1 if $raw =~ /\bdkim=(\S+)/i;
-    $auth{dmarc} = $1 if $raw =~ /\bdmarc=(\S+)/i;
-    $auth{arc}   = $1 if $raw =~ /\barc=(\S+)/i;
-    # Strip trailing punctuation captured by \S+
-    for my $k (qw(spf dkim dmarc arc)) {
-        $auth{$k} =~ s/[;,\s]+$// if defined $auth{$k};
-    }
-
-        # Extract DKIM signing domains from all DKIM-Signature: d= tags.
-    # Multiple signatures are common: the first is usually the customer
-    # domain, the second the ESP infrastructure domain (e.g. Salesforce,
-    # SendGrid).  Prefer the first domain whose registrable parent is in
-    # the provider table (it identifies the actionable ESP); fall back to
-    # the first domain found.  All domains are stored in dkim_domains (an
-    # arrayref) for use by the domain pipeline; dkim_domain holds the
-    # primary one for risk_assessment and abuse_contacts.
-    my @dkim_domains;
-    for my $h (grep { $_->{name} eq 'dkim-signature' } @{ $self->{_headers} }) {
-        if ($h->{value} =~ /\bd=([^;,\s]+)/) {
-            push @dkim_domains, lc $1;
+    my ($str) = @_;
+    return undef unless $str;
+    if ($str =~ /(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/) {
+        my ($d, $m, $y, $H, $M, $S) =
+            ($1, $months{ lc $2 } // 0, $3, $4, $5, $6);
+        return undef unless $m;
+        if (eval { require Time::Local; 1 }) {
+            return eval { Time::Local::timegm($S, $M, $H, $d, $m - 1, $y - 1900) };
         }
     }
-    if (@dkim_domains) {
-        # Prefer a domain that matches the provider table (the ESP)
-        my $preferred;
-        for my $d (@dkim_domains) {
-            if ($self->_provider_abuse_for_host($d)) {
-                $preferred = $d;
-                last;
-            }
-        }
-        $auth{dkim_domain}  = $preferred // $dkim_domains[0];
-        $auth{dkim_domains} = \@dkim_domains;
-    }
-
-    $self->{_auth_results} = \%auth;
-    return \%auth;
-}
-
-sub _registrable {
-    my ($host) = @_;
-    return undef unless $host && $host =~ /\./;
-    my @labels = split /\./, lc $host;
-    return $host if @labels <= 2;
-    if ($labels[-1] =~ /^[a-z]{2}$/ &&
-        $labels[-2] =~ /^(?:co|com|net|org|gov|edu|ac|me)$/) {
-        return join('.', @labels[-3..-1]);
-    }
-    return join('.', @labels[-2..-1]);
-}
-
-sub _country_name {
-	my $cc = $_[0];
-
-	my %names = ( CN => 'China', RU => 'Russia', NG => 'Nigeria',
-		VN => 'Vietnam', IN => 'India', PK => 'Pakistan',
-		BD => 'Bangladesh' );
-	return $names{$cc} // $cc;
-}
-
-# Look up provider abuse contact by plain domain name
-sub _provider_abuse_for_host {
-	my ($self, $host) = @_;
-
-	$host = lc $host;
-
-	# Try exact match, then strip successive subdomains
-	while ($host =~ /\./) {
-		return $PROVIDER_ABUSE{$host} if $PROVIDER_ABUSE{$host};
-		$host =~ s/^[^.]+\.//;
-	}
-	return;	# return undef
-}
-
-# Look up provider abuse contact by IP and/or rDNS hostname
-sub _provider_abuse_for_ip {
-	my ($self, $ip, $rdns) = @_;
-
-	return $self->_provider_abuse_for_host($rdns) if $rdns;
-	return undef;
+    return undef;
 }
 
 sub _debug {
-	my ($self, $msg) = @_;
-
-	if($self->{logger}) {
-		# This may have been set by Object::Configure
-		$self->{logger}->debug($msg);
-	}
-	print STDERR '[', __PACKAGE__, "] $msg\n" if $self->{verbose};
+    my ($self, $msg) = @_;
+    print STDERR "[Email::Abuse::Investigator] $msg\n" if $self->{verbose};
 }
 
-=head1 AUTHOR
+1;
 
-Nigel Horne, C<< <njh at nigelhorne.com> >>
+__END__
 
 =head1 ALGORITHM: DOMAIN INTELLIGENCE PIPELINE
 
