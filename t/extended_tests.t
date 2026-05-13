@@ -1718,23 +1718,24 @@ subtest 'risk_assessment -- implausible_timezone flagged for minutes >= 60' => s
 subtest 'risk_assessment -- valid edge-case timezones not flagged' => sub {
 	my $a = new_ok('Email::Abuse::Investigator');
 
+	# Mock _raw_whois to avoid real network calls
+	no warnings 'redefine';
+	local *Email::Abuse::Investigator::_raw_whois = sub { return 'fake whois data' };
+
 	# +1400 is the Line Islands -- the most easterly real timezone
 	$a->parse_email(make_email( date => 'Mon, 01 Jan 2024 12:00:00 +1400' ));
 	my @flags = map { $_->{flag} } @{ $a->risk_assessment()->{flags} };
-	ok !scalar(grep { $_ eq 'implausible_timezone' } @flags),
-		'+1400 (Line Islands) not flagged as implausible';
+	ok !scalar(grep { $_ eq 'implausible_timezone' } @flags), '+1400 (Line Islands) not flagged as implausible';
 
 	# -1200 is Baker Island -- the most westerly real timezone
 	$a->parse_email(make_email( date => 'Mon, 01 Jan 2024 12:00:00 -1200' ));
 	@flags = map { $_->{flag} } @{ $a->risk_assessment()->{flags} };
-	ok !scalar(grep { $_ eq 'implausible_timezone' } @flags),
-		'-1200 (Baker Island) not flagged as implausible';
+	ok !scalar(grep { $_ eq 'implausible_timezone' } @flags), '-1200 (Baker Island) not flagged as implausible';
 
 	# +0530 is India Standard Time -- common legitimate offset
 	$a->parse_email(make_email( date => 'Mon, 01 Jan 2024 12:00:00 +0530' ));
 	@flags = map { $_->{flag} } @{ $a->risk_assessment()->{flags} };
-	ok !scalar(grep { $_ eq 'implausible_timezone' } @flags),
-		'+0530 (India) not flagged as implausible';
+	ok !scalar(grep { $_ eq 'implausible_timezone' } @flags), '+0530 (India) not flagged as implausible';
 };
 
 # =============================================================================
@@ -1777,7 +1778,7 @@ subtest '_provider_abuse_for_host -- hubspot.com already present' => sub {
 	my $a = new_ok('Email::Abuse::Investigator');
 	my $r = $a->_provider_abuse_for_host('hubspot.com');
 	ok defined $r,							 'hubspot.com in table';
-	is $r->{email}, 'abuse@hubspot.com',	   'correct abuse address';
+	is $r->{email}, 'abuse@hubspot.com',	'correct abuse address';
 };
 
 
@@ -1883,9 +1884,9 @@ subtest '_extract_http_urls -- protocol-relative URL in plain img src' => sub {
 	null_net();
 	my $a = new_ok('Email::Abuse::Investigator');
 	$a->parse_email(make_email(
-		to   => '<victim@nigelhorne.com>',
+		to => '<victim@nigelhorne.com>',
 		body => 'Hello <img src="//tracker.badshamart.com/o/1/2/3/US">',
-		ct   => 'text/html',
+		ct => 'text/html',
 	));
 	my @urls  = $a->embedded_urls();
 	my @hosts = map { $_->{host} } @urls;

@@ -4339,7 +4339,7 @@ connections when that module is installed.
 
 =item * L<Net::DNS>, L<LWP::UserAgent>, L<HTML::LinkExtor>
 
-=item * L<CHI>, L<AnyEvent::DNS>, L<IO::Socket::IP>, L<Domain::PublicSuffix>
+=item * L<CHI>, L<AnyEvent::DNS>, L<IO::Socket::IP>, L<Domain::PublicSuffix>, L<Object::Configure>
 
 =back
 
