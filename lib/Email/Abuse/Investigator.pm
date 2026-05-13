@@ -122,6 +122,7 @@ my $HAS_NET_DNS;
 
 # LWP::UserAgent enables RDAP queries; falls back to raw WHOIS
 my $HAS_LWP;
+my $HAS_CONN_CACHE;
 
 # HTML::LinkExtor enables structural HTML link extraction
 my $HAS_HTML_LINKEXTOR;
@@ -141,6 +142,7 @@ my $HAS_ANYEVENT_DNS;
 BEGIN {
 	$HAS_NET_DNS       = eval { require Net::DNS;           1 };
 	$HAS_LWP           = eval { require LWP::UserAgent;     1 };
+	$HAS_CONN_CACHE    = eval { require LWP::ConnCache;     1 };
 	$HAS_HTML_LINKEXTOR= eval { require HTML::LinkExtor;    1 };
 	$HAS_CHI           = eval { require CHI;                1 };
 	$HAS_IO_SOCKET_IP  = eval { require IO::Socket::IP;     1 };
@@ -255,19 +257,13 @@ my @RECEIVED_IP_RE = (
 # Default configuration -- overridable via Object::Configure
 # -----------------------------------------------------------------------
 
-# %config holds all tuneable parameters.  Object::Configure may overlay
+# Object::Configure may overlay
 # values from a file before new() uses them.  Use Readonly for constants
 # that should never be overridden at runtime.
-my %config = (
-	# Providers for which we have curated abuse contacts.
-	# Loaded from the DATA section or Object::Configure overlay.
-	provider_abuse  => {},
-	trusted_domains => {},
-	url_shorteners  => {},
-);
 
 # -----------------------------------------------------------------------
 # Trusted domains (infrastructure -- never report these as abuse targets)
+# Can be overrideen at runtime by Object::Configure
 # -----------------------------------------------------------------------
 
 my %TRUSTED_DOMAINS = map { $_ => 1 } qw(
@@ -293,6 +289,7 @@ my %URL_SHORTENERS = map { $_ => 1 } qw(
 
 # -----------------------------------------------------------------------
 # Well-known provider abuse contacts
+# Can be overrideen at runtime by Object::Configure
 # -----------------------------------------------------------------------
 
 # Curated table of provider abuse contacts.  Entries with only a 'form'
@@ -1631,10 +1628,11 @@ sub risk_assessment {
 		# Skip trusted infrastructure -- these are not spam indicators
 		my $bare = lc $u->{host};
 		$bare =~ s/^www\.//;
+		next if $self->{trusted_domains}->{$bare};
 		next if $TRUSTED_DOMAINS{$bare};
 
 		# URL shortener hides real destination
-		if ($URL_SHORTENERS{$bare} && !$shortener_seen{$bare}++) {
+		if(($URL_SHORTENERS{$bare} || $self->{url_shorteners}->{$bare}) && !$shortener_seen{$bare}++) {
 			$flag->('MEDIUM', 'url_shortener',
 				"$u->{host} is a URL shortener -- the real destination is hidden");
 		}
@@ -1970,6 +1968,7 @@ sub abuse_contacts {
 		my $bare_host = lc $u->{host};
 		$bare_host =~ s/^www\.//;
 		# Skip trusted infrastructure (Google, W3C, etc.)
+		next if $self->{trusted_domains}->{$bare_host};
 		next if $TRUSTED_DOMAINS{$bare_host};
 		my $pa = $self->_provider_abuse_for_host($u->{host});
 		if ($pa) {
@@ -2519,7 +2518,7 @@ sub report {
 			my $m    = $host_meta{$h};
 			my $bare = lc $h; $bare =~ s/^www\.//;
 			push @out, '  Host         : ' . _sanitise_output($h) .
-			           ($URL_SHORTENERS{$bare}
+			           (($URL_SHORTENERS{$bare} || $self->{url_shorteners}->{$bare})
 			            ? '  *** URL SHORTENER -- real destination hidden ***' : '');
 			push @out, '  IP           : ' . _sanitise_output($m->{ip})      if $m->{ip};
 			push @out, '  Country      : ' . _sanitise_output($m->{country}) if $m->{country};
@@ -3255,6 +3254,7 @@ sub _extract_and_analyse_domains {
 		my ($dom, $source) = @_;
 		$dom = lc $dom;
 		$dom =~ s/\.$//;
+		next if $self->{trusted_domains}->{$dom};
 		return if $TRUSTED_DOMAINS{$dom};
 		return if $recipient_domains{$dom};
 		return if $recipient_domains{ _registrable($dom) // $dom };
@@ -3284,7 +3284,7 @@ sub _extract_and_analyse_domains {
 		my $mid_dom = lc $1;
 		my $mid_reg = _registrable($mid_dom) // $mid_dom;
 		$record->($mid_dom, 'Message-ID: header')
-			unless $TRUSTED_DOMAINS{$mid_dom} || $TRUSTED_DOMAINS{$mid_reg};
+			unless $TRUSTED_DOMAINS{$mid_dom} || $TRUSTED_DOMAINS{$mid_reg} || $self->{trusted_domains}->{$mid_dom} || $self->{trusted_domains}->{$mid_reg};
 	}
 
 	# DKIM signing domain(s) -- the organisation that vouches for the message
@@ -3720,11 +3720,22 @@ sub _rdap_lookup {
 	my ($self, $ip) = @_;
 	return {} unless $HAS_LWP;
 
-	my $ua = LWP::UserAgent->new(
-		timeout => $self->{timeout},
-		agent   => "Email-Abuse-Investigator/$VERSION",
-	);
-	$ua->env_proxy(1);
+	my $ua = $self->{ua};
+	if(!defined($ua)) {
+		$ua = LWP::UserAgent->new(
+			timeout => $self->{timeout},
+			agent   => "Email-Abuse-Investigator/$VERSION",
+		);
+
+		if($HAS_CONN_CACHE) {
+			my $conn_cache = LWP::ConnCache->new();
+			$conn_cache->total_capacity(10);
+			$ua->conn_cache($conn_cache);
+		}
+
+		$ua->env_proxy(1);
+		$self->{ua} = $ua;
+	}
 
 	# Use the ARIN RDAP endpoint; it covers the ARIN region and redirects
 	# for RIPE/APNIC/LACNIC/AfriNIC allocations.
@@ -3954,6 +3965,7 @@ sub _provider_abuse_for_host {
 	$host = lc $host;
 	# Strip successive subdomains until we find a match or exhaust labels
 	while ($host =~ /\./) {
+		return $self->{provider_abuse}->{$host} if $self->{provider_abuse}->{$host};
 		return $PROVIDER_ABUSE{$host} if $PROVIDER_ABUSE{$host};
 		$host =~ s/^[^.]+\.//;
 	}
@@ -4339,13 +4351,17 @@ connections when that module is installed.
 
 =over 4
 
+=item * L<Configure an Object at Runtime|Object::Configure>
+
+The provider_abuse, trusted_domains and url_shorteners tables can all be overridden at runtime
+
 =item * L<Test Dashboard|https://nigelhorne.github.io/Email-Abuse-Investigator/coverage/>
 
 =item * L<ARIN RDAP|https://rdap.arin.net/>
 
 =item * L<Net::DNS>, L<LWP::UserAgent>, L<HTML::LinkExtor>
 
-=item * L<CHI>, L<AnyEvent::DNS>, L<IO::Socket::IP>, L<Domain::PublicSuffix>, L<Object::Configure>
+=item * L<CHI>, L<AnyEvent::DNS>, L<IO::Socket::IP>, L<Domain::PublicSuffix>
 
 =back
 

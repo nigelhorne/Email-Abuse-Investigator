@@ -1105,10 +1105,14 @@ connections when that module is installed.
 
 # SEE ALSO
 
+- [Configure an Object at Runtime](https://metacpan.org/pod/Object%3A%3AConfigure)
+
+    The provider\_abuse, trusted\_domains and url\_shorteners tables can all be overridden at runtime
+
 - [Test Dashboard](https://nigelhorne.github.io/Email-Abuse-Investigator/coverage/)
 - [ARIN RDAP](https://rdap.arin.net/)
 - [Net::DNS](https://metacpan.org/pod/Net%3A%3ADNS), [LWP::UserAgent](https://metacpan.org/pod/LWP%3A%3AUserAgent), [HTML::LinkExtor](https://metacpan.org/pod/HTML%3A%3ALinkExtor)
-- [CHI](https://metacpan.org/pod/CHI), [AnyEvent::DNS](https://metacpan.org/pod/AnyEvent%3A%3ADNS), [IO::Socket::IP](https://metacpan.org/pod/IO%3A%3ASocket%3A%3AIP), [Domain::PublicSuffix](https://metacpan.org/pod/Domain%3A%3APublicSuffix), [Object::Configure](https://metacpan.org/pod/Object%3A%3AConfigure)
+- [CHI](https://metacpan.org/pod/CHI), [AnyEvent::DNS](https://metacpan.org/pod/AnyEvent%3A%3ADNS), [IO::Socket::IP](https://metacpan.org/pod/IO%3A%3ASocket%3A%3AIP), [Domain::PublicSuffix](https://metacpan.org/pod/Domain%3A%3APublicSuffix)
 
 # REPOSITORY
 

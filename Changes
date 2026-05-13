@@ -74,14 +74,13 @@ Revision history for Email-Abuse-Investigator
     submit_abuse_report.pl now delegates its _print_unresolved() helper
     to this method rather than reimplementing the filtering logic inline.
 
-  - Added six new constructor options to allow per-object override or
+  - Added new constructor options to allow per-object override or
     replacement of the three built-in lookup tables:
-    provider_abuse / replace_provider_abuse,
-    trusted_domains / replace_trusted_domains,
-    url_shorteners / replace_url_shorteners.
-    Default behaviour is merge (caller entries added on top of the
-    built-in defaults); set replace_* => 1 to discard the defaults.
-    All six options are also readable from an Object::Configure
+    provider_abuse
+    trusted_domains
+    url_shorteners
+    The behaviour is merge (caller entries added on top of the built-in defaults).
+    All options are also readable from an Object::Configure
     configuration file.  The three tables are now stored per-object
     so two objects with different overrides are fully independent.
 
