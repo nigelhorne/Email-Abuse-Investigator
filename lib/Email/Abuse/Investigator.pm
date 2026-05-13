@@ -629,9 +629,9 @@ sub new {
 
 	# Build and bless the object with default slot values
 	return bless {
-		timeout        => $params->{timeout}        // $DEFAULT_TIMEOUT,
-		trusted_relays => $params->{trusted_relays} // [],
-		verbose        => $params->{verbose}        // 0,
+		timeout        => $DEFAULT_TIMEOUT,
+		trusted_relays => [],
+		verbose        => 0,
 		_raw           => '',
 		_headers       => [],
 		_body_plain    => '',
@@ -643,6 +643,7 @@ sub new {
 		_domain_info   => {},        # per-message domain analysis cache
 		_sending_sw    => [],        # X-Mailer / X-PHP-Originating-Script etc.
 		_rcvd_tracking => [],        # per-hop tracking IDs from Received: headers
+		%{$params},		# Override the defaults with Object:Configure and the values passed in
 	}, $class;
 }
 
@@ -4256,7 +4257,14 @@ sub _country_name {
 
 sub _debug {
 	my ($self, $msg) = @_;
-	print STDERR "[Email::Abuse::Investigator] $msg\n" if $self->{verbose};
+
+	if($self->{verbose}) {
+		if(my $logger = $self->{logger}) {	# May have been set in Object::Configure
+			$logger->debug("[Email::Abuse::Investigator] $msg");
+		} else {
+			print STDERR "[Email::Abuse::Investigator] $msg\n";
+		}
+	}
 }
 
 1;

@@ -67,6 +67,7 @@ subtest 'new() -- verbose flag only enables debug, does not alter analysis' => s
 	null_net();
 	my $silent  = new_ok('Email::Abuse::Investigator', [verbose => 0]);
 	my $noisy   = new_ok('Email::Abuse::Investigator', [verbose => 1]);
+	undef $noisy->{logger};
 	my $raw = "Received: from h [91.198.174.1] by mx\nFrom: x\@y.com\n\nbody";
 	$silent->parse_email($raw);
 	open my $save, '>&', \*STDERR or die $!;

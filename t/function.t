@@ -1574,6 +1574,7 @@ note '=== 31. _debug ===';
 {
 	# verbose=1 -> prints to STDERR
 	my $a = Email::Abuse::Investigator->new(verbose => 1);
+	undef $a->{logger};
 	my $stderr = '';
 	open my $save_err, '>&', \*STDERR or die $!;
 	close STDERR;
