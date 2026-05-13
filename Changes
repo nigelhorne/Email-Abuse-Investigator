@@ -97,8 +97,7 @@ Revision history for Email-Abuse-Investigator
     the monitoring address.  In --dry-run mode the BCC address is shown
     in the output header but no mail is sent.
 
-  When the
-    analysis finds domains or URL hosts in the message but cannot determine
+  When the analysis finds domains or URL hosts in the message but cannot determine
     an abuse contact for them, they are now listed so the user knows where
     to look for manual follow-up.  The list appears in three places: after
     the "No abuse contacts could be determined" message, at the end of

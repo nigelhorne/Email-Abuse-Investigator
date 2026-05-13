@@ -27,6 +27,7 @@ WriteMakefile(
 	CONFIGURE_REQUIRES => {
 		'ExtUtils::MakeMaker' => 6.64,	# Minimum version for TEST_REQUIRES
 	}, PREREQ_PM => {
+		'autodie' => 0,
 		'IO::Socket::INET' => 0,
 		'MIME::QuotedPrint' => 0,
 		'MIME::Base64' => 0,

@@ -3,7 +3,6 @@ package Email::Abuse::Investigator;
 use strict;
 use warnings;
 use autodie qw(:all);
-use utf8;
 
 =head1 NAME
 
