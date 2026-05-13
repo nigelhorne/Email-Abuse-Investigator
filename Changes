@@ -8,6 +8,8 @@ Revision history for Email-Abuse-Investigator
 
   - Added fuzz testing
 
+  - domain_expires_soon logic was broken, since it ignored the seconds field
+
   - Added -i / --interactive flag to submit_abuse_report.pl, modelled on
     rm -i.  When set, the script prompts for confirmation before sending
     each abuse report.  The recipient address and the reason for contacting
@@ -110,6 +112,86 @@ Revision history for Email-Abuse-Investigator
     contained mailto:gyomu@tolde.co.jp and http://www.toolde.co.jp in the
     body -- both genuine spam contact points that previously produced no
     output at all.
+
+    - Added cross-message CHI cache to avoid redundant network lookups across
+    multiple messages processed in the same run.  A shared in-memory CHI
+    instance (TTL 1 hour) is initialised on first call to new() when CHI
+    is installed.  IP WHOIS results are cached under "whois_ip:$ip",
+    domain analysis under "dom:$domain", and DNS resolution under
+    "resolve:$host".  Failed DNS lookups are cached as an empty string
+    and returned as undef on subsequent calls so the resolver is not
+    retried.  Gracefully degrades to the existing per-message cache when
+    CHI is not installed.
+
+  - Added IPv6 support throughout.  The @PRIVATE_RANGES table now covers
+    fe80::/10 (link-local), 2001:db8::/32 (RFC 3849 documentation range),
+    and 64:ff9b::/96 (NAT64 well-known prefix), in addition to the
+    loopback and ULA ranges already present.  @RECEIVED_IP_RE now includes
+    a bracketed IPv6 pattern so IPv6 addresses are extracted from
+    Received: headers.  _extract_ip_from_received() accepts colon-
+    containing addresses without IPv4 validation.  _resolve_host() tries
+    an AAAA query after a failed A query when Net::DNS is available.
+    _raw_whois() uses IO::Socket::IP (dual-stack) in preference to
+    IO::Socket::INET when that module is installed.
+
+  - Added multipart recursion guard.  _decode_multipart() now accepts a
+    $depth parameter (starting at 0 from _split_message()).  When depth
+    reaches MAX_MULTIPART_DEPTH (Readonly constant, value 20) the method
+    carps and returns immediately rather than recursing further, preventing
+    stack exhaustion on pathological crafted messages with deeply nested
+    MIME structures.
+
+  - Added Domain::PublicSuffix support to _registrable().  When
+    Domain::PublicSuffix is installed, get_root_domain() is used for
+    accurate eTLD+1 normalisation covering the full Public Suffix List.
+    The existing heuristic (handling co.uk, com.au, and similar common
+    two-label ccTLD second-levels) is retained as a fallback when the
+    module is absent.
+
+  - Added parallel DNS resolution via AnyEvent::DNS.  When AnyEvent::DNS
+    is installed and a message contains more than one unique URL hostname,
+    _extract_and_resolve_urls() fires all A queries concurrently via a
+    condvar and pre-populates the host cache before the sequential
+    enrichment loop runs.  Falls back transparently to sequential
+    resolution when AnyEvent::DNS is not installed or the host list
+    contains only one entry.
+
+  - Added input sanitisation to parse_email().  The raw message text is
+    stripped of characters outside [\x09\x0A\x0D\x20-\x7E\x80-\xFF]
+    (i.e. C0 controls other than tab, LF, and CR, and the DEL character)
+    before storage in _raw and header parsing.  High bytes (0x80-0xFF)
+    are preserved to avoid corrupting valid UTF-8 content in headers and
+    bodies.
+
+  - Added _sanitise_output() private function.  Strips C0 control
+    characters (0x01-0x08, 0x0B, 0x0C, 0x0E-0x1F) and DEL (0x7F) from
+    any user-derived string before it is written to report() or
+    abuse_report_text() output.  Tabs, LF, and CR are preserved.  High
+    bytes (0x80-0xFF) are preserved for UTF-8 content.  Applied to all
+    user-derived fields: IP info, organisation names, registrar names,
+    flag detail strings, and header values.
+
+  - Added Object::Configure integration to new().  The constructor now
+    calls Object::Configure::configure($class, $params) after parameter
+    validation, allowing per-class defaults to be loaded from a
+    configuration file.  The returned hashref overlays the caller-supplied
+    parameters before the object is blessed.
+
+  - Added new Readonly constants: $MAX_MULTIPART_DEPTH (20),
+    $CACHE_TTL_SECS (3600), $DEFAULT_TIMEOUT (10), $WHOIS_PORT (43),
+    $WHOIS_READ_CHUNK (4096), $WHOIS_RAW_MAX (2048), $RECENT_REG_DAYS
+    (180), $EXPIRY_WARN_DAYS (30), $SECS_PER_DAY (86400),
+    $DATE_SKEW_DAYS (7), $TZ_MAX_POS_MINS (840), $TZ_MAX_NEG_MINS (720),
+    $SCORE_HIGH (9), $SCORE_MEDIUM (5), $SCORE_LOW (2), %FLAG_WEIGHT,
+    $ROLE_MAX_LEN (80), $ROLE_WRAP_LEN (66).  All previously magic
+    numbers have been removed from the code body.
+
+  [Bug Fixes]
+
+  - Fixed NumericBoundary mutator in SchemaExtractor incorrectly treating
+    the < operator in file open (open $fh, '<', $path) and readline
+    (<$fh>) expressions as numeric comparisons, generating spurious
+    mutant variants for those operators.
 
 0.07	Mon Mar 30 08:45:04 EDT 2026
 

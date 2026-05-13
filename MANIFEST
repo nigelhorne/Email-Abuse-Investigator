@@ -21,6 +21,7 @@ t/fuzz.t
 t/integration.t
 t/kwalitee.t
 t/manifest.t
+t/mutation_survivors.t
 t/pod-coverage.t
 t/pod.t
 t/submit_script.t

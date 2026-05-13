@@ -38,6 +38,7 @@ WriteMakefile(
 		'Params::Validate::Strict' => 0,
 		'Readonly::Values::Months' => 0,
 		'Socket' => 0,
+		'Time::Piece' => 0,
 	# }, RECOMMENDED => {
 		# 'Net::DNS' => 0,
 		# 'LWP::UserAgent' => 0,

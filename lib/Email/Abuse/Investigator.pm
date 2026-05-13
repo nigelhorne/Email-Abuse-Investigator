@@ -3,6 +3,7 @@ package Email::Abuse::Investigator;
 use strict;
 use warnings;
 use autodie qw(:all);
+use Time::Piece;
 
 =head1 NAME
 
@@ -1653,9 +1654,8 @@ sub risk_assessment {
 
 		# Domain expiry checks
 		if ($d->{expires}) {
-			my $exp      = $self->_parse_date_to_epoch($d->{expires});
-			my $now      = time();
-			if ($exp) {
+			if(my $exp = $self->_parse_date_to_epoch($d->{expires})) {
+				my $now      = time();
 				my $remaining = $exp - $now;
 				if ($remaining > 0 && $remaining < $EXPIRY_WARN_DAYS * $SECS_PER_DAY) {
 					$flag->('HIGH', 'domain_expires_soon',
@@ -4154,6 +4154,27 @@ sub _decode_ew {
 sub _parse_date_to_epoch {
 	my ($self, $str) = @_;
 	return undef unless $str;
+
+	# Clean the string of trailing whitespace/newlines
+	$str =~ s/^\s+|\s+$//g;
+
+	# Guard Regex: Validates the strict YYYY-MM-DDThh:mm:ssZ format
+	if ($str =~ /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.\d+)?Z$/) {
+		# Parse the string
+		# We use 'strptime' to create a Time::Piece object.
+		# The 'Z' indicates UTC (Zulu time).
+		my $epoch = eval {
+			my $t = Time::Piece->strptime($1, '%Y-%m-%dT%H:%M:%S');
+
+			# Return seconds since the epoch
+			# Time::Piece handles the timezone offset internally when calling ->epoch
+
+			# strptime returns a local time object. 
+			# We must subtract the local timezone offset to get the true UTC epoch.
+			return $t->epoch - $t->tzoffset->seconds;
+		};
+		return $epoch if defined $epoch;
+	}
 	my ($y, $m, $d);
 
 	if    ($str =~ /^(\d{4})-(\d{2})-(\d{2})/)         { ($y,$m,$d)=($1,$2,$3) }

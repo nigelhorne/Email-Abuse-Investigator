@@ -11,6 +11,7 @@ requires 'Params::Get';
 requires 'Params::Validate::Strict';
 requires 'Readonly::Values::Months';
 requires 'Socket';
+requires 'Time::Piece';
 requires 'autodie';
 
 on 'configure' => sub {
