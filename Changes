@@ -193,6 +193,8 @@ Revision history for Email-Abuse-Investigator
     (<$fh>) expressions as numeric comparisons, generating spurious
     mutant variants for those operators.
 
+  - Wrap in eval to catch 'Connection reset by peer' thrown by Fatal/autodie
+
 0.07	Mon Mar 30 08:45:04 EDT 2026
 
   Bug fixes

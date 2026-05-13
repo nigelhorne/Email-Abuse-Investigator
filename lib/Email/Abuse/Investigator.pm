@@ -3803,7 +3803,13 @@ sub _raw_whois {
 
 	# Read until EOF (server closes) or timeout
 	while ($sel->can_read($self->{timeout})) {
-		my $n = sysread($sock, $buf, $WHOIS_READ_CHUNK);
+		# Wrap in eval to catch 'Connection reset by peer' thrown by Fatal/autodie
+		my $n = eval { sysread($sock, $buf, $WHOIS_READ_CHUNK) };
+
+		if ($@ || !defined $n || $n <= 0) {
+			$self->_debug("WHOIS read failed: $@") if $@;
+			last;
+		}
 		last unless defined $n && $n > 0;
 		$response .= $buf;
 	}
