@@ -304,11 +304,11 @@ Approximate LCSAJ segments: 663<br>
 </span><span class="">   12: 
 </span><span class="">   13: =head1 VERSION
 </span><span class="">   14: 
-</span><span class="">   15: Version 0.08
+</span><span class="">   15: Version 0.09
 </span><span class="">   16: 
 </span><span class="">   17: =cut
 </span><span class="">   18: 
-</span><span class="">   19: our $VERSION = &#39;0.08&#39;;
+</span><span class="">   19: our $VERSION = &#39;0.09&#39;;
 </span><span class="">   20: 
 </span><span class="">   21: =head1 SYNOPSIS
 </span><span class="">   22: 
@@ -908,8 +908,14 @@ Approximate LCSAJ segments: 663<br>
 </span><span class="">  616: 	$params = Object::Configure::configure($class, $params);
 </span><span class="">  617: 
 </span><span class="">  618: 	# Initialise the cross-message CHI cache on first construction
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic.">  619: 	if ($HAS_CHI &amp;&amp; !$_cache) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class="">  620: 		$_cache = CHI-&gt;new(
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch.">  619: 	if ($HAS_CHI &amp;&amp; !$_cache) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_619_2: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class="">  620: 		$_cache = CHI-&gt;new(
 </span><span class="">  621: 			driver     =&gt; &#39;Memory&#39;,
 </span><span class="">  622: 			global     =&gt; 1,
 </span><span class="">  623: 			expires_in =&gt; $CACHE_TTL_SECS,
@@ -1168,7 +1174,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class="">  855: 
 </span><span class="">  856: 	# Return the cached result if we already have it
 </span><span class="">  857: 	$self-&gt;{_origin} //= $self-&gt;_find_origin();
-</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths.">  858: 	return $self-&gt;{_origin};
+</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values.">  858: 	return $self-&gt;{_origin};
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -1530,8 +1536,14 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 1175: 	my %covered;
 </span><span class=""> 1176: 	for my $c ($self-&gt;abuse_contacts(), $self-&gt;form_contacts()) {
 </span><span class=""> 1177: 		my $dom = $c-&gt;{form_domain};
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 1178: 		unless ($dom) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 1179: 			# Extract domain from abuse email address
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 1178: 		unless ($dom) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_1178_3: Invert condition unless to if</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 1179: 			# Extract domain from abuse email address
 </span><span class=""> 1180: 			($dom) = ($c-&gt;{address} // &#39;&#39;) =~ /\@([\w.-]+)/;
 </span><span class=""> 1181: 		}
 </span><span class=""> 1182: 		$covered{lc $dom}++ if $dom;
@@ -1571,7 +1583,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 1216: 		};
 </span><span class=""> 1217: 	}
 </span><span class=""> 1218: 
-</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">1219 → 1219 → 0</span></span> 1219: 	return @out;
+</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">1219 → 1219 → 0</span></span> 1219: 	return @out;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -1827,8 +1839,29 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 1451: sub risk_assessment {
 </span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">1452 → 1468 → 1501</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">1452 → 1468 → 0</span></span> 1452: 	my $self = $_[0];
 </span><span class=""> 1453: 
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 1454: 	return $self-&gt;{_risk} if $self-&gt;{_risk};
-</span><p> <b> Mutants (Total: 2, Killed: 2, Survived: 0)</b><p><span class=""> 1455: 
+</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 1454: 	return $self-&gt;{_risk} if $self-&gt;{_risk};
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
+					<ul>
+				<li><b>BOOL_NEGATE_1454_2: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boolean branch test suggestion
+ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>RETURN_UNDEF_1454_2: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Return value assertion
+is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
+</pre>
+								</div>
+							</li></ul></details>
+<span class=""> 1455: 
 </span><span class=""> 1456: 	my (@flags, $score);
 </span><span class=""> 1457: 	$score = 0;
 </span><span class=""> 1458: 
@@ -1975,8 +2008,14 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 				<li><b>COND_INV_1528_4: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
 </li></ul></details>
 <span class=""> 1529: 				# Passing DKIM with a different domain is normal for ESPs
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 1530: 				if ($auth-&gt;{dkim} &amp;&amp; $auth-&gt;{dkim} =~ /^pass/i) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 1531: 					$flag-&gt;(&#39;INFO&#39;, &#39;dkim_domain_mismatch&#39;,
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 1530: 				if ($auth-&gt;{dkim} &amp;&amp; $auth-&gt;{dkim} =~ /^pass/i) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_1530_5: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 1531: 					$flag-&gt;(&#39;INFO&#39;, &#39;dkim_domain_mismatch&#39;,
 </span><span class=""> 1532: 						&quot;DKIM signed by &#39;$auth-&gt;{dkim_domain}&#39; but From: domain is &#39;$from_domain&#39;&quot;
 </span><span class=""> 1533: 						. &#39; -- message sent via third-party sender (normal for bulk/ESP mail)&#39;);
 </span><span class=""> 1534: 				} else {
@@ -1991,8 +2030,14 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 1543: 
 </span><span class=""> 1544: 	# --- Group 3: Date: header checks ---
 </span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">1545 → 1546 → 1579</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">1545 → 1546 → 0</span></span> 1545: 	my $date_raw = $self-&gt;_header_value(&#39;date&#39;);
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 1546: 	if (!$date_raw || $date_raw !~ /\S/) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 1547: 		$flag-&gt;(&#39;MEDIUM&#39;, &#39;missing_date&#39;,
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 1546: 	if (!$date_raw || $date_raw !~ /\S/) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_1546_2: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 1547: 		$flag-&gt;(&#39;MEDIUM&#39;, &#39;missing_date&#39;,
 </span><span class=""> 1548: 			&#39;No Date: header -- violates RFC 5322; common in spam&#39;);
 </span><span class=""> 1549: 	} else {
 </span><span class=""> 1550: 		# Check for an implausible timezone offset (outside real-world bounds)
@@ -2095,8 +2140,14 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 </pre>
 								</div>
 							</li></ul></details>
-<span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 1557: 			if ($implausible) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 1558: 				$flag-&gt;(&#39;MEDIUM&#39;, &#39;implausible_timezone&#39;,
+<span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 1557: 			if ($implausible) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_1557_4: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 1558: 				$flag-&gt;(&#39;MEDIUM&#39;, &#39;implausible_timezone&#39;,
 </span><span class=""> 1559: 					&quot;Date: &#39;$date_raw&#39; contains an implausible timezone offset &quot;
 </span><span class=""> 1560: 					. &quot;($sign$hh$mm) -- header is likely forged&quot;);
 </span><span class=""> 1561: 			}
@@ -2214,8 +2265,14 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 </span><span class=""> 1596: 	}
 </span><span class=""> 1597: 
 </span><span class=""> 1598: 	# Free webmail sender flag (no corporate infrastructure)
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">1599 → 1599 → 1606</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">1599 → 1599 → 0</span></span> 1599: 	if ($from_raw =~ /\@(gmail|yahoo|hotmail|outlook|live|aol|protonmail|yandex)\./i
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 1600: 	 || $from_raw =~ /\@mail\.ru(?:[\s&gt;]|$)/i) {
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">1599 → 1599 → 1606</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">1599 → 1599 → 0</span></span> 1599: 	if ($from_raw =~ /\@(gmail|yahoo|hotmail|outlook|live|aol|protonmail|yandex)\./i
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_1599_2: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 1600: 	 || $from_raw =~ /\@mail\.ru(?:[\s&gt;]|$)/i) {
 </span><span class=""> 1601: 		$flag-&gt;(&#39;MEDIUM&#39;, &#39;free_webmail_sender&#39;,
 </span><span class=""> 1602: 			&quot;Message sent from free webmail address ($from_raw)&quot;);
 </span><span class=""> 1603: 	}
@@ -2325,39 +2382,21 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 					<ul>
 				<li><b>COND_INV_1661_3: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
 </li></ul></details>
-<span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 1662: 			if(my $exp = $self-&gt;_parse_date_to_epoch($d-&gt;{expires})) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 1663: 				my $now      = time();
+<span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 1662: 			if(my $exp = $self-&gt;_parse_date_to_epoch($d-&gt;{expires})) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_1662_4: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 1663: 				my $now      = time();
 </span><span class=""> 1664: 				my $remaining = $exp - $now;
 </span><span class="survived-3 tooltip" data-tooltip="Boundary mutation survived. Add tests around edge values (e.g. min, max, off-by-one). Mutation survived. Add targeted tests to validate this branch."> 1665: 				if ($remaining &gt; 0 &amp;&amp; $remaining &lt; $EXPIRY_WARN_DAYS * $SECS_PER_DAY) {
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 7, Killed: 0, Survived: 7)</summary>
 					<ul>
-				<li><b>NUM_BOUNDARY_1665_20_<: Numeric boundary flip > to <</b><br>HIGH: Likely missing edge-case test (boundary value)
-
-								<div class="suggested-test">
-								<div class="suggest-label">🧪 Suggested Test</div>
-								<pre># Boundary test suggestion
-is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
-</pre>
-								</div>
-							</li><li><b>NUM_BOUNDARY_1665_20_>=: Numeric boundary flip > to >=</b><br>HIGH: Likely missing edge-case test (boundary value)
-
-								<div class="suggested-test">
-								<div class="suggest-label">🧪 Suggested Test</div>
-								<pre># Boundary test suggestion
-is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
-</pre>
-								</div>
-							</li><li><b>NUM_BOUNDARY_1665_20_<=: Numeric boundary flip > to <=</b><br>HIGH: Likely missing edge-case test (boundary value)
-
-								<div class="suggested-test">
-								<div class="suggest-label">🧪 Suggested Test</div>
-								<pre># Boundary test suggestion
-is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
-</pre>
-								</div>
-							</li><li><b>NUM_BOUNDARY_1665_38_>: Numeric boundary flip < to ></b><br>HIGH: Likely missing edge-case test (boundary value)
+				<li><b>NUM_BOUNDARY_1665_38_>: Numeric boundary flip < to ></b><br>HIGH: Likely missing edge-case test (boundary value)
 
 								<div class="suggested-test">
 								<div class="suggest-label">🧪 Suggested Test</div>
@@ -2374,6 +2413,30 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 </pre>
 								</div>
 							</li><li><b>NUM_BOUNDARY_1665_38_>=: Numeric boundary flip < to >=</b><br>HIGH: Likely missing edge-case test (boundary value)
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boundary test suggestion
+is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>NUM_BOUNDARY_1665_20_<: Numeric boundary flip > to <</b><br>HIGH: Likely missing edge-case test (boundary value)
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boundary test suggestion
+is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>NUM_BOUNDARY_1665_20_>=: Numeric boundary flip > to >=</b><br>HIGH: Likely missing edge-case test (boundary value)
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boundary test suggestion
+is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>NUM_BOUNDARY_1665_20_<=: Numeric boundary flip > to <=</b><br>HIGH: Likely missing edge-case test (boundary value)
 
 								<div class="suggested-test">
 								<div class="suggest-label">🧪 Suggested Test</div>
@@ -2425,8 +2488,14 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 </span><span class=""> 1676: 		for my $brand (qw(paypal apple google amazon microsoft netflix ebay
 </span><span class=""> 1677: 		                  instagram facebook twitter linkedin bankofamerica
 </span><span class=""> 1678: 		                  wellsfargo chase barclays hsbc lloyds santander)) {
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 1679: 			if ($d-&gt;{domain} =~ /\Q$brand\E/i &amp;&amp;
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 1680: 			    $d-&gt;{domain} !~ /^\Q$brand\E\.(?:com|co\.uk|net|org)$/) {
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 1679: 			if ($d-&gt;{domain} =~ /\Q$brand\E/i &amp;&amp;
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_1679_4: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 1680: 			    $d-&gt;{domain} !~ /^\Q$brand\E\.(?:com|co\.uk|net|org)$/) {
 </span><span class=""> 1681: 				$flag-&gt;(&#39;HIGH&#39;, &#39;lookalike_domain&#39;,
 </span><span class=""> 1682: 					&quot;$d-&gt;{domain} contains brand name &#39;$brand&#39; but is not the real domain -- possible phishing&quot;);
 </span><span class=""> 1683: 				last;
@@ -2528,8 +2597,29 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 <span class=""> 1692: 	          :                           &#39;INFO&#39;;
 </span><span class=""> 1693: 
 </span><span class=""> 1694: 	$self-&gt;{_risk} = { level =&gt; $level, score =&gt; $score, flags =&gt; \@flags };
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 1695: 	return $self-&gt;{_risk};
-</span><p> <b> Mutants (Total: 2, Killed: 2, Survived: 0)</b><p><span class=""> 1696: }
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 1695: 	return $self-&gt;{_risk};
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
+					<ul>
+				<li><b>BOOL_NEGATE_1695_2: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boolean branch test suggestion
+ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>RETURN_UNDEF_1695_2: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Return value assertion
+is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
+</pre>
+								</div>
+							</li></ul></details>
+<span class=""> 1696: }
 </span><span class=""> 1697: 
 </span><span class=""> 1698: # -----------------------------------------------------------------------
 </span><span class=""> 1699: # Public: abuse report text
@@ -2829,10 +2919,10 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 </span><span class=""> 1928: 			my $joined = join(&#39; and &#39;, @display);
 </span><span class=""> 1929: 
 </span><span class=""> 1930: 			# Summarise if the merged string is too long to read
-</span><span class="survived-3 tooltip" data-tooltip="Boundary mutation survived. Add tests around edge values (e.g. min, max, off-by-one)."> 1931: 			if (length($joined) &gt; $ROLE_MAX_LEN) {
+</span><span class="survived-3 tooltip" data-tooltip="Boundary mutation survived. Add tests around edge values (e.g. min, max, off-by-one). Mutation survived. Add targeted tests to validate this branch."> 1931: 			if (length($joined) &gt; $ROLE_MAX_LEN) {
 </span>
 					<details class="mutant-details">
-					<summary>Mutants (Total: 4, Killed: 1, Survived: 3)</summary>
+					<summary>Mutants (Total: 4, Killed: 0, Survived: 4)</summary>
 					<ul>
 				<li><b>NUM_BOUNDARY_1931_24_<: Numeric boundary flip > to <</b><br>HIGH: Likely missing edge-case test (boundary value)
 
@@ -2858,7 +2948,8 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 </pre>
 								</div>
-							</li></ul></details>
+							</li><li><b>COND_INV_1931_4: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
 <span class=""> 1932: 				my @short = map {
 </span><span class=""> 1933: 					(my $s = $_) =~ s/[:(\d].*//;
 </span><span class=""> 1934: 					$s =~ s/\s+$//;
@@ -2961,8 +3052,14 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 </span><span class=""> 2001: 		my $dom = $d-&gt;{domain};
 </span><span class=""> 2002: 
 </span><span class=""> 2003: 		# Web host contact
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 2004: 		if ($d-&gt;{web_abuse}) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 2005: 			my $pa = $self-&gt;_provider_abuse_for_host($dom);
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 2004: 		if ($d-&gt;{web_abuse}) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_2004_3: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 2005: 			my $pa = $self-&gt;_provider_abuse_for_host($dom);
 </span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 2006: 			if ($pa) {
 </span>
 					<details class="mutant-details">
@@ -2985,8 +3082,14 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 </span><span class=""> 2019: 		}
 </span><span class=""> 2020: 
 </span><span class=""> 2021: 		# MX (mail host) contact
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 2022: 		if ($d-&gt;{mx_abuse}) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 2023: 			$add-&gt;(
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 2022: 		if ($d-&gt;{mx_abuse}) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_2022_3: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 2023: 			$add-&gt;(
 </span><span class=""> 2024: 				role    =&gt; &quot;Mail host (MX) for $dom&quot;,
 </span><span class=""> 2025: 				address =&gt; $d-&gt;{mx_abuse},
 </span><span class=""> 2026: 				note    =&gt; sprintf(&#39;MX %s (%s, %s)&#39;,
@@ -3017,8 +3120,14 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 </span><span class=""> 2045: 		}
 </span><span class=""> 2046: 
 </span><span class=""> 2047: 		# Domain registrar (skip if domain only seen in spoofable headers)
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 2048: 		if ($d-&gt;{registrar_abuse}) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 2049: 			my $spoofable_only =
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 2048: 		if ($d-&gt;{registrar_abuse}) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_2048_3: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 2049: 			my $spoofable_only =
 </span><span class=""> 2050: 				$d-&gt;{source} =~ /^(?:From:|Return-Path:|Sender:) header$/ &amp;&amp;
 </span><span class=""> 2051: 				!scalar(grep {
 </span><span class=""> 2052: 					$_-&gt;{host} &amp;&amp;
@@ -3082,8 +3191,14 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 				<li><b>COND_INV_2093_2: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
 </li></ul></details>
 <span class=""> 2094: 		my $pa = $self-&gt;_provider_abuse_for_host($auth-&gt;{dkim_domain});
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 2095: 		if ($pa) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 2096: 			$add-&gt;(
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 2095: 		if ($pa) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_2095_3: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 2096: 			$add-&gt;(
 </span><span class=""> 2097: 				role    =&gt; &quot;DKIM signer: $auth-&gt;{dkim_domain}&quot;,
 </span><span class=""> 2098: 				address =&gt; $pa-&gt;{email},
 </span><span class=""> 2099: 				note    =&gt; $pa-&gt;{note},
@@ -3145,7 +3260,7 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 </span><span class=""> 2143: 		);
 </span><span class=""> 2144: 	}
 </span><span class=""> 2145: 
-</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">2146 → 2146 → 0</span></span> 2146: 	return @contacts;
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">2146 → 2146 → 0</span></span> 2146: 	return @contacts;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -3257,8 +3372,14 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 2234: 
 </span><span class=""> 2235: 	# Route 1 -- Sending ISP
 </span><span class=""> 2236: 	my $orig = $self-&gt;originating_ip();
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 2237: 	if ($orig) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 2238: 		my $pa = $self-&gt;_provider_abuse_for_ip($orig-&gt;{ip}, $orig-&gt;{rdns});
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 2237: 	if ($orig) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_2237_2: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 2238: 		my $pa = $self-&gt;_provider_abuse_for_ip($orig-&gt;{ip}, $orig-&gt;{rdns});
 </span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 2239: 		if ($pa &amp;&amp; $pa-&gt;{form}) {
 </span>
 					<details class="mutant-details">
@@ -3282,8 +3403,14 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 2253: 	for my $u ($self-&gt;embedded_urls()) {
 </span><span class=""> 2254: 		next if $url_host_seen{ $u-&gt;{host} }++;
 </span><span class=""> 2255: 		my $pa = $self-&gt;_provider_abuse_for_host($u-&gt;{host});
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 2256: 		if ($pa &amp;&amp; $pa-&gt;{form}) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 2257: 			$add-&gt;(
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 2256: 		if ($pa &amp;&amp; $pa-&gt;{form}) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_2256_3: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 2257: 			$add-&gt;(
 </span><span class=""> 2258: 				role        =&gt; &quot;URL host: $u-&gt;{host}&quot;,
 </span><span class=""> 2259: 				form        =&gt; $pa-&gt;{form},
 </span><span class=""> 2260: 				form_domain =&gt; $u-&gt;{host},
@@ -3318,11 +3445,23 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 2283: 		}
 </span><span class=""> 2284: 
 </span><span class=""> 2285: 		# Registrar identified via WHOIS -- check for form-only registrar
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 2286: 		if ($d-&gt;{registrar_abuse} &amp;&amp; $d-&gt;{registrar_abuse} =~ /\@([\w.-]+)/) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 2287: 			my $reg_domain = lc $1;
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 2286: 		if ($d-&gt;{registrar_abuse} &amp;&amp; $d-&gt;{registrar_abuse} =~ /\@([\w.-]+)/) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_2286_3: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 2287: 			my $reg_domain = lc $1;
 </span><span class=""> 2288: 			my $rpa = $self-&gt;_provider_abuse_for_host($reg_domain);
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 2289: 			if ($rpa &amp;&amp; $rpa-&gt;{form}) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 2290: 				$add-&gt;(
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 2289: 			if ($rpa &amp;&amp; $rpa-&gt;{form}) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_2289_4: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 2290: 				$add-&gt;(
 </span><span class=""> 2291: 					role        =&gt; &quot;Domain registrar for $dom (web form only)&quot;,
 </span><span class=""> 2292: 					form        =&gt; $rpa-&gt;{form},
 </span><span class=""> 2293: 					form_domain =&gt; $dom,
@@ -3407,8 +3546,14 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 2348: 		my %useen;
 </span><span class=""> 2349: 		for my $dom (grep { !$useen{$_}++ } @unsub_domains) {
 </span><span class=""> 2350: 			my $pa = $self-&gt;_provider_abuse_for_host($dom);
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 2351: 			if ($pa &amp;&amp; $pa-&gt;{form}) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 2352: 				$add-&gt;(
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 2351: 			if ($pa &amp;&amp; $pa-&gt;{form}) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_2351_4: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 2352: 				$add-&gt;(
 </span><span class=""> 2353: 					role        =&gt; &quot;ESP / bulk sender (List-Unsubscribe: $dom)&quot;,
 </span><span class=""> 2354: 					form        =&gt; $pa-&gt;{form},
 </span><span class=""> 2355: 					note        =&gt; $pa-&gt;{note} // &#39;&#39;,
@@ -3420,7 +3565,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 2361: 		}
 </span><span class=""> 2362: 	}
 </span><span class=""> 2363: 
-</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">2364 → 2364 → 0</span></span> 2364: 	return @contacts;
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">2364 → 2364 → 0</span></span> 2364: 	return @contacts;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -3531,8 +3676,14 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 2451: 	# Risk assessment section
 </span><span class=""> 2452: 	my $risk = $self-&gt;risk_assessment();
 </span><span class=""> 2453: 	push @out, &quot;[ RISK ASSESSMENT: $risk-&gt;{level} (score: $risk-&gt;{score}) ]&quot;;
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 2454: 	if (@{ $risk-&gt;{flags} }) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 2455: 		for my $f (@{ $risk-&gt;{flags} }) {
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 2454: 	if (@{ $risk-&gt;{flags} }) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_2454_2: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 2455: 		for my $f (@{ $risk-&gt;{flags} }) {
 </span><span class=""> 2456: 			push @out, &quot;  [$f-&gt;{severity}] &quot; . _sanitise_output($f-&gt;{detail});
 </span><span class=""> 2457: 		}
 </span><span class=""> 2458: 	} else {
@@ -3564,8 +3715,14 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 2478: 
 </span><span class=""> 2479: 	# Sending software section (omitted if none found)
 </span><span class=""> 2480: 	my @sw = $self-&gt;sending_software();
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 2481: 	if (@sw) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 2482: 		push @out, &#39;[ SENDING SOFTWARE / INFRASTRUCTURE CLUES ]&#39;;
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 2481: 	if (@sw) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_2481_2: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 2482: 		push @out, &#39;[ SENDING SOFTWARE / INFRASTRUCTURE CLUES ]&#39;;
 </span><span class=""> 2483: 		for my $s (@sw) {
 </span><span class=""> 2484: 			push @out, sprintf(&#39;  %-14s : %s&#39;, $s-&gt;{header}, _sanitise_output($s-&gt;{value}));
 </span><span class=""> 2485: 			push @out, &quot;  Note           : $s-&gt;{note}&quot;;
@@ -3638,7 +3795,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 2534: 			push @out, &#39;  Organisation : &#39; . _sanitise_output($m-&gt;{org})     if $m-&gt;{org};
 </span><span class=""> 2535: 			push @out, &#39;  Abuse addr   : &#39; . _sanitise_output($m-&gt;{abuse})   if $m-&gt;{abuse};
 </span><span class=""> 2536: 			my @paths = @{ $host_paths{$h} };
-</span><span class="survived-2 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch. Boundary mutation survived. Add tests around edge values (e.g. min, max, off-by-one)."> 2537: 			if (@paths == 1) {
+</span><span class="survived-2 tooltip" data-tooltip="Boundary mutation survived. Add tests around edge values (e.g. min, max, off-by-one). Mutation survived. Add targeted tests to validate this branch."> 2537: 			if (@paths == 1) {
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -3678,15 +3835,27 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 <span class=""> 2554: 		for my $d (@mdoms) {
 </span><span class=""> 2555: 			push @out, &#39;  Domain       : &#39; . _sanitise_output($d-&gt;{domain});
 </span><span class=""> 2556: 			push @out, &#39;  Found in     : &#39; . _sanitise_output($d-&gt;{source});
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 2557: 			if ($d-&gt;{recently_registered}) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 2558: 				push @out, &#39;  *** WARNING: RECENTLY REGISTERED - possible phishing domain ***&#39;;
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 2557: 			if ($d-&gt;{recently_registered}) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_2557_4: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 2558: 				push @out, &#39;  *** WARNING: RECENTLY REGISTERED - possible phishing domain ***&#39;;
 </span><span class=""> 2559: 			}
 </span><span class=""> 2560: 			push @out, &#39;  Registered   : &#39; . $d-&gt;{registered}       if $d-&gt;{registered};
 </span><span class=""> 2561: 			push @out, &#39;  Expires      : &#39; . $d-&gt;{expires}           if $d-&gt;{expires};
 </span><span class=""> 2562: 			push @out, &#39;  Registrar    : &#39; . _sanitise_output($d-&gt;{registrar})       if $d-&gt;{registrar};
 </span><span class=""> 2563: 			push @out, &#39;  Reg. abuse   : &#39; . _sanitise_output($d-&gt;{registrar_abuse}) if $d-&gt;{registrar_abuse};
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 2564: 			if ($d-&gt;{web_ip}) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 2565: 				push @out, &#39;  Web host IP  : &#39; . _sanitise_output($d-&gt;{web_ip});
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 2564: 			if ($d-&gt;{web_ip}) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_2564_4: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 2565: 				push @out, &#39;  Web host IP  : &#39; . _sanitise_output($d-&gt;{web_ip});
 </span><span class=""> 2566: 				push @out, &#39;  Web host org : &#39; . _sanitise_output($d-&gt;{web_org})   if $d-&gt;{web_org};
 </span><span class=""> 2567: 				push @out, &#39;  Web abuse    : &#39; . _sanitise_output($d-&gt;{web_abuse}) if $d-&gt;{web_abuse};
 </span><span class=""> 2568: 			} else {
@@ -3728,8 +3897,14 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 </span><span class=""> 2592: 	# Abuse contacts summary
 </span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">2593 → 2595 → 2609</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">2593 → 2595 → 0</span></span> 2593: 	push @out, &#39;[ WHERE TO SEND ABUSE REPORTS ]&#39;;
 </span><span class=""> 2594: 	my @contacts = $self-&gt;abuse_contacts();
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 2595: 	if (@contacts) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 2596: 		for my $c (@contacts) {
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 2595: 	if (@contacts) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_2595_2: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 2596: 		for my $c (@contacts) {
 </span><span class=""> 2597: 			push @out, &#39;  Role         : &#39; . _sanitise_output($c-&gt;{role});
 </span><span class=""> 2598: 			push @out, &#39;  Send to      : &#39; . _sanitise_output($c-&gt;{address});
 </span><span class=""> 2599: 			push @out, &#39;  Note         : &#39; . _sanitise_output($c-&gt;{note}) if $c-&gt;{note};
@@ -3759,13 +3934,19 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 </span><span class=""> 2617: 			push @out, &#39;  Form URL     : &#39; . _sanitise_output($c-&gt;{form});
 </span><span class=""> 2618: 			push @out, &#39;  Domain/URL   : &#39; . _sanitise_output($c-&gt;{form_domain}) if $c-&gt;{form_domain};
 </span><span class=""> 2619: 			push @out, &#39;  Note         : &#39; . _sanitise_output($c-&gt;{note})        if $c-&gt;{note};
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 2620: 			if ($c-&gt;{form_paste}) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 2621: 				# Word-wrap the paste hint at ROLE_WRAP_LEN characters
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 2620: 			if ($c-&gt;{form_paste}) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_2620_4: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 2621: 				# Word-wrap the paste hint at ROLE_WRAP_LEN characters
 </span><span class=""> 2622: 				my $hint  = $c-&gt;{form_paste};
 </span><span class=""> 2623: 				my @words = split /\s+/, $hint;
 </span><span class=""> 2624: 				my (@lines, $line);
 </span><span class=""> 2625: 				for my $w (@words) {
-</span><span class="survived-3 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch. Boundary mutation survived. Add tests around edge values (e.g. min, max, off-by-one)."> 2626: 					if (defined $line &amp;&amp; length(&quot;$line $w&quot;) &gt; $ROLE_WRAP_LEN) {
+</span><span class="survived-3 tooltip" data-tooltip="Boundary mutation survived. Add tests around edge values (e.g. min, max, off-by-one). Mutation survived. Add targeted tests to validate this branch."> 2626: 					if (defined $line &amp;&amp; length(&quot;$line $w&quot;) &gt; $ROLE_WRAP_LEN) {
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 4, Killed: 0, Survived: 4)</summary>
@@ -3864,7 +4045,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 							</li></ul></details>
 <span class=""> 2672: 	# Remove C0 controls (except tab) and DEL
 </span><span class=""> 2673: 	$str =~ s/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]//g;
-</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 2674: 	return $str;
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 2674: 	return $str;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -3969,8 +4150,14 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 2743: 		$self-&gt;_decode_multipart($body_raw, $boundary, 0) if $boundary;
 </span><span class=""> 2744: 	} else {
 </span><span class=""> 2745: 		my $decoded = $self-&gt;_decode_body($body_raw, $cte);
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 2746: 		if ($ct =~ /html/i) { $self-&gt;{_body_html}  = $decoded }
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 2747: 		else                 { $self-&gt;{_body_plain} = $decoded }
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 2746: 		if ($ct =~ /html/i) { $self-&gt;{_body_html}  = $decoded }
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_2746_3: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 2747: 		else                 { $self-&gt;{_body_plain} = $decoded }
 </span><span class=""> 2748: 	}
 </span><span class=""> 2749: 
 </span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">2750 → 2764 → 2776</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">2750 → 2764 → 0</span></span> 2750: 	$self-&gt;_debug(sprintf &#39;Parsed %d headers, %d Received lines&#39;,
@@ -4043,8 +4230,38 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 2817: 
 </span><span class=""> 2818: 	# Enforce the recursion depth limit to prevent stack exhaustion on
 </span><span class=""> 2819: 	# pathological crafted messages with deeply nested multipart structures.
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 2820: 	if ($depth &gt;= $MAX_MULTIPART_DEPTH) {
-</span><p> <b> Mutants (Total: 4, Killed: 4, Survived: 0)</b><p><span class=""> 2821: 		Carp::carp &#39;Email::Abuse::Investigator: multipart nesting depth limit&#39;,
+</span><span class="survived-3 tooltip" data-tooltip="Boundary mutation survived. Add tests around edge values (e.g. min, max, off-by-one). Mutation survived. Add targeted tests to validate this branch."> 2820: 	if ($depth &gt;= $MAX_MULTIPART_DEPTH) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 4, Killed: 0, Survived: 4)</summary>
+					<ul>
+				<li><b>NUM_BOUNDARY_2820_13_>: Numeric boundary flip >= to ></b><br>HIGH: Likely missing edge-case test (boundary value)
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boundary test suggestion
+is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>NUM_BOUNDARY_2820_13_<: Numeric boundary flip >= to <</b><br>HIGH: Likely missing edge-case test (boundary value)
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boundary test suggestion
+is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>NUM_BOUNDARY_2820_13_<=: Numeric boundary flip >= to <=</b><br>HIGH: Likely missing edge-case test (boundary value)
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boundary test suggestion
+is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>COND_INV_2820_2: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 2821: 		Carp::carp &#39;Email::Abuse::Investigator: multipart nesting depth limit&#39;,
 </span><span class=""> 2822: 			&quot;($MAX_MULTIPART_DEPTH) exceeded; stopping recursion&quot;;
 </span><span class=""> 2823: 		return;
 </span><span class=""> 2824: 	}
@@ -4076,10 +4293,22 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 2850: 
 </span><span class=""> 2851: 		# Nested multipart/* must be recursed into; without this URLs in
 </span><span class=""> 2852: 		# multipart/alternative inside multipart/mixed would be missed.
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 2853: 		if ($pct =~ /multipart/i) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 2854: 			my ($inner_boundary) = $pct =~ /boundary\s*=\s*&quot;?([^&quot;;]+)&quot;?/i;
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 2855: 			if ($inner_boundary) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 2856: 				$inner_boundary =~ s/\s+$//;
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 2853: 		if ($pct =~ /multipart/i) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_2853_3: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 2854: 			my ($inner_boundary) = $pct =~ /boundary\s*=\s*&quot;?([^&quot;;]+)&quot;?/i;
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 2855: 			if ($inner_boundary) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_2855_4: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 2856: 				$inner_boundary =~ s/\s+$//;
 </span><span class=""> 2857: 				# Increment depth counter for the recursion guard
 </span><span class=""> 2858: 				$self-&gt;_decode_multipart($pbody, $inner_boundary, $depth + 1);
 </span><span class=""> 2859: 			}
@@ -4088,8 +4317,14 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 2862: 
 </span><span class=""> 2863: 		# Decode transfer encoding and accumulate by content type
 </span><span class=""> 2864: 		my $decoded = $self-&gt;_decode_body($pbody, $pcte);
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 2865: 		if    ($pct =~ /text\/html/i)    { $self-&gt;{_body_html}  .= $decoded }
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 2866: 		elsif ($pct =~ /text/i || !$pct) { $self-&gt;{_body_plain} .= $decoded }
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 2865: 		if    ($pct =~ /text\/html/i)    { $self-&gt;{_body_html}  .= $decoded }
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_2865_3: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 2866: 		elsif ($pct =~ /text/i || !$pct) { $self-&gt;{_body_plain} .= $decoded }
 </span><span class=""> 2867: 	}
 </span><span class=""> 2868: }
 </span><span class=""> 2869: 
@@ -4115,7 +4350,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 2889: 	$cte //= &#39;&#39;;
 </span><span class=""> 2890: 	return decode_qp($body)     if $cte =~ /quoted-printable/i;
 </span><span class=""> 2891: 	return decode_base64($body) if $cte =~ /base64/i;
-</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 2892: 	return $body // &#39;&#39;;
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 2892: 	return $body // &#39;&#39;;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -4188,8 +4423,14 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 				<li><b>COND_INV_2936_2: Invert condition unless to if</b><br>MEDIUM: Add tests asserting both true and false outcomes
 </li></ul></details>
 <span class=""> 2937: 		my $xoip = $self-&gt;_header_value(&#39;x-originating-ip&#39;);
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 2938: 		if ($xoip) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 2939: 			$xoip =~ s/[\[\]\s]//g;
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 2938: 		if ($xoip) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_2938_3: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 2939: 			$xoip =~ s/[\[\]\s]//g;
 </span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 2940: 			return $self-&gt;_enrich_ip($xoip, &#39;low&#39;,
 </span>
 					<details class="mutant-details">
@@ -4215,7 +4456,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 <span class=""> 2941: 				&#39;Taken from X-Originating-IP (webmail, unverified)&#39;)
 </span><span class=""> 2942: 				unless $self-&gt;_is_private($xoip);
 </span><span class=""> 2943: 		}
-</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 2944: 		return undef;
+</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 2944: 		return undef;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -4263,8 +4504,37 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 								</div>
 							</li></ul></details>
 <span class=""> 2949: 		$candidates[0],
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 2950: 		@candidates &gt; 1 ? &#39;high&#39; : &#39;medium&#39;,
-</span><p> <b> Mutants (Total: 3, Killed: 3, Survived: 0)</b><p><span class=""> 2951: 		&#39;First external hop in Received: chain&#39;,
+</span><span class="survived-3 tooltip" data-tooltip="Boundary mutation survived. Add tests around edge values (e.g. min, max, off-by-one)."> 2950: 		@candidates &gt; 1 ? &#39;high&#39; : &#39;medium&#39;,
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 3, Killed: 0, Survived: 3)</summary>
+					<ul>
+				<li><b>NUM_BOUNDARY_2950_15_<: Numeric boundary flip > to <</b><br>HIGH: Likely missing edge-case test (boundary value)
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boundary test suggestion
+is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>NUM_BOUNDARY_2950_15_>=: Numeric boundary flip > to >=</b><br>HIGH: Likely missing edge-case test (boundary value)
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boundary test suggestion
+is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>NUM_BOUNDARY_2950_15_<=: Numeric boundary flip > to <=</b><br>HIGH: Likely missing edge-case test (boundary value)
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boundary test suggestion
+is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
+</pre>
+								</div>
+							</li></ul></details>
+<span class=""> 2951: 		&#39;First external hop in Received: chain&#39;,
 </span><span class=""> 2952: 	);
 </span><span class=""> 2953: }
 </span><span class=""> 2954: 
@@ -4298,7 +4568,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 <span class=""> 2976: 			my $ip = $1;
 </span><span class=""> 2977: 
 </span><span class=""> 2978: 			# Accept IPv6 addresses (contain colons) without further validation
-</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 2979: 			return $ip if $ip =~ /:/;
+</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 2979: 			return $ip if $ip =~ /:/;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -4323,8 +4593,37 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 <span class=""> 2980: 
 </span><span class=""> 2981: 			# Validate IPv4 format and octet range
 </span><span class=""> 2982: 			next unless $ip =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 2983: 			next if grep { $_ &gt; 255 } split /\./, $ip;
-</span><p> <b> Mutants (Total: 3, Killed: 3, Survived: 0)</b><p><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 2984: 			return $ip;
+</span><span class="survived-3 tooltip" data-tooltip="Boundary mutation survived. Add tests around edge values (e.g. min, max, off-by-one)."> 2983: 			next if grep { $_ &gt; 255 } split /\./, $ip;
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 3, Killed: 0, Survived: 3)</summary>
+					<ul>
+				<li><b>NUM_BOUNDARY_2983_22_<: Numeric boundary flip > to <</b><br>HIGH: Likely missing edge-case test (boundary value)
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boundary test suggestion
+is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>NUM_BOUNDARY_2983_22_>=: Numeric boundary flip > to >=</b><br>HIGH: Likely missing edge-case test (boundary value)
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boundary test suggestion
+is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>NUM_BOUNDARY_2983_22_<=: Numeric boundary flip > to <=</b><br>HIGH: Likely missing edge-case test (boundary value)
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boundary test suggestion
+is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
+</pre>
+								</div>
+							</li></ul></details>
+<span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 2984: 			return $ip;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -4391,8 +4690,29 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 3006: 
 </span><span class=""> 3007: sub _is_private {
 </span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3008 → 3010 → 3011</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3008 → 3010 → 0</span></span> 3008: 	my ($self, $ip) = @_;
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 3009: 	return 1 unless defined $ip &amp;&amp; $ip ne &#39;&#39;;
-</span><p> <b> Mutants (Total: 2, Killed: 2, Survived: 0)</b><p><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 3010: 	for my $re (@PRIVATE_RANGES) { return 1 if $ip =~ $re }
+</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 3009: 	return 1 unless defined $ip &amp;&amp; $ip ne &#39;&#39;;
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
+					<ul>
+				<li><b>BOOL_NEGATE_3009_2: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boolean branch test suggestion
+ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>RETURN_UNDEF_3009_2: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Return value assertion
+is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
+</pre>
+								</div>
+							</li></ul></details>
+<span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 3010: 	for my $re (@PRIVATE_RANGES) { return 1 if $ip =~ $re }
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -4414,8 +4734,29 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </pre>
 								</div>
 							</li></ul></details>
-<span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3011 → 3011 → 0</span></span> 3011: 	return 0;
-</span><p> <b> Mutants (Total: 2, Killed: 2, Survived: 0)</b><p><span class=""> 3012: }
+<span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3011 → 3011 → 0</span></span> 3011: 	return 0;
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
+					<ul>
+				<li><b>BOOL_NEGATE_3011_2: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boolean branch test suggestion
+ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>RETURN_UNDEF_3011_2: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Return value assertion
+is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
+</pre>
+								</div>
+							</li></ul></details>
+<span class=""> 3012: }
 </span><span class=""> 3013: 
 </span><span class=""> 3014: # _is_trusted( $ip ) -&gt; bool
 </span><span class=""> 3015: #
@@ -4456,8 +4797,29 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 								</div>
 							</li></ul></details>
 <span class=""> 3031: 	}
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3032 → 3032 → 0</span></span> 3032: 	return 0;
-</span><p> <b> Mutants (Total: 2, Killed: 2, Survived: 0)</b><p><span class=""> 3033: }
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3032 → 3032 → 0</span></span> 3032: 	return 0;
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
+					<ul>
+				<li><b>BOOL_NEGATE_3032_2: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boolean branch test suggestion
+ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>RETURN_UNDEF_3032_2: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Return value assertion
+is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
+</pre>
+								</div>
+							</li></ul></details>
+<span class=""> 3033: }
 </span><span class=""> 3034: 
 </span><span class=""> 3035: # -----------------------------------------------------------------------
 </span><span class=""> 3036: # Private: HTTP/HTTPS URL extraction and resolution
@@ -4497,7 +4859,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 3070: 	}
 </span><span class=""> 3071: 
 </span><span class=""> 3072: 	# Parallelise DNS lookups if AnyEvent::DNS is available
-</span><span class="survived-3 tooltip" data-tooltip="Boundary mutation survived. Add tests around edge values (e.g. min, max, off-by-one). Mutation survived. Add targeted tests to validate this branch."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3073 → 3073 → 3078</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3073 → 3073 → 0</span></span> 3073: 	if ($HAS_ANYEVENT_DNS &amp;&amp; scalar(keys %hostname_needed) &gt; 1) {
+</span><span class="survived-3 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch. Boundary mutation survived. Add tests around edge values (e.g. min, max, off-by-one)."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3073 → 3073 → 3078</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3073 → 3073 → 0</span></span> 3073: 	if ($HAS_ANYEVENT_DNS &amp;&amp; scalar(keys %hostname_needed) &gt; 1) {
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 4, Killed: 0, Survived: 4)</summary>
@@ -4561,8 +4923,14 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 </span><span class=""> 3092: 				          : {};
 </span><span class=""> 3093: 
 </span><span class=""> 3094: 				# Fall back to domain WHOIS if IP lookup returned nothing
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 3095: 				if (!$whois-&gt;{abuse}) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 3096: 					my $reg = _registrable($host) // $host;
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 3095: 				if (!$whois-&gt;{abuse}) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_3095_5: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 3096: 					my $reg = _registrable($host) // $host;
 </span><span class=""> 3097: 					my $dw  = $self-&gt;_parse_domain_whois_abuse($reg);
 </span><span class=""> 3098: 					$whois  = $dw if $dw-&gt;{abuse};
 </span><span class=""> 3099: 				}
@@ -4848,8 +5216,14 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 3305: 
 </span><span class=""> 3306: 	# List-Unsubscribe identifies the ESP or bulk sender
 </span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3307 → 3308 → 3318</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3307 → 3308 → 0</span></span> 3307: 	my $unsub = $self-&gt;_header_value(&#39;list-unsubscribe&#39;);
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 3308: 	if ($unsub) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 3309: 		while ($unsub =~ m{https?://([^/:?\s&gt;]+)}gi) {
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 3308: 	if ($unsub) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_3308_2: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 3309: 		while ($unsub =~ m{https?://([^/:?\s&gt;]+)}gi) {
 </span><span class=""> 3310: 			$record-&gt;(lc $1, &#39;List-Unsubscribe: header&#39;);
 </span><span class=""> 3311: 		}
 </span><span class=""> 3312: 		while ($unsub =~ m{mailto:[^@\s&gt;]+\@([\w.-]+)}gi) {
@@ -4898,7 +5272,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 3355: 		my $dom = lc $1; $dom =~ s/\.$//;
 </span><span class=""> 3356: 		push @out, $dom unless $seen{$dom}++;
 </span><span class=""> 3357: 	}
-</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3358 → 3358 → 0</span></span> 3358: 	return @out;
+</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3358 → 3358 → 0</span></span> 3358: 	return @out;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -4978,8 +5352,14 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 <span class=""> 3393: 		if $self-&gt;{_domain_info}{$domain};
 </span><span class=""> 3394: 
 </span><span class=""> 3395: 	# Check the cross-message CHI cache before hitting the network
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 3396: 	if ($_cache) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 3397: 		my $cached = $_cache-&gt;get(&quot;dom:$domain&quot;);
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 3396: 	if ($_cache) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_3396_2: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 3397: 		my $cached = $_cache-&gt;get(&quot;dom:$domain&quot;);
 </span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 3398: 		if ($cached) {
 </span>
 					<details class="mutant-details">
@@ -4988,7 +5368,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 				<li><b>COND_INV_3398_3: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
 </li></ul></details>
 <span class=""> 3399: 			$self-&gt;{_domain_info}{$domain} = $cached;
-</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 3400: 			return $cached;
+</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 3400: 			return $cached;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -5180,8 +5560,14 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 3496: 			qr/Expir(?:y|ation)(?: Date)?:\s*(\S+)/i,
 </span><span class=""> 3497: 			qr/paid-till:\s*(\S+)/i,
 </span><span class=""> 3498: 		) {
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 3499: 			if (!$info{expires} &amp;&amp; $domain_whois =~ $pat) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 3500: 				($info{expires} = $1) =~ s/[TZ].*//;
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 3499: 			if (!$info{expires} &amp;&amp; $domain_whois =~ $pat) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_3499_4: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 3500: 				($info{expires} = $1) =~ s/[TZ].*//;
 </span><span class=""> 3501: 			}
 </span><span class=""> 3502: 		}
 </span><span class=""> 3503: 
@@ -5258,7 +5644,7 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 </span><span class=""> 3539: 
 </span><span class=""> 3540: sub _resolve_host {
 </span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3541 → 3545 → 3550</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3541 → 3545 → 0</span></span> 3541: 	my ($self, $host) = @_;
-</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 3542: 	return $host if $host =~ /^\d{1,3}(?:\.\d{1,3}){3}$/;
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 3542: 	return $host if $host =~ /^\d{1,3}(?:\.\d{1,3}){3}$/;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -5290,7 +5676,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 				<li><b>COND_INV_3545_2: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
 </li></ul></details>
 <span class=""> 3546: 		my $cached_ip = $_cache-&gt;get(&quot;resolve:$host&quot;);
-</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 3547: 		return $cached_ip if defined $cached_ip;
+</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 3547: 		return $cached_ip if defined $cached_ip;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -5316,8 +5702,14 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 3549: 
 </span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3550 → 3552 → 3581</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3550 → 3552 → 0</span></span> 3550: 	my $ip;
 </span><span class=""> 3551: 
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 3552: 	if ($HAS_NET_DNS) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 3553: 		my $res = Net::DNS::Resolver-&gt;new(
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 3552: 	if ($HAS_NET_DNS) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_3552_2: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 3553: 		my $res = Net::DNS::Resolver-&gt;new(
 </span><span class=""> 3554: 			tcp_timeout =&gt; $self-&gt;{timeout},
 </span><span class=""> 3555: 			udp_timeout =&gt; $self-&gt;{timeout},
 </span><span class=""> 3556: 		);
@@ -5333,8 +5725,14 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 				<li><b>COND_INV_3561_4: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
 </li></ul></details>
 <span class=""> 3562: 				for my $rr ($query-&gt;answer) {
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 3563: 					if ($rr-&gt;type eq &#39;A&#39;) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 3564: 						$ip = $rr-&gt;address;
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 3563: 					if ($rr-&gt;type eq &#39;A&#39;) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_3563_6: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 3564: 						$ip = $rr-&gt;address;
 </span><span class=""> 3565: 						last;
 </span><span class=""> 3566: 					} elsif ($rr-&gt;type eq &#39;AAAA&#39;) {
 </span><span class=""> 3567: 						$ip = $rr-&gt;address;
@@ -5422,8 +5820,14 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 								</div>
 							</li></ul></details>
 <span class=""> 3603: 
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 3604: 	if ($HAS_NET_DNS) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 3605: 		my $res   = Net::DNS::Resolver-&gt;new(tcp_timeout =&gt; $self-&gt;{timeout});
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 3604: 	if ($HAS_NET_DNS) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_3604_2: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 3605: 		my $res   = Net::DNS::Resolver-&gt;new(tcp_timeout =&gt; $self-&gt;{timeout});
 </span><span class=""> 3606: 		my $query = $res-&gt;search($ip, &#39;PTR&#39;);
 </span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 3607: 		if ($query) {
 </span>
@@ -5433,8 +5837,29 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 				<li><b>COND_INV_3607_3: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
 </li></ul></details>
 <span class=""> 3608: 			for my $rr ($query-&gt;answer) {
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 3609: 				return $rr-&gt;ptrdname if $rr-&gt;type eq &#39;PTR&#39;;
-</span><p> <b> Mutants (Total: 2, Killed: 2, Survived: 0)</b><p><span class=""> 3610: 			}
+</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 3609: 				return $rr-&gt;ptrdname if $rr-&gt;type eq &#39;PTR&#39;;
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
+					<ul>
+				<li><b>BOOL_NEGATE_3609_5: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boolean branch test suggestion
+ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>RETURN_UNDEF_3609_5: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Return value assertion
+is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
+</pre>
+								</div>
+							</li></ul></details>
+<span class=""> 3610: 			}
 </span><span class=""> 3611: 		}
 </span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 3612: 		return undef;
 </span>
@@ -5485,10 +5910,37 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3637 → 3640 → 3645</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3637 → 3640 → 0</span></span> 3637: 	my ($self, $ip) = @_;
 </span><span class=""> 3638: 
 </span><span class=""> 3639: 	# Check CHI cache before going to the network
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 3640: 	if ($_cache) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 3641: 		my $cached = $_cache-&gt;get(&quot;whois_ip:$ip&quot;);
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 3642: 		return $cached if $cached;
-</span><p> <b> Mutants (Total: 2, Killed: 2, Survived: 0)</b><p><span class=""> 3643: 	}
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 3640: 	if ($_cache) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_3640_2: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 3641: 		my $cached = $_cache-&gt;get(&quot;whois_ip:$ip&quot;);
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 3642: 		return $cached if $cached;
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
+					<ul>
+				<li><b>BOOL_NEGATE_3642_3: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boolean branch test suggestion
+ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>RETURN_UNDEF_3642_3: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Return value assertion
+is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
+</pre>
+								</div>
+							</li></ul></details>
+<span class=""> 3643: 	}
 </span><span class=""> 3644: 
 </span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3645 → 3648 → 3658</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3645 → 3648 → 0</span></span> 3645: 	my $result = $HAS_LWP ? $self-&gt;_rdap_lookup($ip) : {};
 </span><span class=""> 3646: 
@@ -5501,8 +5953,14 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 				<li><b>COND_INV_3648_2: Invert condition unless to if</b><br>MEDIUM: Add tests asserting both true and false outcomes
 </li></ul></details>
 <span class=""> 3649: 		my $raw = $self-&gt;_raw_whois($ip, &#39;whois.iana.org&#39;);
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 3650: 		if ($raw) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 3651: 			my ($ref) = $raw =~ /whois:\s*([\w.-]+)/i;
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 3650: 		if ($raw) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_3650_3: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 3651: 			my ($ref) = $raw =~ /whois:\s*([\w.-]+)/i;
 </span><span class=""> 3652: 			my $detail = $ref ? $self-&gt;_raw_whois($ip, $ref) : $raw;
 </span><span class=""> 3653: 			$result = $self-&gt;_parse_whois_text($detail) if $detail;
 </span><span class=""> 3654: 		}
@@ -5511,7 +5969,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 3657: 	# Cache the enrichment result
 </span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3658 → 3660 → 0</span></span> 3658: 	$_cache-&gt;set(&quot;whois_ip:$ip&quot;, $result) if $_cache &amp;&amp; $result;
 </span><span class=""> 3659: 
-</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 3660: 	return $result;
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 3660: 	return $result;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -5573,7 +6031,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </pre>
 								</div>
 							</li></ul></details>
-<span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 3680: 	return $self-&gt;_raw_whois($domain, $server);
+<span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 3680: 	return $self-&gt;_raw_whois($domain, $server);
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -5660,8 +6118,14 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 3731: 	return {} unless $HAS_LWP;
 </span><span class=""> 3732: 
 </span><span class=""> 3733: 	my $ua = $self-&gt;{ua};
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 3734: 	if(!defined($ua)) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 3735: 		$ua = LWP::UserAgent-&gt;new(
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 3734: 	if(!defined($ua)) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_3734_2: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 3735: 		$ua = LWP::UserAgent-&gt;new(
 </span><span class=""> 3736: 			timeout =&gt; $self-&gt;{timeout},
 </span><span class=""> 3737: 			agent   =&gt; &quot;Email-Abuse-Investigator/$VERSION&quot;,
 </span><span class=""> 3738: 		);
@@ -5695,8 +6159,14 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 3760: 	$info{handle} = $1 if $j =~ /&quot;handle&quot;\s*:\s*&quot;([^&quot;]+)&quot;/;
 </span><span class=""> 3761: 
 </span><span class=""> 3762: 	# Extract abuse email from the vcardArray contact block
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 3763: 	if ($j =~ /&quot;abuse&quot;.*?&quot;email&quot;\s*:\s*&quot;([^&quot;]+)&quot;/s) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 3764: 		$info{abuse} = $1;
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 3763: 	if ($j =~ /&quot;abuse&quot;.*?&quot;email&quot;\s*:\s*&quot;([^&quot;]+)&quot;/s) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_3763_2: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 3764: 		$info{abuse} = $1;
 </span><span class=""> 3765: 	} elsif ($j =~ /&quot;email&quot;\s*:\s*&quot;([^@&quot;]+@[^&quot;]+)&quot;/) {
 </span><span class=""> 3766: 		$info{abuse} = $1;
 </span><span class=""> 3767: 	}
@@ -5804,10 +6274,10 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 3827: 		# Wrap in eval to catch &#39;Connection reset by peer&#39; thrown by Fatal/autodie
 </span><span class=""> 3828: 		my $n = eval { sysread($sock, $buf, $WHOIS_READ_CHUNK) };
 </span><span class=""> 3829: 
-</span><span class="survived-3 tooltip" data-tooltip="Boundary mutation survived. Add tests around edge values (e.g. min, max, off-by-one)."> 3830: 		if ($@ || !defined $n || $n &lt;= 0) {
+</span><span class="survived-3 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch. Boundary mutation survived. Add tests around edge values (e.g. min, max, off-by-one)."> 3830: 		if ($@ || !defined $n || $n &lt;= 0) {
 </span>
 					<details class="mutant-details">
-					<summary>Mutants (Total: 4, Killed: 1, Survived: 3)</summary>
+					<summary>Mutants (Total: 4, Killed: 0, Survived: 4)</summary>
 					<ul>
 				<li><b>NUM_BOUNDARY_3830_31_<: Numeric boundary flip <= to <</b><br>HIGH: Likely missing edge-case test (boundary value)
 
@@ -5833,7 +6303,8 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 </pre>
 								</div>
-							</li></ul></details>
+							</li><li><b>COND_INV_3830_3: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
 <span class=""> 3831: 			$self-&gt;_debug(&quot;WHOIS read failed: $@&quot;) if $@;
 </span><span class=""> 3832: 			last;
 </span><span class=""> 3833: 		}
@@ -5917,8 +6388,14 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 3861: 		qr/^OrgName:\s*(.+)/mi,    qr/^org-name:\s*(.+)/mi,
 </span><span class=""> 3862: 		qr/^owner:\s*(.+)/mi,      qr/^descr:\s*(.+)/mi,
 </span><span class=""> 3863: 	) {
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 3864: 		if (!$info{org} &amp;&amp; $text =~ $pat) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 3865: 			($info{org} = $1) =~ s/\s+$//;
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 3864: 		if (!$info{org} &amp;&amp; $text =~ $pat) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_3864_3: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 3865: 			($info{org} = $1) =~ s/\s+$//;
 </span><span class=""> 3866: 		}
 </span><span class=""> 3867: 	}
 </span><span class=""> 3868: 
@@ -5974,8 +6451,29 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 3906: 
 </span><span class=""> 3907: sub _parse_auth_results_cached {
 </span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3908 → 3927 → 3933</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3908 → 3927 → 0</span></span> 3908: 	my $self = $_[0];
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 3909: 	return $self-&gt;{_auth_results} if $self-&gt;{_auth_results};
-</span><p> <b> Mutants (Total: 2, Killed: 2, Survived: 0)</b><p><span class=""> 3910: 
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 3909: 	return $self-&gt;{_auth_results} if $self-&gt;{_auth_results};
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
+					<ul>
+				<li><b>BOOL_NEGATE_3909_2: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boolean branch test suggestion
+ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>RETURN_UNDEF_3909_2: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Return value assertion
+is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
+</pre>
+								</div>
+							</li></ul></details>
+<span class=""> 3910: 
 </span><span class=""> 3911: 	my %auth;
 </span><span class=""> 3912: 
 </span><span class=""> 3913: 	# Concatenate all Authentication-Results: header values
@@ -6000,8 +6498,14 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 3932: 	# Prefer the first domain that matches the provider table (identifies ESP).
 </span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3933 → 3934 → 3940</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3933 → 3934 → 0</span></span> 3933: 	my @dkim_domains;
 </span><span class=""> 3934: 	for my $h (grep { $_-&gt;{name} eq &#39;dkim-signature&#39; } @{ $self-&gt;{_headers} }) {
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 3935: 		if ($h-&gt;{value} =~ /\bd=([^;,\s]+)/) {
-</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class=""> 3936: 			push @dkim_domains, lc $1;
+</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 3935: 		if ($h-&gt;{value} =~ /\bd=([^;,\s]+)/) {
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
+					<ul>
+				<li><b>COND_INV_3935_3: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
+</li></ul></details>
+<span class=""> 3936: 			push @dkim_domains, lc $1;
 </span><span class=""> 3937: 		}
 </span><span class=""> 3938: 	}
 </span><span class=""> 3939: 
@@ -6055,7 +6559,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 3975: 	$host = lc $host;
 </span><span class=""> 3976: 	# Strip successive subdomains until we find a match or exhaust labels
 </span><span class=""> 3977: 	while ($host =~ /\./) {
-</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 3978: 		return $self-&gt;{provider_abuse}-&gt;{$host} if $self-&gt;{provider_abuse}-&gt;{$host};
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 3978: 		return $self-&gt;{provider_abuse}-&gt;{$host} if $self-&gt;{provider_abuse}-&gt;{$host};
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -6080,8 +6584,29 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 <span class=""> 3979: 		return $PROVIDER_ABUSE{$host} if $PROVIDER_ABUSE{$host};
 </span><span class=""> 3980: 		$host =~ s/^[^.]+\.//;
 </span><span class=""> 3981: 	}
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3982 → 3982 → 0</span></span> 3982: 	return undef;
-</span><p> <b> Mutants (Total: 2, Killed: 2, Survived: 0)</b><p><span class=""> 3983: }
+</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">3982 → 3982 → 0</span></span> 3982: 	return undef;
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
+					<ul>
+				<li><b>BOOL_NEGATE_3982_2: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boolean branch test suggestion
+ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>RETURN_UNDEF_3982_2: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Return value assertion
+is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
+</pre>
+								</div>
+							</li></ul></details>
+<span class=""> 3983: }
 </span><span class=""> 3984: 
 </span><span class=""> 3985: # _provider_abuse_for_ip( $ip, $rdns ) -&gt; hashref | undef
 </span><span class=""> 3986: #
@@ -6098,9 +6623,51 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 3997: 
 </span><span class=""> 3998: sub _provider_abuse_for_ip {
 </span><span class=""> 3999: 	my ($self, $ip, $rdns) = @_;
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 4000: 	return $self-&gt;_provider_abuse_for_host($rdns) if $rdns;
-</span><p> <b> Mutants (Total: 2, Killed: 2, Survived: 0)</b><p><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 4001: 	return undef;
-</span><p> <b> Mutants (Total: 2, Killed: 2, Survived: 0)</b><p><span class=""> 4002: }
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 4000: 	return $self-&gt;_provider_abuse_for_host($rdns) if $rdns;
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
+					<ul>
+				<li><b>BOOL_NEGATE_4000_2: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boolean branch test suggestion
+ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>RETURN_UNDEF_4000_2: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Return value assertion
+is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
+</pre>
+								</div>
+							</li></ul></details>
+<span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 4001: 	return undef;
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
+					<ul>
+				<li><b>BOOL_NEGATE_4001_2: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boolean branch test suggestion
+ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>RETURN_UNDEF_4001_2: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Return value assertion
+is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
+</pre>
+								</div>
+							</li></ul></details>
+<span class=""> 4002: }
 </span><span class=""> 4003: 
 </span><span class=""> 4004: # -----------------------------------------------------------------------
 </span><span class=""> 4005: # Private: eTLD+1 normalisation
@@ -6126,8 +6693,29 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 4025: 
 </span><span class=""> 4026: sub _registrable {
 </span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">4027 → 4031 → 4038</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">4027 → 4031 → 0</span></span> 4027: 	my ($host) = @_;
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 4028: 	return undef unless $host &amp;&amp; $host =~ /\./;
-</span><p> <b> Mutants (Total: 2, Killed: 2, Survived: 0)</b><p><span class=""> 4029: 
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 4028: 	return undef unless $host &amp;&amp; $host =~ /\./;
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
+					<ul>
+				<li><b>BOOL_NEGATE_4028_2: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boolean branch test suggestion
+ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>RETURN_UNDEF_4028_2: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Return value assertion
+is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
+</pre>
+								</div>
+							</li></ul></details>
+<span class=""> 4029: 
 </span><span class=""> 4030: 	# Use Domain::PublicSuffix for accurate PSL-based normalisation
 </span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 4031: 	if ($HAS_PUBLIC_SUFFIX) {
 </span>
@@ -6164,7 +6752,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 4036: 
 </span><span class=""> 4037: 	# Built-in heuristic fallback
 </span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">4038 → 4042 → 4046</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">4038 → 4042 → 0</span></span> 4038: 	my @labels = split /\./, lc $host;
-</span><span class="survived-3 tooltip" data-tooltip="Boundary mutation survived. Add tests around edge values (e.g. min, max, off-by-one). Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 4039: 	return $host if @labels &lt;= 2;
+</span><span class="survived-3 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths. Boundary mutation survived. Add tests around edge values (e.g. min, max, off-by-one)."> 4039: 	return $host if @labels &lt;= 2;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 5, Killed: 0, Survived: 5)</summary>
@@ -6274,9 +6862,30 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 4095: sub _header_value {
 </span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">4096 → 4097 → 4100</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">4096 → 4097 → 0</span></span> 4096: 	my ($self, $name) = @_;
 </span><span class=""> 4097: 	for my $h (@{ $self-&gt;{_headers} }) {
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 4098: 		return $h-&gt;{value} if $h-&gt;{name} eq lc($name);
-</span><p> <b> Mutants (Total: 2, Killed: 2, Survived: 0)</b><p><span class=""> 4099: 	}
-</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">4100 → 4100 → 0</span></span> 4100: 	return undef;
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 4098: 		return $h-&gt;{value} if $h-&gt;{name} eq lc($name);
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
+					<ul>
+				<li><b>BOOL_NEGATE_4098_3: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boolean branch test suggestion
+ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>RETURN_UNDEF_4098_3: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Return value assertion
+is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
+</pre>
+								</div>
+							</li></ul></details>
+<span class=""> 4099: 	}
+</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">4100 → 4100 → 0</span></span> 4100: 	return undef;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -6338,7 +6947,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 								</div>
 							</li></ul></details>
 <span class=""> 4119: 	my ($net_addr, $prefix) = split m{/}, $cidr;
-</span><span class="survived-3 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Boundary mutation survived. Add tests around edge values (e.g. min, max, off-by-one). Return value mutation survived. Add tests asserting exact return values."> 4120: 	return 0 unless defined $prefix &amp;&amp; $prefix =~ /^\d+$/ &amp;&amp; $prefix &lt;= 32;
+</span><span class="survived-3 tooltip" data-tooltip="Boundary mutation survived. Add tests around edge values (e.g. min, max, off-by-one). Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 4120: 	return 0 unless defined $prefix &amp;&amp; $prefix =~ /^\d+$/ &amp;&amp; $prefix &lt;= 32;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 5, Killed: 0, Survived: 5)</summary>
@@ -6419,7 +7028,7 @@ is( func(VALUE_AT_BOUNDARY), EXPECTED, &#39;Test boundary behaviour&#39; );
 </span><span class=""> 4140: 
 </span><span class=""> 4141: sub _decode_mime_words {
 </span><span class=""> 4142: 	my ($self, $str) = @_;
-</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 4143: 	return &#39;&#39; unless defined $str;
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 4143: 	return &#39;&#39; unless defined $str;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -6443,8 +7052,29 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 							</li></ul></details>
 <span class=""> 4144: 	# Replace each encoded-word with its decoded equivalent
 </span><span class=""> 4145: 	$str =~ s/=\?([^?]+)\?([BbQq])\?([^?]*)\?=/_decode_ew($1,$2,$3)/ge;
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 4146: 	return $str;
-</span><p> <b> Mutants (Total: 2, Killed: 2, Survived: 0)</b><p><span class=""> 4147: }
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 4146: 	return $str;
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
+					<ul>
+				<li><b>BOOL_NEGATE_4146_2: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boolean branch test suggestion
+ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>RETURN_UNDEF_4146_2: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Return value assertion
+is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
+</pre>
+								</div>
+							</li></ul></details>
+<span class=""> 4147: }
 </span><span class=""> 4148: 
 </span><span class=""> 4149: # _decode_ew( $charset, $enc, $text ) -&gt; decoded_bytes
 </span><span class=""> 4150: #
@@ -6509,7 +7139,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 4182: 
 </span><span class=""> 4183: sub _parse_date_to_epoch {
 </span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">4184 → 4191 → 4207</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">4184 → 4191 → 0</span></span> 4184: 	my ($self, $str) = @_;
-</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 4185: 	return undef unless $str;
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 4185: 	return undef unless $str;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -6577,8 +7207,29 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 								</div>
 							</li></ul></details>
 <span class=""> 4204: 		};
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 4205: 		return $epoch if defined $epoch;
-</span><p> <b> Mutants (Total: 2, Killed: 2, Survived: 0)</b><p><span class=""> 4206: 	}
+</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 4205: 		return $epoch if defined $epoch;
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
+					<ul>
+				<li><b>BOOL_NEGATE_4205_3: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boolean branch test suggestion
+ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>RETURN_UNDEF_4205_3: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Return value assertion
+is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
+</pre>
+								</div>
+							</li></ul></details>
+<span class=""> 4206: 	}
 </span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">4207 → 4209 → 4213</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">4207 → 4209 → 0</span></span> 4207: 	my ($y, $m, $d);
 </span><span class=""> 4208: 
 </span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 4209: 	if    ($str =~ /^(\d{4})-(\d{2})-(\d{2})/)         { ($y,$m,$d)=($1,$2,$3) }
@@ -6643,8 +7294,29 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 4235: 
 </span><span class=""> 4236: sub _parse_rfc2822_date {
 </span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">4237 → 4241 → 4249</span></span><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">4237 → 4241 → 0</span></span> 4237: 	my ($str) = @_;
-</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 4238: 	return undef unless $str;
-</span><p> <b> Mutants (Total: 2, Killed: 2, Survived: 0)</b><p><span class=""> 4239: 
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 4238: 	return undef unless $str;
+</span>
+					<details class="mutant-details">
+					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
+					<ul>
+				<li><b>BOOL_NEGATE_4238_2: Negate boolean return expression</b><br>MEDIUM: Add tests asserting both true and false outcomes
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Boolean branch test suggestion
+ok( !func(INPUT), &#39;Verify boolean branch behaviour&#39; );
+</pre>
+								</div>
+							</li><li><b>RETURN_UNDEF_4238_2: Replace return expression with undef</b><br>LOW: Mutation survived but impact may be minor
+
+								<div class="suggested-test">
+								<div class="suggest-label">🧪 Suggested Test</div>
+								<pre># Return value assertion
+is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
+</pre>
+								</div>
+							</li></ul></details>
+<span class=""> 4239: 
 </span><span class=""> 4240: 	# Match: DD Mon YYYY HH:MM:SS (timezone offset ignored)
 </span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 4241: 	if ($str =~ /(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/) {
 </span>
@@ -6655,7 +7327,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </li></ul></details>
 <span class=""> 4242: 		my ($d, $m, $y, $H, $M, $S) =
 </span><span class=""> 4243: 			($1, $Readonly::Values::Months::months{ lc $2 } // 0, $3, $4, $5, $6);
-</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."> 4244: 		return undef unless $m;
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."> 4244: 		return undef unless $m;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -6687,7 +7359,7 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 <span class=""> 4246: 			return eval { Time::Local::timegm($S, $M, $H, $d, $m - 1, $y - 1900) };
 </span><span class=""> 4247: 		}
 </span><span class=""> 4248: 	}
-</span><span class="survived-2 tooltip" data-tooltip="Boolean logic mutation survived. Add tests covering both true and false paths. Return value mutation survived. Add tests asserting exact return values."><span class="lcsaj-tip"><span class="lcsaj-dot-uncovered">●</span><span class="lcsaj-tip-text">[NOT COVERED] 4249 → 4249 → 0</span></span> 4249: 	return undef;
+</span><span class="survived-2 tooltip" data-tooltip="Return value mutation survived. Add tests asserting exact return values. Boolean logic mutation survived. Add tests covering both true and false paths."><span class="lcsaj-tip"><span class="lcsaj-dot-uncovered">●</span><span class="lcsaj-tip-text">[NOT COVERED] 4249 → 4249 → 0</span></span> 4249: 	return undef;
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 2, Killed: 0, Survived: 2)</summary>
@@ -6748,14 +7420,8 @@ is( func(INPUT), EXPECTED, &#39;Verify correct return value&#39; );
 </span><span class=""> 4286: sub _debug {
 </span><span class=""><span class="lcsaj-tip"><span class="lcsaj-dot">●</span><span class="lcsaj-tip-text">4287 → 4289 → 0</span></span> 4287: 	my ($self, $msg) = @_;
 </span><span class=""> 4288: 
-</span><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 4289: 	if($self-&gt;{verbose}) {
-</span>
-					<details class="mutant-details">
-					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
-					<ul>
-				<li><b>COND_INV_4289_2: Invert condition if to unless</b><br>MEDIUM: Add tests asserting both true and false outcomes
-</li></ul></details>
-<span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 4290: 		if(my $logger = $self-&gt;{logger}) {	# May have been set in Object::Configure
+</span><span class="killed tooltip" data-tooltip="Mutations here were killed. Tests are effectively covering this logic."> 4289: 	if($self-&gt;{verbose}) {
+</span><p> <b> Mutants (Total: 1, Killed: 1, Survived: 0)</b><p><span class="survived-1 tooltip" data-tooltip="Mutation survived. Add targeted tests to validate this branch."> 4290: 		if(my $logger = $self-&gt;{logger}) {	# May have been set in Object::Configure
 </span>
 					<details class="mutant-details">
 					<summary>Mutants (Total: 1, Killed: 0, Survived: 1)</summary>
