@@ -1,5 +1,19 @@
 Revision history for Email-Abuse-Investigator
 
+0.09
+
+  [Bug Fixes]
+
+  - Fixed t/function.t section 28 (_analyse_domain) failing after
+    2026-05-14: the WHOIS stub used hardcoded creation and expiry dates
+    (2025-11-15 and 2026-11-15) that fell outside the 180-day
+    recently_registered window and caused the registered/expiry
+    assertions to fail.  Replaced with dynamic dates computed at
+    runtime (10 days ago and 365 days from now) and changed the
+    assertions to match against the computed values rather than
+    literal strings.  Also escaped the @ in the stub registrar abuse
+    address inside the interpolating heredoc.
+
 0.08	Wed May 13 19:05:54 EDT 2026
 
   [Enhancements]

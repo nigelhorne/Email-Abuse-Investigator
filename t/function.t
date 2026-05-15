@@ -110,7 +110,7 @@ note '=== 1. Constructor ===';
 note '=== 2. parse_email ===';
 {
 	my $raw = make_email();
-	my $a   = Email::Abuse::Investigator->new();
+	my $a   = new_ok('Email::Abuse::Investigator');
 	my $ret = $a->parse_email($raw);
 	is $ret, $a, 'parse_email returns $self';
 	is $a->{_raw}, $raw, '_raw stored';
@@ -1432,11 +1432,13 @@ note '=== 28. _analyse_domain ===';
 	my $a = Email::Abuse::Investigator->new();
 	$a->parse_email(make_email());
 
-	my $whois = <<'WHOIS';
+	my $recent_date = strftime('%Y-%m-%d', gmtime(time() - 10 * 86400));
+	my $expiry_date = strftime('%Y-%m-%d', gmtime(time() + 365 * 86400));
+	my $whois = <<"WHOIS";
 Registrar: Dodgy Registrar Inc
-Registrar Abuse Contact Email: abuse@dodgy-reg.example
-Creation Date: 2025-11-15T00:00:00Z
-Registry Expiry Date: 2026-11-15T00:00:00Z
+Registrar Abuse Contact Email: abuse\@dodgy-reg.example
+Creation Date: ${recent_date}T00:00:00Z
+Registry Expiry Date: ${expiry_date}T00:00:00Z
 WHOIS
 
 	no warnings 'redefine';
@@ -1449,8 +1451,8 @@ WHOIS
 	is $info->{web_org},		 'Host Co',				'web_org populated';
 	is $info->{registrar},	   'Dodgy Registrar Inc',	'registrar parsed';
 	is $info->{registrar_abuse}, 'abuse@dodgy-reg.example','registrar_abuse parsed';
-	like $info->{registered},	qr/2025-11-15/,		   'registered date';
-	like $info->{expires},	   qr/2026-11-15/,		   'expiry date';
+	like $info->{registered},	qr/\Q$recent_date\E/,     'registered date';
+	like $info->{expires},	   qr/\Q$expiry_date\E/,     'expiry date';
 	is   $info->{recently_registered}, 1,				  'recently_registered flagged';
 
 	# cached on second call — _resolve_host must not be called again
