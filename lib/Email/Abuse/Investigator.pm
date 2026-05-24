@@ -3,6 +3,18 @@ package Email::Abuse::Investigator;
 use strict;
 use warnings;
 use autodie qw(:all);
+
+use Carp qw(croak carp);
+use IO::Select;
+use IO::Socket::INET;
+use MIME::QuotedPrint qw( decode_qp );
+use MIME::Base64 qw( decode_base64 );
+use Object::Configure;
+use Params::Get;
+use Params::Validate::Strict;
+use Readonly;
+use Readonly::Values::Months;
+use Socket qw( inet_aton inet_ntoa AF_INET );
 use Time::Piece;
 
 =head1 NAME
@@ -100,18 +112,6 @@ The following are optional but strongly recommended:
     IO::Socket::IP      -- enables IPv6 WHOIS connections
 
 =cut
-
-use Carp qw(croak carp);
-use IO::Select;
-use IO::Socket::INET;
-use MIME::QuotedPrint qw( decode_qp );
-use MIME::Base64 qw( decode_base64 );
-use Object::Configure;
-use Params::Get;
-use Params::Validate::Strict;
-use Readonly;
-use Readonly::Values::Months;
-use Socket qw( inet_aton inet_ntoa AF_INET );
 
 # -----------------------------------------------------------------------
 # Optional modules -- gracefully degraded when absent
@@ -749,6 +749,14 @@ sub parse_email {
 
 	# Dereference if a scalar reference was supplied
 	$text = $$text if ref $text eq 'SCALAR';
+
+	if(ref($text)) {
+		if(ref($text) eq 'SCALAR') {
+			$text = $$text;
+		} else {
+			Carp::croak(__PACKAGE__, ': Usage: parse_email(text => $email)');
+		}
+	}
 
 	# Sanitise: strip control characters that could affect terminal output.
 	# Keep \t (tabs in headers), \n (line endings), \r (CRLF mail format).
