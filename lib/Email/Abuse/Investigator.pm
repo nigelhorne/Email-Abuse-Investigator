@@ -753,7 +753,8 @@ sub parse_email {
 	if(ref($text)) {
 		if(ref($text) eq 'SCALAR') {
 			$text = $$text;
-		} else {
+		}
+		if(ref($text)) {
 			Carp::croak(__PACKAGE__, ': Usage: parse_email(text => $email)');
 		}
 	}
