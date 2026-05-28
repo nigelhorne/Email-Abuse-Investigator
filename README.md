@@ -5,7 +5,7 @@ hosted URLs, and suspicious domains
 
 # VERSION
 
-Version 0.08
+Version 0.09
 
 # SYNOPSIS
 
@@ -219,7 +219,7 @@ cached from prior messages are retained.
 
 ### Arguments
 
-- `$text` (scalar or scalar reference, required)
+- `$text` (string or string reference, required)
 
     Complete raw RFC 2822 email message, including all headers and the body.
     Both LF-only and CRLF line endings are accepted.
@@ -247,7 +247,7 @@ bytes are used in place of correct output to prevent exceptions.
 
     [
         {
-            type => 'scalar | scalarref',
+            type => 'string | scalarref',
         },
     ]
 

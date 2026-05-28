@@ -674,7 +674,7 @@ cached from prior messages are retained.
 
 =over 4
 
-=item C<$text> (scalar or scalar reference, required)
+=item C<$text> (string or string reference, required)
 
 Complete raw RFC 2822 email message, including all headers and the body.
 Both LF-only and CRLF line endings are accepted.
@@ -713,7 +713,7 @@ bytes are used in place of correct output to prevent exceptions.
 
     [
         {
-            type => 'scalar | scalarref',
+            type => 'string | scalarref',
         },
     ]
 
@@ -1938,11 +1938,12 @@ sub abuse_contacts {
 
 			# Summarise if the merged string is too long to read
 			if (length($joined) > $ROLE_MAX_LEN) {
-				my @short = map {
+				my @short;
+				for (@display) {
 					(my $s = $_) =~ s/[:(\d].*//;
 					$s =~ s/\s+$//;
-					$s;
-				} @display;
+					push @short, $s;
+				}
 				$joined = scalar(@display) . ' routes: ' . join(', ', @short);
 			}
 			$entry->{role} = $joined;
@@ -2950,7 +2951,7 @@ sub _find_origin {
 				'Taken from X-Originating-IP (webmail, unverified)')
 				unless $self->_is_private($xoip);
 		}
-		return undef;
+		return;
 	}
 
 	# Report the oldest (first) external IP; confidence depends on count
@@ -2993,7 +2994,7 @@ sub _extract_ip_from_received {
 			return $ip;
 		}
 	}
-	return undef;
+	return;
 }
 
 # _is_private( $ip ) -> bool
@@ -3015,7 +3016,7 @@ sub _extract_ip_from_received {
 
 sub _is_private {
 	my ($self, $ip) = @_;
-	return 1 unless defined $ip && $ip ne '';
+	return 1 if !defined($ip) || $ip eq '';
 	for my $re (@PRIVATE_RANGES) { return 1 if $ip =~ $re }
 	return 0;
 }
@@ -3608,7 +3609,7 @@ sub _resolve_host {
 
 sub _reverse_dns {
 	my ($self, $ip) = @_;
-	return undef unless $ip;
+	return unless $ip;
 
 	if ($HAS_NET_DNS) {
 		my $res   = Net::DNS::Resolver->new(tcp_timeout => $self->{timeout});
@@ -3618,7 +3619,7 @@ sub _reverse_dns {
 				return $rr->ptrdname if $rr->type eq 'PTR';
 			}
 		}
-		return undef;
+		return;
 	}
 
 	# Fallback for IPv4 only
@@ -3683,9 +3684,9 @@ sub _whois_ip {
 
 sub _domain_whois {
 	my ($self, $domain) = @_;
-	my $iana = $self->_raw_whois($domain, 'whois.iana.org') // return undef;
+	my $iana = $self->_raw_whois($domain, 'whois.iana.org') // return;
 	my ($server) = $iana =~ /whois:\s*([\w.-]+)/i;
-	return undef unless $server;
+	return unless $server;
 	return $self->_raw_whois($domain, $server);
 }
 
@@ -3765,8 +3766,8 @@ sub _rdap_lookup {
 	my %info;
 
 	# Extract organisation name from the JSON response
-	$info{org}    = $1 if $j =~ /"name"\s*:\s*"([^"]+)"/;
-	$info{handle} = $1 if $j =~ /"handle"\s*:\s*"([^"]+)"/;
+	if ($j =~ /"name"\s*:\s*"([^"]+)"/)   { $info{org}    = $1 }
+	if ($j =~ /"handle"\s*:\s*"([^"]+)"/) { $info{handle} = $1 }
 
 	# Extract abuse email from the vcardArray contact block
 	if ($j =~ /"abuse".*?"email"\s*:\s*"([^"]+)"/s) {
@@ -3776,7 +3777,7 @@ sub _rdap_lookup {
 	}
 
 	# Country code from the network's country field
-	$info{country} = $1 if $j =~ /"country"\s*:\s*"([A-Z]{2})"/;
+	if ($j =~ /"country"\s*:\s*"([A-Z]{2})"/) { $info{country} = $1 }
 
 	return \%info;
 }
@@ -3821,10 +3822,10 @@ sub _raw_whois {
 			Timeout  => $self->{timeout},
 		);
 	};
-	return undef unless $sock;
+	return unless $sock;
 
 	# Send the WHOIS query in wire format (CRLF-terminated per RFC 3912)
-	$sock->print("$query\r\n") or do { $sock->close(); return undef };
+	$sock->print("$query\r\n") or do { $sock->close(); return };
 
 	# Use IO::Select to implement per-read timeouts without alarm()
 	my $sel      = IO::Select->new($sock);
@@ -3840,7 +3841,7 @@ sub _raw_whois {
 			$self->_debug("WHOIS read failed: $@") if $@;
 			last;
 		}
-		last unless defined $n && $n > 0;
+		last if !defined($n) || $n <= 0;
 		$response .= $buf;
 	}
 
@@ -3886,7 +3887,7 @@ sub _parse_whois_text {
 	}
 
 	# Last-resort: any abuse@ address in the response
-	$info{abuse} //= $1 if $text =~ /(abuse\@[\w.-]+)/i;
+	if (!$info{abuse} && $text =~ /(abuse\@[\w.-]+)/i) { $info{abuse} = $1 }
 
 	# Country code (case-insensitive match, normalised to uppercase)
 	if ($text =~ /^country:\s*([A-Za-z]{2})\s*$/m) {
@@ -3927,10 +3928,10 @@ sub _parse_auth_results_cached {
 	);
 
 	# Extract individual authentication mechanism results
-	$auth{spf}   = $1 if $raw =~ /\bspf=(\S+)/i;
-	$auth{dkim}  = $1 if $raw =~ /\bdkim=(\S+)/i;
-	$auth{dmarc} = $1 if $raw =~ /\bdmarc=(\S+)/i;
-	$auth{arc}   = $1 if $raw =~ /\barc=(\S+)/i;
+	if ($raw =~ /\bspf=(\S+)/i)   { $auth{spf}   = $1 }
+	if ($raw =~ /\bdkim=(\S+)/i)  { $auth{dkim}  = $1 }
+	if ($raw =~ /\bdmarc=(\S+)/i) { $auth{dmarc} = $1 }
+	if ($raw =~ /\barc=(\S+)/i)   { $auth{arc}   = $1 }
 
 	# Strip trailing punctuation captured by the greedy \S+
 	for my $k (qw(spf dkim dmarc arc)) {
@@ -3988,7 +3989,7 @@ sub _provider_abuse_for_host {
 		return $PROVIDER_ABUSE{$host} if $PROVIDER_ABUSE{$host};
 		$host =~ s/^[^.]+\.//;
 	}
-	return undef;
+	return;
 }
 
 # _provider_abuse_for_ip( $ip, $rdns ) -> hashref | undef
@@ -4007,7 +4008,7 @@ sub _provider_abuse_for_host {
 sub _provider_abuse_for_ip {
 	my ($self, $ip, $rdns) = @_;
 	return $self->_provider_abuse_for_host($rdns) if $rdns;
-	return undef;
+	return;
 }
 
 # -----------------------------------------------------------------------
@@ -4034,7 +4035,7 @@ sub _provider_abuse_for_ip {
 
 sub _registrable {
 	my ($host) = @_;
-	return undef unless $host && $host =~ /\./;
+	return unless $host && $host =~ /\./;
 
 	# Use Domain::PublicSuffix for accurate PSL-based normalisation
 	if ($HAS_PUBLIC_SUFFIX) {
@@ -4106,7 +4107,7 @@ sub _header_value {
 	for my $h (@{ $self->{_headers} }) {
 		return $h->{value} if $h->{name} eq lc($name);
 	}
-	return undef;
+	return;
 }
 
 # _ip_in_cidr( $ip, $cidr ) -> bool
@@ -4126,7 +4127,7 @@ sub _ip_in_cidr {
 	my ($self, $ip, $cidr) = @_;
 	return $ip eq $cidr unless $cidr =~ m{/};
 	my ($net_addr, $prefix) = split m{/}, $cidr;
-	return 0 unless defined $prefix && $prefix =~ /^\d+$/ && $prefix <= 32;
+	return 0 if !defined($prefix) || $prefix !~ /^\d+$/ || $prefix > 32;
 
 	# Compute the network mask and compare masked network addresses
 	my $mask  = ~0 << (32 - $prefix);
@@ -4191,7 +4192,7 @@ sub _decode_ew {
 
 sub _parse_date_to_epoch {
 	my ($self, $str) = @_;
-	return undef unless $str;
+	return unless $str;
 
 	# Clean the string of trailing whitespace/newlines
 	$str =~ s/^\s+|\s+$//g;
@@ -4219,7 +4220,7 @@ sub _parse_date_to_epoch {
 	elsif ($str =~ /^(\d{2})-([A-Za-z]{3})-(\d{4})/)   { ($d,$m,$y)=($1,$Readonly::Values::Months::months{lc$2}//0,$3) }
 	elsif ($str =~ /^(\d{2})\/(\d{2})\/(\d{4})/)        { ($m,$d,$y)=($1,$2,$3) }
 
-	return undef unless $y && $m && $d;
+	return unless $y && $m && $d;
 
 	if (eval { require Time::Local; 1 }) {
 		return eval { Time::Local::timegm(0,0,0,$d,$m-1,$y-1900) };
@@ -4244,18 +4245,18 @@ sub _parse_date_to_epoch {
 
 sub _parse_rfc2822_date {
 	my ($str) = @_;
-	return undef unless $str;
+	return unless $str;
 
 	# Match: DD Mon YYYY HH:MM:SS (timezone offset ignored)
 	if ($str =~ /(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/) {
 		my ($d, $m, $y, $H, $M, $S) =
 			($1, $Readonly::Values::Months::months{ lc $2 } // 0, $3, $4, $5, $6);
-		return undef unless $m;
+		return unless $m;
 		if (eval { require Time::Local; 1 }) {
 			return eval { Time::Local::timegm($S, $M, $H, $d, $m - 1, $y - 1900) };
 		}
 	}
-	return undef;
+	return;
 }
 
 # _country_name( $cc ) -> country_name_string
