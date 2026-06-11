@@ -555,7 +555,7 @@ work correctly on Windows and in threaded Perl interpreters.
 =head4 Output
 
     {
-        type => 'Email::Abuse::Investigator',
+        type => 'object',
         isa  => 'Email::Abuse::Investigator',
     }
 
@@ -691,14 +691,14 @@ bytes are used in place of correct output to prevent exceptions.
 
     [
         {
-            type => 'string | scalarref',
+            type => [ 'string', 'stringref' ]
         },
     ]
 
 =head4 Output
 
     {
-        type => 'Email::Abuse::Investigator',
+        type => 'object',
         isa  => 'Email::Abuse::Investigator',
     }
 
@@ -797,13 +797,13 @@ C<received_trail()> for the full chain.
     {
         type => 'hashref | undef',
         keys => {
-            ip         => { type => 'scalar', regex => qr/[\d.:a-fA-F]/ },
-            rdns       => { type => 'scalar' },
-            org        => { type => 'scalar' },
-            abuse      => { type => 'scalar' },
-            confidence => { type => 'scalar', regex => qr/^(?:high|medium|low)$/ },
-            note       => { type => 'scalar' },
-            country    => { type => 'scalar', optional => 1 },
+            ip         => { type => 'string', regex => qr/[\d.:a-fA-F]/ },
+            rdns       => { type => 'string' },
+            org        => { type => 'string' },
+            abuse      => { type => 'string' },
+            confidence => { type => 'string', memberof => [ 'high', 'medium', 'low' ] },
+            note       => { type => 'string' },
+            country    => { type => 'string', optional => 1 },
         },
     }
 
@@ -874,12 +874,12 @@ are included in the returned list (they are flagged by C<risk_assessment()>).
         {
             type => 'hashref',
             keys => {
-                url     => { type => 'scalar', regex => qr{^https?://}i },
-                host    => { type => 'scalar' },
-                ip      => { type => 'scalar' },
-                org     => { type => 'scalar' },
-                abuse   => { type => 'scalar' },
-                country => { type => 'scalar', optional => 1 },
+                url     => { type => 'string', regex => qr{^https?://}i },
+                host    => { type => 'string' },
+                ip      => { type => 'string' },
+                org     => { type => 'string' },
+                abuse   => { type => 'string' },
+                country => { type => 'string', optional => 1 },
             },
         },
         ...
@@ -948,8 +948,8 @@ from every returned hashref.
         {
             type => 'hashref',
             keys => {
-                domain  => { type => 'scalar' },
-                source  => { type => 'scalar' },
+                domain  => { type => 'string' },
+                source  => { type => 'string' },
                 # All other keys optional -- see main POD
             },
         },
@@ -1005,7 +1005,7 @@ back to a built-in heuristic otherwise.
 =head4 Output
 
     (
-        { type => 'scalar', regex => qr/^[a-z0-9][a-z0-9.-]*\.[a-z]{2,}$/ },
+        { type => 'string', regex => qr/^[a-z0-9][a-z0-9.-]*\.[a-z]{2,}$/ },
         ...
     )
 
@@ -1074,9 +1074,9 @@ C<Return-Path:>, C<Sender:>) are excluded.
         {
             type => 'hashref',
             keys => {
-                domain => { type => 'scalar' },
-                type   => { type => 'scalar', regex => qr/^(?:url_host|domain)$/ },
-                source => { type => 'scalar' },
+                domain => { type => 'string' },
+                type   => { type => 'string', memberof => [ 'url_host', 'domain' ] },
+                source => { type => 'string' },
             },
         },
         ...
@@ -1185,9 +1185,9 @@ Header names are lower-cased.  Header values are stored verbatim.
         {
             type => 'hashref',
             keys => {
-                header => { type => 'scalar' },
-                value  => { type => 'scalar' },
-                note   => { type => 'scalar' },
+                header => { type => 'string' },
+                value  => { type => 'string' },
+                note   => { type => 'string' },
             },
         },
         ...
@@ -1252,10 +1252,10 @@ are returned as found.  Filtering is applied only by C<originating_ip()>.
         {
             type => 'hashref',
             keys => {
-                received => { type => 'scalar' },
-                ip       => { type => 'scalar', optional => 1 },
-                for      => { type => 'scalar', optional => 1 },
-                id       => { type => 'scalar', optional => 1 },
+                received => { type => 'string' },
+                ip       => { type => 'string', optional => 1 },
+                for      => { type => 'string', optional => 1 },
+                id       => { type => 'string', optional => 1 },
             },
         },
         ...
@@ -1322,8 +1322,8 @@ Flag weights: HIGH=3, MEDIUM=2, LOW=1, INFO=0.
     {
         type => 'hashref',
         keys => {
-            level => { type => 'scalar', regex => qr/^(?:HIGH|MEDIUM|LOW|INFO)$/ },
-            score => { type => 'scalar', regex => qr/^\d+$/ },
+            level => { type => 'string', memberof => ['HIGH', 'MEDIUM', 'LOW', 'INFO'] },
+            score => { type => 'integer' },
             flags => { type => 'arrayref' },
         },
     }
@@ -1700,7 +1700,7 @@ HTML rendering are stripped from all user-derived content before inclusion.
 
 =head4 Output
 
-    { type => 'scalar' }
+    { type => 'string' }
 
 =cut
 
@@ -1819,11 +1819,11 @@ list from the cached results of the underlying methods.
         {
             type => 'hashref',
             keys => {
-                role    => { type => 'scalar' },
+                role    => { type => 'string' },
                 roles   => { type => 'arrayref' },
-                address => { type => 'scalar', regex => qr/\@/ },
-                note    => { type => 'scalar' },
-                via     => { type => 'scalar', regex => qr/^(?:provider-table|ip-whois|domain-whois)$/ },
+                address => { type => 'string', regex => qr/\@/ },
+                note    => { type => 'string' },
+                via     => { type => 'string', memberof => [ 'provider-table', 'ip-whois', 'domain-whois' ] }
             },
         },
         ...
@@ -2151,12 +2151,12 @@ Deduplication is by form URL.
         {
             type => 'hashref',
             keys => {
-                form        => { type => 'scalar', regex => qr{^https?://} },
-                role        => { type => 'scalar' },
-                note        => { type => 'scalar' },
-                form_paste  => { type => 'scalar', optional => 1 },
-                form_upload => { type => 'scalar', optional => 1 },
-                via         => { type => 'scalar' },
+                form        => { type => 'string', regex => qr{^https?://} },
+                role        => { type => 'string' },
+                note        => { type => 'string' },
+                form_paste  => { type => 'string', optional => 1 },
+                form_upload => { type => 'string', optional => 1 },
+                via         => { type => 'string' },
             },
         },
         ...
@@ -2359,7 +2359,7 @@ before output.
 
 =head4 Output
 
-    { type => 'scalar' }
+    { type => 'string' }
 
 =cut
 

@@ -101,7 +101,36 @@ Revision history for Email-Abuse-Investigator
       object; domain with no abuse contacts appears in unresolved list.
     Total: 155 tests.
 
-  - Overall test count: 885 tests across 17 files (up from 836).
+  - Expanded t/extended_tests.t with sections 47-61 (35 new tests targeting
+    branches previously at 0% coverage due to 198.51.100.x TEST-NET-2 IPs
+    being filtered as private in all prior tests):
+    - report() originating host with rdns/country/org/abuse/note all populated,
+      and fallback text when no origin found.
+    - report() multiple URLs per hostname ("URLs (N)" grouped format).
+    - report() URL metadata block with IP/country/org/abuse fields.
+    - report() domain block with all WHOIS/MX/NS metadata fields, recently-
+      registered warning, and no-A-record/no-MX fallback lines.
+    - report() abuse contact note field (ip-whois route).
+    - report() web-form section with form_paste word-wrap (>ROLE_WRAP_LEN),
+      form_domain, form_upload, and note fields.
+    - report() SENDING SOFTWARE section via X-Mailer and X-PHP-Originating-Script.
+    - report() RECEIVED CHAIN TRACKING IDs section with for/id fields.
+    - abuse_report_text() with risk flags, originating IP, abuse contacts,
+      and form contacts with form_domain/form_paste/form_upload.
+    - report() MIME-encoded Subject header ($decoded ne $v branch).
+    - unresolved_contacts(): URL with unknown abuse, URL with real abuse,
+      duplicate URL host, From:/Return-Path:/Sender: filter, Reply-To: not
+      filtered, already-covered domain, and duplicate domain deduplication.
+    - form_contacts() DKIM signer and List-Unsubscribe form-only providers
+      (both https and mailto: variants); Route 3 preemption documented.
+    - form_contacts() Route 4 bare address (no angle-brackets) in From:.
+    - abuse_contacts() From: with display-name only (no email addr) skip path.
+    - risk_assessment() cached-result path (second call returns same hashref).
+    - form_contacts() Route 3 registrar form-only (markmonitor.com via WHOIS).
+    - abuse_contacts() Route 3 form-only registrar suppressed from email list.
+    Total: 186 tests (up from 151).
+
+  - Overall test count: 920 tests across 17 files (up from 885).
 
   [Code Quality]
 
