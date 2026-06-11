@@ -20,7 +20,7 @@ https://pjcj.net
 <h1>Branch Coverage</h1>
 <table>
 <tr><td class="h" align="right">File:</td><td align="left">blib/lib/Email/Abuse/Investigator.pm</td></tr>
-<tr><td class="h" align="right">Coverage:</td><td align="left" class="c1">76.4%</td></tr>
+<tr><td class="h" align="right">Coverage:</td><td align="left" class="c0">74.1%</td></tr>
 </table>
 <div><br/></div>
 <table>
@@ -28,7 +28,7 @@ https://pjcj.net
 <tr><td class="h"><a id="L596">596</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if ($HAS_CHI and not $_cache)</td></tr>
 <tr><td class="h"><a id="L716">716</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if ref $text eq &quot;SCALAR&quot;</td></tr>
 <tr><td class="h"><a id="L719">719</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ref $text</td></tr>
-<tr><td class="h"><a id="L724">724</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if defined $text</td></tr>
+<tr><td class="h"><a id="L724">724</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if defined $text</td></tr>
 <tr><td class="h"><a id="L741">741</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if defined $text and $text =~ /\S/</td></tr>
 <tr><td class="h"><a id="L1021">1021</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $dom and not $seen{$dom}++</td></tr>
 <tr><td class="h"><a id="L1027">1027</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $dom and not $seen{$dom}++</td></tr>
@@ -90,10 +90,10 @@ https://pjcj.net
 <tr><td class="h"><a id="L1720">1720</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if (@{$risk-&gt;{&#39;flags&#39;};})</td></tr>
 <tr><td class="h"><a id="L1730">1730</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($orig)</td></tr>
 <tr><td class="h"><a id="L1738">1738</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if (@contacts)</td></tr>
-<tr><td class="h"><a id="L1745">1745</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if (my(@form_cs) = $self-&gt;form_contacts)</td></tr>
-<tr><td class="h"><a id="L1751">1751</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $c-&gt;{&#39;form_domain&#39;}</td></tr>
-<tr><td class="h"><a id="L1752">1752</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $c-&gt;{&#39;form_paste&#39;}</td></tr>
-<tr><td class="h"><a id="L1753">1753</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $c-&gt;{&#39;form_upload&#39;}</td></tr>
+<tr><td class="h"><a id="L1745">1745</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if (my(@form_cs) = $self-&gt;form_contacts)</td></tr>
+<tr><td class="h"><a id="L1751">1751</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if $c-&gt;{&#39;form_domain&#39;}</td></tr>
+<tr><td class="h"><a id="L1752">1752</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $c-&gt;{&#39;form_paste&#39;}</td></tr>
+<tr><td class="h"><a id="L1753">1753</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $c-&gt;{&#39;form_upload&#39;}</td></tr>
 <tr><td class="h"><a id="L1861">1861</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless $addr and $addr =~ /\@/</td></tr>
 <tr><td class="h"><a id="L1864">1864</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if ($addr =~ /\@([\w.-]+)$/)</td></tr>
 <tr><td class="h"><a id="L1867">1867</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $pa and $pa-&gt;{&#39;form&#39;} and not $pa-&gt;{&#39;email&#39;}</td></tr>
@@ -105,7 +105,7 @@ https://pjcj.net
 <tr><td class="h"><a id="L1909">1909</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if ($pa)</td></tr>
 <tr><td class="h"><a id="L1917">1917</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($orig-&gt;{&#39;abuse&#39;} and $orig-&gt;{&#39;abuse&#39;} ne &quot;(unknown)&quot;)</td></tr>
 <tr><td class="h"><a id="L1930">1930</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $url_host_seen{$u-&gt;{&#39;host&#39;}}++</td></tr>
-<tr><td class="h"><a id="L1934">1934</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $self-&gt;{&#39;trusted_domains&#39;}{$bare_host}</td></tr>
+<tr><td class="h"><a id="L1934">1934</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $self-&gt;{&#39;trusted_domains&#39;}{$bare_host}</td></tr>
 <tr><td class="h"><a id="L1935">1935</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if $TRUSTED_DOMAINS{$bare_host}</td></tr>
 <tr><td class="h"><a id="L1937">1937</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($pa)</td></tr>
 <tr><td class="h"><a id="L1945">1945</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($u-&gt;{&#39;abuse&#39;} and $u-&gt;{&#39;abuse&#39;} ne &quot;(unknown)&quot;)</td></tr>
@@ -154,10 +154,10 @@ https://pjcj.net
 <tr><td class="h"><a id="L2408">2408</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $orig-&gt;{&#39;abuse&#39;}</td></tr>
 <tr><td class="h"><a id="L2410">2410</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $orig-&gt;{&#39;note&#39;}</td></tr>
 <tr><td class="h"><a id="L2418">2418</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if (@sw)</td></tr>
-<tr><td class="h"><a id="L2428">2428</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">unless defined $_-&gt;{&#39;id&#39;}</td></tr>
+<tr><td class="h"><a id="L2428">2428</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless defined $_-&gt;{&#39;id&#39;}</td></tr>
 <tr><td class="h"><a id="L2430">2430</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if (@trail)</td></tr>
-<tr><td class="h"><a id="L2436">2436</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if $hop-&gt;{&#39;for&#39;}</td></tr>
-<tr><td class="h"><a id="L2437">2437</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if $hop-&gt;{&#39;id&#39;}</td></tr>
+<tr><td class="h"><a id="L2436">2436</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $hop-&gt;{&#39;for&#39;}</td></tr>
+<tr><td class="h"><a id="L2437">2437</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $hop-&gt;{&#39;id&#39;}</td></tr>
 <tr><td class="h"><a id="L2445">2445</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if (@urls) { }</td></tr>
 <tr><td class="h"><a id="L2450">2450</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless (exists $host_order{$h})</td></tr>
 <tr><td class="h"><a id="L2467">2467</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">$URL_SHORTENERS{$bare} || $self-&gt;{&#39;url_shorteners&#39;}{$bare} ? :</td></tr>
@@ -211,50 +211,68 @@ https://pjcj.net
 <tr><td class="h"><a id="L2790">2790</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($pct =~ /multipart/i)</td></tr>
 <tr><td class="h"><a id="L2792">2792</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($inner_boundary)</td></tr>
 <tr><td class="h"><a id="L2802">2802</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if ($pct =~ m[text/html]i) { }</td></tr>
-<tr><td class="h"></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">elsif ($pct =~ /text/i or not $pct) { }</td></tr>
+<tr><td class="h"></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">elsif ($pct =~ /text/i or not $pct) { }</td></tr>
 <tr><td class="h"><a id="L2827">2827</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $cte =~ /quoted-printable/i</td></tr>
-<tr><td class="h"><a id="L2828">2828</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $cte =~ /base64/i</td></tr>
-<tr><td class="h"><a id="L2867">2867</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if $self-&gt;_is_private($ip)</td></tr>
-<tr><td class="h"><a id="L2868">2868</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $self-&gt;_is_trusted($ip)</td></tr>
-<tr><td class="h"><a id="L2873">2873</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">unless (@candidates)</td></tr>
-<tr><td class="h"><a id="L2875">2875</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($xoip)</td></tr>
-<tr><td class="h"><a id="L2877">2877</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless $self-&gt;_is_private($xoip)</td></tr>
-<tr><td class="h"><a id="L2885">2885</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">@candidates &gt; 1 ? :</td></tr>
+<tr><td class="h"><a id="L2828">2828</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if $cte =~ /base64/i</td></tr>
+<tr><td class="h"><a id="L2867">2867</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $self-&gt;_is_private($ip)</td></tr>
+<tr><td class="h"><a id="L2868">2868</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $self-&gt;_is_trusted($ip)</td></tr>
+<tr><td class="h"><a id="L2873">2873</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">unless (@candidates)</td></tr>
+<tr><td class="h"><a id="L2875">2875</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if ($xoip)</td></tr>
+<tr><td class="h"><a id="L2877">2877</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">unless $self-&gt;_is_private($xoip)</td></tr>
+<tr><td class="h"><a id="L2885">2885</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">@candidates &gt; 1 ? :</td></tr>
 <tr><td class="h"><a id="L2912">2912</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if ($hdr =~ /$re/)</td></tr>
-<tr><td class="h"><a id="L2916">2916</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $ip =~ /:/</td></tr>
-<tr><td class="h"><a id="L2919">2919</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">unless $ip =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/</td></tr>
-<tr><td class="h"><a id="L2920">2920</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if grep {$_ &gt; 255;} split(/\./, $ip, 0)</td></tr>
-<tr><td class="h"><a id="L2946">2946</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if not defined $ip or $ip eq &quot;&quot;</td></tr>
+<tr><td class="h"><a id="L2916">2916</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if $ip =~ /:/</td></tr>
+<tr><td class="h"><a id="L2919">2919</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">unless $ip =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/</td></tr>
+<tr><td class="h"><a id="L2920">2920</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if grep {$_ &gt; 255;} split(/\./, $ip, 0)</td></tr>
+<tr><td class="h"><a id="L2946">2946</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if not defined $ip or $ip eq &quot;&quot;</td></tr>
 <tr><td class="h"><a id="L2947">2947</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $ip =~ /$re/i</td></tr>
-<tr><td class="h"><a id="L2967">2967</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $self-&gt;_ip_in_cidr($ip, $cidr)</td></tr>
-<tr><td class="h"><a id="L3006">3006</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $host</td></tr>
-<tr><td class="h"><a id="L3010">3010</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if ($HAS_ANYEVENT_DNS and scalar keys %hostname_needed &gt; 1)</td></tr>
-<tr><td class="h"><a id="L3017">3017</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">unless $host</td></tr>
-<tr><td class="h"><a id="L3020">3020</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless (exists $host_cache{$host})</td></tr>
-<tr><td class="h"><a id="L3022">3022</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">$_cache ? :</td></tr>
+<tr><td class="h"><a id="L2967">2967</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if $self-&gt;_ip_in_cidr($ip, $cidr)</td></tr>
+<tr><td class="h"><a id="L3006">3006</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if $host</td></tr>
+<tr><td class="h"><a id="L3010">3010</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if ($HAS_ANYEVENT_DNS and scalar keys %hostname_needed &gt; 1)</td></tr>
+<tr><td class="h"><a id="L3017">3017</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">unless $host</td></tr>
+<tr><td class="h"><a id="L3020">3020</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">unless (exists $host_cache{$host})</td></tr>
+<tr><td class="h"><a id="L3022">3022</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">$_cache ? :</td></tr>
 <tr><td class="h"><a id="L3023">3023</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($cached) { }</td></tr>
-<tr><td class="h"><a id="L3027">3027</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">$ip ne &#39;(unresolved)&#39; ? :</td></tr>
-<tr><td class="h"><a id="L3032">3032</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">unless ($whois-&gt;{&#39;abuse&#39;})</td></tr>
+<tr><td class="h"><a id="L3027">3027</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">$ip ne &#39;(unresolved)&#39; ? :</td></tr>
+<tr><td class="h"><a id="L3032">3032</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">unless ($whois-&gt;{&#39;abuse&#39;})</td></tr>
 <tr><td class="h"><a id="L3035">3035</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if $dw-&gt;{&#39;abuse&#39;}</td></tr>
-<tr><td class="h"><a id="L3047">3047</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $_cache</td></tr>
-<tr><td class="h"><a id="L3077">3077</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless $HAS_ANYEVENT_DNS</td></tr>
-<tr><td class="h"><a id="L3089">3089</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if (@answers)</td></tr>
-<tr><td class="h"><a id="L3094">3094</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if --$pending &lt;= 0</td></tr>
-<tr><td class="h"><a id="L3121">3121</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($HAS_HTML_LINKEXTOR)</td></tr>
-<tr><td class="h"><a id="L3126">3126</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($val =~ m[^https?://]i) { }</td></tr>
-<tr><td class="h"></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">elsif ($val =~ m[^//[\w.-]]) { }</td></tr>
-<tr><td class="h"><a id="L3192">3192</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless $hop-&gt;{&#39;for&#39;} and $hop-&gt;{&#39;for&#39;} =~ /\@([\w.-]+)/</td></tr>
-<tr><td class="h"><a id="L3204">3204</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $self-&gt;{&#39;trusted_domains&#39;}{$dom}</td></tr>
-<tr><td class="h"><a id="L3205">3205</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $TRUSTED_DOMAINS{$dom}</td></tr>
-<tr><td class="h"><a id="L3206">3206</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $recipient_domains{$dom}</td></tr>
+<tr><td class="h"><a id="L3047">3047</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $_cache</td></tr>
+<tr><td class="h"><a id="L3077">3077</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">unless $HAS_ANYEVENT_DNS</td></tr>
+<tr><td class="h"><a id="L3089">3089</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if (@answers)</td></tr>
+<tr><td class="h"><a id="L3094">3094</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if --$pending &lt;= 0</td></tr>
+<tr><td class="h"><a id="L3121">3121</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if ($HAS_HTML_LINKEXTOR)</td></tr>
+<tr><td class="h"><a id="L3126">3126</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if ($val =~ m[^https?://]i) { }</td></tr>
+<tr><td class="h"></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">elsif ($val =~ m[^//[\w.-]]) { }</td></tr>
+<tr><td class="h"><a id="L3192">3192</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">unless $hop-&gt;{&#39;for&#39;} and $hop-&gt;{&#39;for&#39;} =~ /\@([\w.-]+)/</td></tr>
+<tr><td class="h"><a id="L3204">3204</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $self-&gt;{&#39;trusted_domains&#39;}{$dom}</td></tr>
+<tr><td class="h"><a id="L3205">3205</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $TRUSTED_DOMAINS{$dom}</td></tr>
+<tr><td class="h"><a id="L3206">3206</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if $recipient_domains{$dom}</td></tr>
 <tr><td class="h"><a id="L3207">3207</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if $recipient_domains{_registrable($dom) // $dom}</td></tr>
-<tr><td class="h"><a id="L3209">3209</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless $dom =~ /\.[a-zA-Z]{2,}$/</td></tr>
+<tr><td class="h"><a id="L3209">3209</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">unless $dom =~ /\.[a-zA-Z]{2,}$/</td></tr>
 <tr><td class="h"><a id="L3210">3210</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $dom =~ /\.(?:local|internal|lan|localdomain|arpa)$/i</td></tr>
-<tr><td class="h"><a id="L3211">3211</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $seen{$dom}++</td></tr>
-<tr><td class="h"><a id="L3230">3230</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if ($mid and $mid =~ /\@([\w.-]+)/)</td></tr>
-<tr><td class="h"><a id="L3234">3234</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">unless $TRUSTED_DOMAINS{$mid_dom} or $TRUSTED_DOMAINS{$mid_reg} or $self-&gt;{&#39;trusted_domains&#39;}{$mid_dom} or $self-&gt;{&#39;trusted_domains&#39;}{$mid_reg}</td></tr>
+<tr><td class="h"><a id="L3211">3211</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if $seen{$dom}++</td></tr>
+<tr><td class="h"><a id="L3230">3230</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($mid and $mid =~ /\@([\w.-]+)/)</td></tr>
+<tr><td class="h"><a id="L3234">3234</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">unless $TRUSTED_DOMAINS{$mid_dom} or $TRUSTED_DOMAINS{$mid_reg} or $self-&gt;{&#39;trusted_domains&#39;}{$mid_dom} or $self-&gt;{&#39;trusted_domains&#39;}{$mid_reg}</td></tr>
 <tr><td class="h"><a id="L3245">3245</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($unsub)</td></tr>
 <tr><td class="h"><a id="L3287">3287</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless $seen{$dom}++</td></tr>
+<tr><td class="h"><a id="L3293">3293</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless $seen{$dom}++</td></tr>
+<tr><td class="h"><a id="L3330">3330</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $self-&gt;{&#39;_domain_info&#39;}{$domain}</td></tr>
+<tr><td class="h"><a id="L3333">3333</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($_cache)</td></tr>
+<tr><td class="h"><a id="L3335">3335</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($cached)</td></tr>
+<tr><td class="h"><a id="L3346">3346</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($web_ip)</td></tr>
+<tr><td class="h"><a id="L3349">3349</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $w-&gt;{&#39;org&#39;}</td></tr>
+<tr><td class="h"><a id="L3350">3350</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $w-&gt;{&#39;abuse&#39;}</td></tr>
+<tr><td class="h"><a id="L3354">3354</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($HAS_NET_DNS)</td></tr>
+<tr><td class="h"><a id="L3362">3362</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($mxq)</td></tr>
+<tr><td class="h"><a id="L3365">3365</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if ($best)</td></tr>
+<tr><td class="h"><a id="L3369">3369</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($mx_ip)</td></tr>
+<tr><td class="h"><a id="L3372">3372</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $mw-&gt;{&#39;org&#39;}</td></tr>
+<tr><td class="h"><a id="L3373">3373</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $mw-&gt;{&#39;abuse&#39;}</td></tr>
+<tr><td class="h"><a id="L3380">3380</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($nsq)</td></tr>
+<tr><td class="h"><a id="L3382">3382</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if ($first)</td></tr>
+<tr><td class="h"><a id="L3386">3386</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if ($ns_ip)</td></tr>
+<tr><td class="h"><a id="L3389">3389</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $nw-&gt;{&#39;org&#39;}</td></tr>
+<tr><td class="h"><a id="L3390">3390</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $nw-&gt;{&#39;abuse&#39;}</td></tr>
 </table>
 </body>
 </html>
