@@ -1,5 +1,67 @@
 Revision history for Email-Abuse-Investigator
 
+0.10	Wed Jun 11 2026
+
+  [Enhancements]
+
+  - Added public header_value($name) accessor.  Previously only the private
+    _header_value() existed; bin/submit_abuse_report was calling it directly,
+    breaking encapsulation.  The new public method is a thin wrapper with
+    full POD (API spec, formal Z-notation spec).  All _header_value() calls
+    in bin/submit_abuse_report updated to header_value().
+
+  - Added abuse_contacts() result cache.  The method now stores its result
+    in $self->{_contacts} on first call and returns the cached copy on
+    subsequent calls.  The computation was moved to a new private method
+    _compute_abuse_contacts().  The cache slot is initialised to undef in
+    new() and reset in parse_email() alongside the other per-message caches.
+
+  - Decomposed risk_assessment() (cyclomatic complexity 71) into five focused
+    private methods: _risk_check_origin, _risk_check_auth, _risk_check_date,
+    _risk_check_identity, _risk_check_urls_and_domains.  Each takes the $flag
+    accumulator coderef.  risk_assessment() is now a thin orchestrator.
+
+  - Added Readonly::Array @LOOKALIKE_BRANDS constant (16 brand names) and
+    replaced the inline qw(...) list in _risk_check_urls_and_domains with a
+    reference to the constant.
+
+  - Added _assert_internal_caller() private guard sub.  Croaks with a
+    descriptive message when a private method is called from outside the class
+    hierarchy (uses caller(1)->isa check).
+
+  - Added t/locales.t: new test file covering geographic country-code flags
+    (CN/RU/NG/VN/IN/PK/BD raise high_spam_country; GB/US/FR/DE/AU do not),
+    case-sensitivity (lowercase 'cn' must not trigger the flag), concurrent
+    instance isolation, POSIX errno stringification across en_US/de_DE/C.UTF-8
+    locales, ENOENT vs EACCES distinctness, absence of hard-coded English errno
+    strings in source, and report() output stability across locales.
+
+  [Code Quality]
+
+  - Removed dead-code double-dereference block in parse_email().  A second
+    `if (ref $text eq 'SCALAR')` branch was unreachable because the preceding
+    line had already dereferenced $text.  Replaced with a single clean
+    dereference followed by a croak on any remaining non-scalar reference.
+
+  - Added =head1 LIMITATIONS POD section documenting eight known constraints:
+    no charset conversion, hand-rolled MIME parser, IPv4-only CIDR matching,
+    WHOIS rate-limiting, non-thread-safe class-level cache, DMARC policy not
+    fetched, routing logic duplication risk, and CHI cache as a global.
+
+  - Fixed all Perl::Critic severity-5 findings: replaced every `return undef`
+    with bare `return` across _extract_ip_from_received, _reverse_dns,
+    _domain_whois, _raw_whois, _provider_abuse_for_host,
+    _provider_abuse_for_ip, _registrable, _header_value, _parse_date_to_epoch,
+    and _parse_rfc2822_date.
+
+  - Fixed Perl::Critic severity-3 findings: converted all `unless` with
+    comparison operators to negated `if`; moved capture variables inside
+    their conditionals in _rdap_lookup, _parse_auth_results, and
+    _parse_whois_text; replaced multi-statement map block with a for loop.
+
+  - Removed two hard-tab characters introduced in earlier edits (Object::Configure
+    overlay comment on line ~643; logger condition in _debug).
+
 0.09	Fri May 15 08:24:33 EDT 2026
 
   [Bug Fixes]

@@ -33,8 +33,8 @@ jobs:
           fetch-depth: 0
 
       # Install Perl via perlbrew
-      - name: Setup Perl
-        uses: shogo82148/actions-setup-perl@v1
+      - name: Setup Perl environment
+        uses: shogo82148/actions-setup-perl@a198315ec4e9244f206879ea7b63078003aec8a6 # v1.41.1
         with:
           perl-version: ${{ matrix.perl }}
           # install cpanminus
@@ -96,7 +96,7 @@ jobs:
             echo "Running on ATG itself — using repo version"
             perl Makefile.PL && make install
           else
-            cpanm -iqn App::Test::Generator
+            cpanm -iqn App::Test::Generator@0.38
           fi
 
       - name: Generate dashboard
@@ -174,3 +174,4 @@ jobs:
           user_name: github-actions
           user_email: github-actions@github.com
           keep_files: true
+          enable_jekyll: false   # adds .nojekyll automatically, it adds nothing in prebuilt pages
