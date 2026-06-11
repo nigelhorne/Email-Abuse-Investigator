@@ -96,81 +96,6 @@ C<Message-ID:> domain.  For each unique domain it gathers:
 
 =back
 
-=head1 REQUIRED MODULES
-
-The following modules are mandatory:
-
-    Readonly::Values::Months
-    Socket              (core since Perl 5)
-    IO::Socket::INET    (core since Perl 5)
-    MIME::QuotedPrint   (core since Perl 5.8)
-    MIME::Base64        (core since Perl 5.8)
-
-The following are optional but strongly recommended:
-
-    Net::DNS            -- enables MX, NS, AAAA record lookups
-    LWP::UserAgent      -- enables RDAP (faster and richer than raw WHOIS)
-    HTML::LinkExtor     -- enables structural HTML link extraction
-    CHI                 -- enables cross-message IP/domain result caching
-    IO::Socket::IP      -- enables IPv6 WHOIS connections
-
-=head1 LIMITATIONS
-
-=over 4
-
-=item No charset conversion
-
-Body text is stored as raw bytes.  Non-ASCII content (UTF-8, Latin-1,
-ISO-2022-JP, etc.) is not decoded to Perl's internal Unicode representation.
-URL and domain extraction from non-ASCII bodies may miss or misparse content.
-Use C<Email::MIME> if full charset support is needed.
-
-=item Hand-rolled MIME parser
-
-The built-in MIME parser handles common cases but is not a conforming
-implementation of RFC 2045/2046.  It silently drops parts it cannot decode,
-does not handle C<message/rfc822> attachments, and does not parse
-C<Content-Disposition> filenames.  Replace with C<Email::MIME> or
-C<MIME::Entity> for production use with untrusted input.
-
-=item IPv4-only CIDR matching for trusted_relays
-
-C<_ip_in_cidr()> and the C<trusted_relays> constructor argument only support
-IPv4 CIDR notation.  IPv6 trusted relay entries are accepted but silently
-never match.
-
-=item WHOIS rate-limiting not handled
-
-C<_raw_whois()> does not retry on rate-limit responses (typically a
-"quota exceeded" reply).  Under high-volume processing the module will
-silently return empty enrichment data for affected IPs and domains.
-
-=item Not thread-safe
-
-The class-level C<$_cache> variable and the optional-module C<$HAS_*> flags
-are shared across all threads.  Create a separate object per thread and do
-not share objects across threads.
-
-=item DMARC policy not fetched
-
-The module reads the C<Authentication-Results: dmarc=> result from the
-message headers but does not perform live C<_dmarc.domain> TXT record
-lookups.  A missing DMARC result in the headers is not independently flagged.
-
-=item C<abuse_contacts()> routes duplicated in C<form_contacts()>
-
-Both methods iterate the same six discovery routes independently.  Any new
-discovery route must be added to both.  A future refactor should share a
-single routing pass.
-
-=item CHI cache is a class-level mutable global
-
-The cross-message cache is shared across all instances in the process.
-Tests that populate the cache will affect subsequent tests.  Pass the cache
-in via C<new()> (not currently supported) to enable proper isolation.
-
-=back
-
 =cut
 
 # -----------------------------------------------------------------------
@@ -4451,6 +4376,81 @@ L<http://matrix.cpantesters.org/?dist=Email-Abuse-Investigator>
 =item * CPAN Testers Dependencies
 
 L<http://deps.cpantesters.org/?module=Email-Abuse-Investigator>
+
+=back
+
+=head1 REQUIRED MODULES
+
+The following modules are mandatory:
+
+    Readonly::Values::Months
+    Socket              (core since Perl 5)
+    IO::Socket::INET    (core since Perl 5)
+    MIME::QuotedPrint   (core since Perl 5.8)
+    MIME::Base64        (core since Perl 5.8)
+
+The following are optional but strongly recommended:
+
+    Net::DNS            -- enables MX, NS, AAAA record lookups
+    LWP::UserAgent      -- enables RDAP (faster and richer than raw WHOIS)
+    HTML::LinkExtor     -- enables structural HTML link extraction
+    CHI                 -- enables cross-message IP/domain result caching
+    IO::Socket::IP      -- enables IPv6 WHOIS connections
+
+=head1 LIMITATIONS
+
+=over 4
+
+=item No charset conversion
+
+Body text is stored as raw bytes.  Non-ASCII content (UTF-8, Latin-1,
+ISO-2022-JP, etc.) is not decoded to Perl's internal Unicode representation.
+URL and domain extraction from non-ASCII bodies may miss or misparse content.
+Use C<Email::MIME> if full charset support is needed.
+
+=item Hand-rolled MIME parser
+
+The built-in MIME parser handles common cases but is not a conforming
+implementation of RFC 2045/2046.  It silently drops parts it cannot decode,
+does not handle C<message/rfc822> attachments, and does not parse
+C<Content-Disposition> filenames.  Replace with C<Email::MIME> or
+C<MIME::Entity> for production use with untrusted input.
+
+=item IPv4-only CIDR matching for trusted_relays
+
+C<_ip_in_cidr()> and the C<trusted_relays> constructor argument only support
+IPv4 CIDR notation.  IPv6 trusted relay entries are accepted but silently
+never match.
+
+=item WHOIS rate-limiting not handled
+
+C<_raw_whois()> does not retry on rate-limit responses (typically a
+"quota exceeded" reply).  Under high-volume processing the module will
+silently return empty enrichment data for affected IPs and domains.
+
+=item Not thread-safe
+
+The class-level C<$_cache> variable and the optional-module C<$HAS_*> flags
+are shared across all threads.  Create a separate object per thread and do
+not share objects across threads.
+
+=item DMARC policy not fetched
+
+The module reads the C<Authentication-Results: dmarc=> result from the
+message headers but does not perform live C<_dmarc.domain> TXT record
+lookups.  A missing DMARC result in the headers is not independently flagged.
+
+=item C<abuse_contacts()> routes duplicated in C<form_contacts()>
+
+Both methods iterate the same six discovery routes independently.  Any new
+discovery route must be added to both.  A future refactor should share a
+single routing pass.
+
+=item CHI cache is a class-level mutable global
+
+The cross-message cache is shared across all instances in the process.
+Tests that populate the cache will affect subsequent tests.  Pass the cache
+in via C<new()> (not currently supported) to enable proper isolation.
 
 =back
 

@@ -58,77 +58,6 @@ and answers the questions manual abuse investigators ask:
     - DNS nameserver operator (NS record -> RDAP)
     - Whether the domain was recently registered (potential flag)
 
-# REQUIRED MODULES
-
-The following modules are mandatory:
-
-    Readonly::Values::Months
-    Socket              (core since Perl 5)
-    IO::Socket::INET    (core since Perl 5)
-    MIME::QuotedPrint   (core since Perl 5.8)
-    MIME::Base64        (core since Perl 5.8)
-
-The following are optional but strongly recommended:
-
-    Net::DNS            -- enables MX, NS, AAAA record lookups
-    LWP::UserAgent      -- enables RDAP (faster and richer than raw WHOIS)
-    HTML::LinkExtor     -- enables structural HTML link extraction
-    CHI                 -- enables cross-message IP/domain result caching
-    IO::Socket::IP      -- enables IPv6 WHOIS connections
-
-# LIMITATIONS
-
-- No charset conversion
-
-    Body text is stored as raw bytes.  Non-ASCII content (UTF-8, Latin-1,
-    ISO-2022-JP, etc.) is not decoded to Perl's internal Unicode representation.
-    URL and domain extraction from non-ASCII bodies may miss or misparse content.
-    Use `Email::MIME` if full charset support is needed.
-
-- Hand-rolled MIME parser
-
-    The built-in MIME parser handles common cases but is not a conforming
-    implementation of RFC 2045/2046.  It silently drops parts it cannot decode,
-    does not handle `message/rfc822` attachments, and does not parse
-    `Content-Disposition` filenames.  Replace with `Email::MIME` or
-    `MIME::Entity` for production use with untrusted input.
-
-- IPv4-only CIDR matching for trusted\_relays
-
-    `_ip_in_cidr()` and the `trusted_relays` constructor argument only support
-    IPv4 CIDR notation.  IPv6 trusted relay entries are accepted but silently
-    never match.
-
-- WHOIS rate-limiting not handled
-
-    `_raw_whois()` does not retry on rate-limit responses (typically a
-    "quota exceeded" reply).  Under high-volume processing the module will
-    silently return empty enrichment data for affected IPs and domains.
-
-- Not thread-safe
-
-    The class-level `$_cache` variable and the optional-module `$HAS_*` flags
-    are shared across all threads.  Create a separate object per thread and do
-    not share objects across threads.
-
-- DMARC policy not fetched
-
-    The module reads the `Authentication-Results: dmarc=` result from the
-    message headers but does not perform live `_dmarc.domain` TXT record
-    lookups.  A missing DMARC result in the headers is not independently flagged.
-
-- `abuse_contacts()` routes duplicated in `form_contacts()`
-
-    Both methods iterate the same six discovery routes independently.  Any new
-    discovery route must be added to both.  A future refactor should share a
-    single routing pass.
-
-- CHI cache is a class-level mutable global
-
-    The cross-message cache is shared across all instances in the process.
-    Tests that populate the cache will affect subsequent tests.  Pass the cache
-    in via `new()` (not currently supported) to enable proper isolation.
-
 # METHODS
 
 ## new( %options )
@@ -1061,6 +990,77 @@ You can also look for information at:
 - CPAN Testers Dependencies
 
     [http://deps.cpantesters.org/?module=Email-Abuse-Investigator](http://deps.cpantesters.org/?module=Email-Abuse-Investigator)
+
+# REQUIRED MODULES
+
+The following modules are mandatory:
+
+    Readonly::Values::Months
+    Socket              (core since Perl 5)
+    IO::Socket::INET    (core since Perl 5)
+    MIME::QuotedPrint   (core since Perl 5.8)
+    MIME::Base64        (core since Perl 5.8)
+
+The following are optional but strongly recommended:
+
+    Net::DNS            -- enables MX, NS, AAAA record lookups
+    LWP::UserAgent      -- enables RDAP (faster and richer than raw WHOIS)
+    HTML::LinkExtor     -- enables structural HTML link extraction
+    CHI                 -- enables cross-message IP/domain result caching
+    IO::Socket::IP      -- enables IPv6 WHOIS connections
+
+# LIMITATIONS
+
+- No charset conversion
+
+    Body text is stored as raw bytes.  Non-ASCII content (UTF-8, Latin-1,
+    ISO-2022-JP, etc.) is not decoded to Perl's internal Unicode representation.
+    URL and domain extraction from non-ASCII bodies may miss or misparse content.
+    Use `Email::MIME` if full charset support is needed.
+
+- Hand-rolled MIME parser
+
+    The built-in MIME parser handles common cases but is not a conforming
+    implementation of RFC 2045/2046.  It silently drops parts it cannot decode,
+    does not handle `message/rfc822` attachments, and does not parse
+    `Content-Disposition` filenames.  Replace with `Email::MIME` or
+    `MIME::Entity` for production use with untrusted input.
+
+- IPv4-only CIDR matching for trusted\_relays
+
+    `_ip_in_cidr()` and the `trusted_relays` constructor argument only support
+    IPv4 CIDR notation.  IPv6 trusted relay entries are accepted but silently
+    never match.
+
+- WHOIS rate-limiting not handled
+
+    `_raw_whois()` does not retry on rate-limit responses (typically a
+    "quota exceeded" reply).  Under high-volume processing the module will
+    silently return empty enrichment data for affected IPs and domains.
+
+- Not thread-safe
+
+    The class-level `$_cache` variable and the optional-module `$HAS_*` flags
+    are shared across all threads.  Create a separate object per thread and do
+    not share objects across threads.
+
+- DMARC policy not fetched
+
+    The module reads the `Authentication-Results: dmarc=` result from the
+    message headers but does not perform live `_dmarc.domain` TXT record
+    lookups.  A missing DMARC result in the headers is not independently flagged.
+
+- `abuse_contacts()` routes duplicated in `form_contacts()`
+
+    Both methods iterate the same six discovery routes independently.  Any new
+    discovery route must be added to both.  A future refactor should share a
+    single routing pass.
+
+- CHI cache is a class-level mutable global
+
+    The cross-message cache is shared across all instances in the process.
+    Tests that populate the cache will affect subsequent tests.  Pass the cache
+    in via `new()` (not currently supported) to enable proper isolation.
 
 # FORMAL SPECIFICATION
 
