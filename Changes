@@ -1,6 +1,6 @@
 Revision history for Email-Abuse-Investigator
 
-0.10	Wed Jun 11 2026
+0.10
 
   [Enhancements]
 
@@ -41,6 +41,67 @@ Revision history for Email-Abuse-Investigator
     instance isolation, POSIX errno stringification across en_US/de_DE/C.UTF-8
     locales, ENOENT vs EACCES distinctness, absence of hard-coded English errno
     strings in source, and report() output stability across locales.
+
+  [Tests]
+
+  - Expanded t/function.t with sections 35-45 (white-box coverage):
+    _sanitise_output C0-control stripping, _parse_auth_results all branches,
+    received_trail chain population, sending_software header fingerprints,
+    _risk_check_* helper delegation, form_contacts six-route coverage,
+    abuse_contacts deduplication and caching.  Total: 361 tests.
+
+  - Expanded t/unit.t with subtests 71-101 (public API contract tests):
+    header_value() case-insensitive lookup and undef-on-miss, sending_software()
+    and received_trail() return shapes, form_contacts() and unresolved_contacts()
+    full pipeline, parse_email() named-arg form and scalar-ref form, croak on
+    non-string-reference arguments, risk_assessment() HIGH/MEDIUM/LOW/INFO
+    score-threshold boundaries.  Total: 101 subtests.
+
+  - Expanded t/integration.t with scenarios 30-42 (black-box end-to-end):
+    concurrent object isolation, future-date suspicious_date flag, plain-HTTP
+    http_not_https flag, DKIM pass with different registrable domain (INFO) vs
+    DKIM absent with different domain (MEDIUM), sending_software and
+    received_trail sections in report(), form_contacts via URL host route,
+    high_spam_country INFO flag, parse_email() named-arg calling convention,
+    abuse_report_text() WEB-FORM section, encoded_subject flag, unresolved_contacts()
+    full pipeline, all_domains() idempotency.  Total: 48 subtests.
+
+  - Expanded t/edge_cases.t with sections 26-40 (49 new tests):
+    - _parse_rfc2822_date: all 12 months, day-of-week prefix, single/double-digit
+      day, case-insensitive months, timezone offset ignored, bogus string -> undef.
+    - _country_name: all 7 known spam-country codes, unknown code returned as-is.
+    - parse_email hostile reference types: CODE ref and non-empty ARRAY ref cause
+      module croak; REF-to-hashref silently consumed as empty named-params
+      (Params::Get unwraps REF -> HASH); GLOB ref causes Params::Get Usage error;
+      undef treated as empty email without croaking.
+    - All 13 public methods called on a fresh object (no prior parse_email) must
+      not die and must return empty/undef sentinel values.
+    - Non-HTTP URL schemes (javascript:, data:, ftp:, file:) not extracted by
+      embedded_urls() -- only http:// and https:// are recognised.
+    - CRLF and C0 control injection: NUL, ESC, SOH, BEL, and BS in header values
+      are stripped by parse_email sanitisation and _sanitise_output before reaching
+      report() output.
+    - header_value() edge cases: all-caps, mixed-case, and lowercase lookups return
+      the same result; missing header returns undef; all standard headers accessible.
+    - sending_software() fingerprints: X-PHP-Originating-Script, X-Mailer, X-Source
+      all captured; multiple SW headers all returned; absent headers -> empty list.
+    - received_trail() specifics: RFC 1918 IPs included (not filtered); entries in
+      oldest-first order; for= and id= fields extracted correctly.
+    - Context abuse: all seven list-returning public methods behave safely in scalar
+      context without dying.
+    - _parse_whois_text injection safety: shell metacharacters, HTML special chars,
+      CRLF-terminated lines, and 64 KB org names all handled safely.
+    - all_domains() idempotency: repeated calls return the same sorted list; result
+      is a deduplicated union of URL hosts and mailto domains.
+    - parse_email cache invalidation: _contacts, _risk, and _auth_results slots are
+      all reset to undef on a second parse_email() call.
+    - Sparse internal state: risk_assessment() does not die when _origin, _urls,
+      or _mailto_domains contain empty hashrefs (all keys absent).
+    - unresolved_contacts() and form_contacts(): return empty lists for an empty
+      object; domain with no abuse contacts appears in unresolved list.
+    Total: 155 tests.
+
+  - Overall test count: 885 tests across 17 files (up from 836).
 
   [Code Quality]
 
