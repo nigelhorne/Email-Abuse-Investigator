@@ -7,6 +7,9 @@ use autodie qw(:all);
 use Carp qw(croak carp);
 use IO::Select;
 use IO::Socket::INET;
+BEGIN { $Sub::Private::config{mode} = 'enforce' }
+use Sub::Private;
+use Sub::Protected;
 use MIME::QuotedPrint qw( decode_qp );
 use MIME::Base64 qw( decode_base64 );
 use Object::Configure;
@@ -636,31 +639,6 @@ work correctly on Windows and in threaded Perl interpreters.
 # Class-level cross-message CHI cache (shared across all instances).
 # Populated lazily on first call to new() when CHI is available.
 my $_cache;
-
-# _assert_internal_caller()
-#
-# Purpose:
-#   Enforce encapsulation by croaking when a private method is called from
-#   outside the class hierarchy.  Call as the very first statement of any
-#   _private method that should not be reachable from user code.
-#
-# Entry criteria:
-#   Called with $self as the first argument so we can introspect via caller().
-#
-# Exit status:
-#   Returns silently if the call originates within this package or a subclass.
-#   Croaks with a descriptive message otherwise.
-#
-# Side effects:
-#   None when the check passes.
-
-sub _assert_internal_caller {
-	my $self = shift;
-	my $caller_pkg = caller(1);
-	return if defined($caller_pkg) && $caller_pkg->isa(__PACKAGE__);
-	my $private_sub = (caller(0))[3];
-	Carp::croak("$private_sub is a private method and may not be called from ${\($caller_pkg // 'unknown')}");
-}
 
 sub new {
 	my $class = shift;
@@ -1470,7 +1448,7 @@ sub risk_assessment {
 # Exit status:
 #   Returns nothing; side effects via $flag closure.
 
-sub _risk_check_origin {
+sub _risk_check_origin :Private {
 	my ($self, $flag) = @_;
 	my $orig = $self->originating_ip();
 	return unless $orig;
@@ -1517,7 +1495,7 @@ sub _risk_check_origin {
 # Exit status:
 #   Returns nothing; side effects via $flag closure.
 
-sub _risk_check_auth {
+sub _risk_check_auth :Private {
 	my ($self, $flag) = @_;
 	my $auth = $self->_parse_auth_results_cached();
 
@@ -1574,7 +1552,7 @@ sub _risk_check_auth {
 # Exit status:
 #   Returns nothing; side effects via $flag closure.
 
-sub _risk_check_date {
+sub _risk_check_date :Private {
 	my ($self, $flag) = @_;
 	my $date_raw = $self->_header_value('date');
 
@@ -1623,7 +1601,7 @@ sub _risk_check_date {
 # Exit status:
 #   Returns nothing; side effects via $flag closure.
 
-sub _risk_check_identity {
+sub _risk_check_identity :Private {
 	my ($self, $flag) = @_;
 	my $from_raw     = $self->_header_value('from') // '';
 	my $from_decoded = $self->_decode_mime_words($from_raw);
@@ -1690,7 +1668,7 @@ sub _risk_check_identity {
 # Exit status:
 #   Returns nothing; side effects via $flag closure.
 
-sub _risk_check_urls_and_domains {
+sub _risk_check_urls_and_domains :Private {
 	my ($self, $flag) = @_;
 	my (%shortener_seen, %url_host_seen);
 
@@ -1946,7 +1924,7 @@ sub abuse_contacts {
 # Exit status:
 #   Returns list of deduplicated contact hashrefs.
 
-sub _compute_abuse_contacts {
+sub _compute_abuse_contacts :Private {
 	my $self = $_[0];
 
 	my (@contacts, %seen_idx);
@@ -2700,7 +2678,7 @@ sub report {
 #   character (0x7F).  High bytes (0x80-0xFF) are preserved because they
 #   form valid UTF-8 multi-byte sequences in headers and body text.
 
-sub _sanitise_output {
+sub _sanitise_output :Private {
 	my ($str) = @_;
 	return '' unless defined $str;
 	# Remove C0 controls (except tab) and DEL
@@ -2737,7 +2715,7 @@ sub _sanitise_output {
 #   Boundary extraction uses a simple regex; missing boundary causes the
 #   body to be skipped silently.
 
-sub _split_message {
+sub _split_message :Private {
 	my ($self, $text) = @_;
 
 	# Split at the first blank line (RFC 2822 header/body separator)
@@ -2845,7 +2823,7 @@ sub _split_message {
 #   Whitespace-only MIME segments between boundaries are silently skipped.
 #   Decoding errors are silenced; raw bytes are used as fallback.
 
-sub _decode_multipart {
+sub _decode_multipart :Private {
 	my ($self, $body, $boundary, $depth) = @_;
 	$depth //= 0;
 
@@ -2918,7 +2896,7 @@ sub _decode_multipart {
 #   decode_qp and decode_base64 are imported from MIME:: modules; errors
 #   from malformed content are silenced by the eval wrappers they provide.
 
-sub _decode_body {
+sub _decode_body :Private {
 	my ($self, $body, $cte) = @_;
 	$cte //= '';
 	return decode_qp($body)     if $cte =~ /quoted-printable/i;
@@ -2953,7 +2931,7 @@ sub _decode_body {
 #   'medium' = exactly one external IP;
 #   'low' = taken from X-Originating-IP.
 
-sub _find_origin {
+sub _find_origin :Private {
 	my $self = $_[0];
 
 	my @candidates;
@@ -3003,7 +2981,7 @@ sub _find_origin {
 #   IPv4 addresses are validated (all octets <= 255).
 #   IPv6 addresses are returned as-is if they contain colons.
 
-sub _extract_ip_from_received {
+sub _extract_ip_from_received :Private {
 	my ($self, $hdr) = @_;
 	for my $re (@RECEIVED_IP_RE) {
 		if ($hdr =~ $re) {
@@ -3038,7 +3016,7 @@ sub _extract_ip_from_received {
 #   Uses the module-level @PRIVATE_RANGES array of pre-compiled regexes.
 #   Covers all ranges listed in RFC 1122, 1918, 5737, 6598, and RFC 4193.
 
-sub _is_private {
+sub _is_private :Private {
 	my ($self, $ip) = @_;
 	return 1 if !defined($ip) || $ip eq '';
 	for my $re (@PRIVATE_RANGES) { return 1 if $ip =~ $re }
@@ -3058,7 +3036,7 @@ sub _is_private {
 # Exit status:
 #   Returns 1 (true) if the IP matches any trusted relay, 0 otherwise.
 
-sub _is_trusted {
+sub _is_trusted :Private {
 	my ($self, $ip) = @_;
 	for my $cidr (@{ $self->{trusted_relays} }) {
 		return 1 if $self->_ip_in_cidr($ip, $cidr);
@@ -3087,7 +3065,7 @@ sub _is_trusted {
 #   Network I/O per unique hostname: one A/AAAA lookup, one RDAP/WHOIS.
 #   Results stored in the CHI cross-message cache if available.
 
-sub _extract_and_resolve_urls {
+sub _extract_and_resolve_urls :Private {
 	my $self = $_[0];
 	my (%url_seen, %host_cache);
 	my @results;
@@ -3169,7 +3147,7 @@ sub _extract_and_resolve_urls {
 #   Errors (NXDOMAIN, timeout) are silently swallowed; the sequential
 #   resolution loop will return '(unresolved)' for those hosts.
 
-sub _parallel_resolve_hosts {
+sub _parallel_resolve_hosts :Private {
 	my ($self, $hostnames_ref, $cache_ref) = @_;
 	return unless $HAS_ANYEVENT_DNS;
 
@@ -3210,7 +3188,7 @@ sub _parallel_resolve_hosts {
 # Exit status:
 #   Returns a list of URL strings (possibly empty), deduplicated.
 
-sub _extract_http_urls {
+sub _extract_http_urls :Private {
 	my ($self, $body) = @_;
 	my @urls;
 
@@ -3269,7 +3247,7 @@ sub _extract_http_urls {
 #   Network I/O per domain via _analyse_domain().
 #   Results stored in $self->{_domain_info} and CHI cache.
 
-sub _extract_and_analyse_domains {
+sub _extract_and_analyse_domains :Private {
 	my $self = $_[0];
 	my (%seen, @domains_with_source);
 
@@ -3374,7 +3352,7 @@ sub _extract_and_analyse_domains {
 # Exit status:
 #   Returns a list of lower-cased domain strings (possibly empty).
 
-sub _domains_from_text {
+sub _domains_from_text :Private {
 	my ($self, $text) = @_;
 	my (%seen, @out);
 
@@ -3419,7 +3397,7 @@ sub _domains_from_text {
 #   recently_registered is set to 1 (not 0) when the threshold is met.
 #   whois_raw is truncated to WHOIS_RAW_MAX bytes.
 
-sub _analyse_domain {
+sub _analyse_domain :Private {
 	my ($self, $domain) = @_;
 
 	# Return the per-message cached result if already analysed
@@ -3571,7 +3549,7 @@ sub _analyse_domain {
 #   When the input is already a dotted-quad IPv4 it is returned immediately.
 #   AAAA records are tried if the A query fails and Net::DNS is available.
 
-sub _resolve_host {
+sub _resolve_host :Protected {
 	my ($self, $host) = @_;
 	return $host if $host =~ /^\d{1,3}(?:\.\d{1,3}){3}$/;
 
@@ -3631,7 +3609,7 @@ sub _resolve_host {
 # Exit status:
 #   Returns the PTR hostname string, or undef if no record exists.
 
-sub _reverse_dns {
+sub _reverse_dns :Protected {
 	my ($self, $ip) = @_;
 	return unless $ip;
 
@@ -3667,7 +3645,7 @@ sub _reverse_dns {
 # Exit status:
 #   Returns { org, abuse, country } hashref; keys absent when unknown.
 
-sub _whois_ip {
+sub _whois_ip :Protected {
 	my ($self, $ip) = @_;
 
 	# Check CHI cache before going to the network
@@ -3706,7 +3684,7 @@ sub _whois_ip {
 # Exit status:
 #   Returns the raw WHOIS response string, or undef on failure.
 
-sub _domain_whois {
+sub _domain_whois :Protected {
 	my ($self, $domain) = @_;
 	my $iana = $self->_raw_whois($domain, 'whois.iana.org') // return;
 	my ($server) = $iana =~ /whois:\s*([\w.-]+)/i;
@@ -3727,7 +3705,7 @@ sub _domain_whois {
 # Exit status:
 #   Returns { org, abuse } hashref; empty hashref on failure.
 
-sub _parse_domain_whois_abuse {
+sub _parse_domain_whois_abuse :Private {
 	my ($self, $domain) = @_;
 	my $raw = $self->_domain_whois($domain) // return {};
 	my %info;
@@ -3760,7 +3738,7 @@ sub _parse_domain_whois_abuse {
 # Exit status:
 #   Returns { org, abuse, country } hashref; empty hashref on failure.
 
-sub _rdap_lookup {
+sub _rdap_lookup :Protected {
 	my ($self, $ip) = @_;
 	return {} unless $HAS_LWP;
 
@@ -3828,7 +3806,7 @@ sub _rdap_lookup {
 #   IO::Socket::INET (IPv4 only) otherwise.  The IO::Select loop reads
 #   until the server closes the connection or the per-read timeout expires.
 
-sub _raw_whois {
+sub _raw_whois :Protected {
 	my ($self, $query, $server) = @_;
 	$server //= 'whois.iana.org';
 	$self->_debug("WHOIS $server -> $query");
@@ -3885,7 +3863,7 @@ sub _raw_whois {
 # Exit status:
 #   Returns { org, abuse, country } hashref; keys absent when not found.
 
-sub _parse_whois_text {
+sub _parse_whois_text :Private {
 	my ($self, $text) = @_;
 	return {} unless $text;
 	my %info;
@@ -3938,7 +3916,7 @@ sub _parse_whois_text {
 #   Returns { spf, dkim, dmarc, arc, dkim_domain, dkim_domains } hashref.
 #   Keys absent when the corresponding header or field is not present.
 
-sub _parse_auth_results_cached {
+sub _parse_auth_results_cached :Private {
 	my $self = $_[0];
 	return $self->{_auth_results} if $self->{_auth_results};
 
@@ -4004,7 +3982,7 @@ sub _parse_auth_results_cached {
 # Exit status:
 #   Returns the %PROVIDER_ABUSE entry hashref on match, undef otherwise.
 
-sub _provider_abuse_for_host {
+sub _provider_abuse_for_host :Private {
 	my ($self, $host) = @_;
 	$host = lc $host;
 	# Strip successive subdomains until we find a match or exhaust labels
@@ -4029,7 +4007,7 @@ sub _provider_abuse_for_host {
 # Exit status:
 #   Returns the %PROVIDER_ABUSE entry on match, undef otherwise.
 
-sub _provider_abuse_for_ip {
+sub _provider_abuse_for_ip :Private {
 	my ($self, $ip, $rdns) = @_;
 	return $self->_provider_abuse_for_host($rdns) if $rdns;
 	return;
@@ -4057,7 +4035,7 @@ sub _provider_abuse_for_ip {
 #   The heuristic handles co.uk, com.au, net.jp, org.nz etc. but not
 #   uncommon second-level delegations like ltd.uk or plc.uk.
 
-sub _registrable {
+sub _registrable :Private {
 	my ($host) = @_;
 	return unless $host && $host =~ /\./;
 
@@ -4098,7 +4076,7 @@ sub _registrable {
 # Exit status:
 #   Returns { ip, rdns, org, abuse, country, confidence, note } hashref.
 
-sub _enrich_ip {
+sub _enrich_ip :Private {
 	my ($self, $ip, $confidence, $note) = @_;
 	my $rdns  = $self->_reverse_dns($ip);
 	my $whois = $self->_whois_ip($ip);
@@ -4153,7 +4131,7 @@ sub header_value {
 # Exit status:
 #   Returns the value string, or undef if the header is not present.
 
-sub _header_value {
+sub _header_value :Private {
 	my ($self, $name) = @_;
 	for my $h (@{ $self->{_headers} }) {
 		return $h->{value} if $h->{name} eq lc($name);
@@ -4174,7 +4152,7 @@ sub _header_value {
 # Exit status:
 #   Returns 1 (true) if the IP is within the CIDR block, 0 otherwise.
 
-sub _ip_in_cidr {
+sub _ip_in_cidr :Private {
 	my ($self, $ip, $cidr) = @_;
 	return $ip eq $cidr unless $cidr =~ m{/};
 	my ($net_addr, $prefix) = split m{/}, $cidr;
@@ -4199,7 +4177,7 @@ sub _ip_in_cidr {
 # Exit status:
 #   Returns the decoded string, or '' if $str is undef.
 
-sub _decode_mime_words {
+sub _decode_mime_words :Private {
 	my ($self, $str) = @_;
 	return '' unless defined $str;
 	# Replace each encoded-word with its decoded equivalent
@@ -4216,7 +4194,7 @@ sub _decode_mime_words {
 #   Non-UTF-8 charsets return raw bytes; good enough for display-name spoof
 #   detection which only needs ASCII matching.
 
-sub _decode_ew {
+sub _decode_ew :Private {
 	my ($charset, $enc, $text) = @_;
 	my $raw;
 	if (uc($enc) eq 'B') {
@@ -4241,7 +4219,7 @@ sub _decode_ew {
 # Exit status:
 #   Returns epoch integer on success, undef if the string cannot be parsed.
 
-sub _parse_date_to_epoch {
+sub _parse_date_to_epoch :Private {
 	my ($self, $str) = @_;
 	return unless $str;
 
@@ -4294,7 +4272,7 @@ sub _parse_date_to_epoch {
 # Exit status:
 #   Returns epoch integer on success, undef if the string cannot be parsed.
 
-sub _parse_rfc2822_date {
+sub _parse_rfc2822_date :Private {
 	my ($str) = @_;
 	return unless $str;
 
@@ -4323,7 +4301,7 @@ sub _parse_rfc2822_date {
 # Exit status:
 #   Returns the country name string, or the code itself if not in the table.
 
-sub _country_name {
+sub _country_name :Private {
 	my ($cc) = @_;
 	my %names = (
 		CN => 'China',       RU => 'Russia',    NG => 'Nigeria',
@@ -4344,7 +4322,7 @@ sub _country_name {
 # Notes:
 #   Messages are prefixed with the class name for easy grepping.
 
-sub _debug {
+sub _debug :Private {
 	my ($self, $msg) = @_;
 
 	if($self->{verbose}) {

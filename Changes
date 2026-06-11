@@ -25,9 +25,15 @@ Revision history for Email-Abuse-Investigator
     replaced the inline qw(...) list in _risk_check_urls_and_domains with a
     reference to the constant.
 
-  - Added _assert_internal_caller() private guard sub.  Croaks with a
-    descriptive message when a private method is called from outside the class
-    hierarchy (uses caller(1)->isa check).
+  - Replaced hand-rolled _assert_internal_caller() guard with Sub::Private
+    (enforce mode) and Sub::Protected.  All 33 purely internal _* methods are
+    now decorated :Private (callable only from Email::Abuse::Investigator
+    itself); the six network I/O seams (_resolve_host, _reverse_dns, _whois_ip,
+    _domain_whois, _raw_whois, _rdap_lookup) are decorated :Protected so
+    subclasses can override them.  White-box tests are automatically exempted
+    because Sub::Private/Sub::Protected bypass enforcement when
+    $ENV{HARNESS_ACTIVE} is set (which prove always sets).  Sub::Private 0.05
+    and Sub::Protected 0.02 added to PREREQ_PM and cpanfile.
 
   - Added t/locales.t: new test file covering geographic country-code flags
     (CN/RU/NG/VN/IN/PK/BD raise high_spam_country; GB/US/FR/DE/AU do not),
