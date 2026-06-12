@@ -27,11 +27,11 @@ hosted URLs, and suspicious domains
 
 =head1 VERSION
 
-Version 0.09
+Version 0.10
 
 =cut
 
-our $VERSION = '0.09';
+our $VERSION = '0.10';
 
 =head1 SYNOPSIS
 
@@ -795,7 +795,7 @@ C<received_trail()> for the full chain.
 =head4 Output
 
     {
-        type => 'hashref | undef',
+        type => [ 'hashref', 'undef' ],
         keys => {
             ip         => { type => 'string', regex => qr/[\d.:a-fA-F]/ },
             rdns       => { type => 'string' },

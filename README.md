@@ -5,7 +5,7 @@ hosted URLs, and suspicious domains
 
 # VERSION
 
-Version 0.09
+Version 0.10
 
 # SYNOPSIS
 
@@ -273,7 +273,7 @@ Only the first (oldest) external IP in the chain is reported.  See
 #### Output
 
     {
-        type => 'hashref | undef',
+        type => [ 'hashref', 'undef' ],
         keys => {
             ip         => { type => 'string', regex => qr/[\d.:a-fA-F]/ },
             rdns       => { type => 'string' },
