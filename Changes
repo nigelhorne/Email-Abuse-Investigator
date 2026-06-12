@@ -1,5 +1,46 @@
 Revision history for Email-Abuse-Investigator
 
+0.11	Fri Jun 12 2026 (unreleased)
+
+  [Enhancements]
+
+  - Redirect-cloaker detection: the module now follows HTTP redirect chains for
+    URLs whose host is a known cloud object-store or CDN (Google Cloud Storage
+    storage.googleapis.com, Azure Blob Storage blob.core.windows.net, Cloudflare
+    Pages pages.dev, Firebase firebaseapp.com / web.app, S3 buckets, CloudFront
+    distributions, GitHub Pages).  Up to $REDIRECT_MAX_HOPS (3) hops are
+    followed, detecting HTTP 3xx Location: redirects, HTML <meta http-equiv=
+    "refresh"> tags, and window.location.replace() / window.location.href
+    JavaScript patterns.  The resolved destination URL is added to the
+    embedded_urls() list alongside the original, so abuse contacts for the real
+    phishing landing page are surfaced even when the email body contains only an
+    object-store redirect URL (a common spam-filter-bypass technique).
+    Requires LWP::UserAgent; silently skipped when unavailable.
+    New private structures: %REDIRECT_HOSTS, @REDIRECT_HOST_SUFFIXES,
+    $REDIRECT_MAX_HOPS constant; new :Protected seam _follow_redirect_chain();
+    new :Private helper _is_redirect_cloaker().
+
+  - New risk flag redirect_cloaker (MEDIUM weight) raised by risk_assessment()
+    when an embedded URL host is a cloud-storage or CDN redirect cloaker.
+    Separate from the existing url_shortener flag.
+
+  - Added storage.googleapis.com and googleapis.com to %PROVIDER_ABUSE with
+    abuse contact google-cloud-compliance@google.com and note pointing to
+    https://support.google.com/code/go/gce_abuse_report.
+
+  [Tests]
+
+  - t/integration.t: added Scenario 5b (cloud-storage redirect cloaker):
+    verifies that a GCS URL is followed to its phishing destination, that both
+    hosts appear in embedded_urls(), that redirect_cloaker is flagged, and that
+    abuse contacts for both Google Cloud and the final host are present.
+    _follow_redirect_chain() added to the install_stubs() harness as a new
+    :Protected seam, defaulting to sub { undef }.
+
+  - Overall test count: 968 tests across 18 files (unchanged count; Scenario 5b
+    adds 1 subtest with 6 assertions, integrated into the existing 49-scenario
+    block).
+
 0.10	Thu Jun 11 21:54:37 EDT 2026
 
   [Enhancements]
@@ -155,7 +196,8 @@ Revision history for Email-Abuse-Investigator
     - BOOL_NEGATE_596_2: new() always returns a distinct blessed object regardless
       of CHI cache state.
 
-  - Overall test count: 969 tests across 18 files (up from 920).
+  - Overall test count: 968 tests across 18 files (up from 920).
+
 
   [Code Quality]
 

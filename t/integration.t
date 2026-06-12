@@ -48,7 +48,8 @@ my %_ORIGINAL;
 BEGIN {
 	for my $fn (qw(
 		_reverse_dns  _resolve_host  _whois_ip
-		_domain_whois _raw_whois	 _rdap_lookup
+		_domain_whois _raw_whois     _rdap_lookup
+		_follow_redirect_chain
 	)) {
 		no strict 'refs';
 		$_ORIGINAL{$fn} = \&{ "Email::Abuse::Investigator::$fn" };
@@ -101,8 +102,15 @@ sub install_stubs {
 		: sub { $ov{domain_whois} // undef };
 
 	# These are never needed in integration tests (covered by the above)
-	*Email::Abuse::Investigator::_raw_whois   = sub { undef };
-	*Email::Abuse::Investigator::_rdap_lookup = sub { {} };
+	*Email::Abuse::Investigator::_raw_whois            = sub { undef };
+	*Email::Abuse::Investigator::_rdap_lookup          = sub { {} };
+
+	# Redirect-following: default to no-op (undef = no redirect found).
+	# Tests that exercise redirect chain behaviour supply their own stub via
+	# the 'follow_redirect' key.
+	*Email::Abuse::Investigator::_follow_redirect_chain = ref($ov{follow_redirect}) eq 'CODE'
+		? $ov{follow_redirect}
+		: sub { undef };
 }
 
 # ---------------------------------------------------------------------------
@@ -536,6 +544,67 @@ subtest 'Scenario 5: URL shortener hides real destination' => sub {
 	# Report mentions the shortener warning
 	my $report = $a->report();
 	like $report, qr/URL SHORTENER/, 'URL SHORTENER warning in report';
+
+	restore_stubs();
+};
+
+# ---------------------------------------------------------------------------
+# Scenario 5b — Cloud-storage redirect cloaker (GCS bucket → phishing page)
+#
+# The email body contains only a GCS URL.  The GCS page hosts a meta-refresh
+# to the real phishing domain.  The module should follow the redirect and
+# surface both the GCS host and the final phishing host in embedded_urls(),
+# then flag redirect_cloaker for the GCS URL and report abuse contacts for
+# both parties.
+# ---------------------------------------------------------------------------
+subtest 'Scenario 5b: cloud-storage redirect cloaker resolved to phishing destination' => sub {
+	restore_stubs();
+	install_stubs(
+		rdns	=> 'mail.sender.example',
+		resolve => {
+			'storage.googleapis.com' => '142.250.80.112',
+			'www.phishingsite.example' => '198.51.100.99',
+		},
+		whois_ip => sub {
+			my (undef, $ip) = @_;
+			return { org => 'Google LLC',     abuse => 'google-cloud-compliance@google.com' }
+				if $ip eq '142.250.80.112';
+			return { org => 'Evil Hosting',   abuse => 'abuse@evilhost.example' };
+		},
+		domain_whois => undef,
+		follow_redirect => sub {
+			my (undef, $url) = @_;
+			return 'https://www.phishingsite.example/login?ref=123'
+				if $url =~ m{storage\.googleapis\.com};
+			return undef;
+		},
+	);
+
+	my $a = Email::Abuse::Investigator->new();
+	$a->parse_email(make_raw_email(
+		received => 'from sender (sender [91.198.174.1]) by mx.test',
+		body     => 'Click here: https://storage.googleapis.com/fakebucket/redirect',
+	));
+
+	my @urls  = $a->embedded_urls();
+	my %hosts = map { $_->{host} => 1 } @urls;
+
+	is scalar @urls, 2, 'two URLs found: GCS original + phishing destination';
+	ok $hosts{'storage.googleapis.com'},   'GCS host present';
+	ok $hosts{'www.phishingsite.example'}, 'phishing destination resolved and present';
+
+	# Risk assessment should flag the redirect cloaker
+	my $risk = $a->risk_assessment();
+	ok scalar(grep { $_->{flag} eq 'redirect_cloaker' } @{ $risk->{flags} }),
+		'redirect_cloaker flag raised for GCS host';
+
+	# Abuse contacts should include both Google and the phishing host's ISP
+	my @contacts  = $a->abuse_contacts();
+	my @addresses = map { $_->{address} } @contacts;
+	ok scalar(grep { defined $_ && /google-cloud-compliance/ } @addresses),
+		'Google Cloud abuse contact present';
+	ok scalar(grep { defined $_ && /evilhost\.example/       } @addresses),
+		'phishing host abuse contact present';
 
 	restore_stubs();
 };
