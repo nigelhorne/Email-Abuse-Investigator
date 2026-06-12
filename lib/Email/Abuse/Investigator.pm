@@ -3046,20 +3046,20 @@ sub _extract_and_resolve_urls :Private {
 	# For URL-shortener and redirect-cloaker hosts, follow the redirect chain to
 	# discover the real destination (e.g. GCS bucket → phishing landing page).
 	# Done before DNS resolution so that destination hostnames can be parallelised.
-	# Requires LWP::UserAgent; silently skipped when unavailable.
-	if ($HAS_LWP) {
-		for my $url (@urls) {
-			my ($host) = $url =~ m{https?://([^/:?\s#]+)}i;
-			next unless $host;
-			my $bare = lc $host;
-			$bare =~ s/^www\.//;
-			next unless $URL_SHORTENERS{$bare}
-			         || ($self->{url_shorteners} && $self->{url_shorteners}{$bare})
-			         || $self->_is_redirect_cloaker($bare);
-			my $dest = $self->_follow_redirect_chain($url);
-			next unless defined $dest && !$url_seen{$dest}++;
-			push @urls, $dest;
-		}
+	# _follow_redirect_chain() is a :Protected seam that handles LWP availability
+	# internally — do not guard this block with $HAS_LWP so the seam can be
+	# stubbed unconditionally in tests regardless of whether LWP is installed.
+	for my $url (@urls) {
+		my ($host) = $url =~ m{https?://([^/:?\s#]+)}i;
+		next unless $host;
+		my $bare = lc $host;
+		$bare =~ s/^www\.//;
+		next unless $URL_SHORTENERS{$bare}
+		         || ($self->{url_shorteners} && $self->{url_shorteners}{$bare})
+		         || $self->_is_redirect_cloaker($bare);
+		my $dest = $self->_follow_redirect_chain($url);
+		next unless defined $dest && !$url_seen{$dest}++;
+		push @urls, $dest;
 	}
 
 	# Extract unique hostnames for parallel DNS resolution (including redirect destinations)
