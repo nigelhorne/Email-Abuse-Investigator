@@ -20,7 +20,7 @@ https://pjcj.net
 <h1>Branch Coverage</h1>
 <table>
 <tr><td class="h" align="right">File:</td><td align="left">blib/lib/Email/Abuse/Investigator.pm</td></tr>
-<tr><td class="h" align="right">Coverage:</td><td align="left" class="c0">74.1%</td></tr>
+<tr><td class="h" align="right">Coverage:</td><td align="left" class="c0">74.7%</td></tr>
 </table>
 <div><br/></div>
 <table>
@@ -36,7 +36,7 @@ https://pjcj.net
 <tr><td class="h"><a id="L1098">1098</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $dom</td></tr>
 <tr><td class="h"><a id="L1104">1104</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $u-&gt;{&#39;abuse&#39;} and $u-&gt;{&#39;abuse&#39;} ne &quot;(unknown)&quot;</td></tr>
 <tr><td class="h"><a id="L1112">1112</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $covered{$bare}</td></tr>
-<tr><td class="h"><a id="L1113">1113</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if $seen{&quot;url:$bare&quot;}++</td></tr>
+<tr><td class="h"><a id="L1113">1113</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $seen{&quot;url:$bare&quot;}++</td></tr>
 <tr><td class="h"><a id="L1125">1125</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $source =~ /^(?:From:|Return-Path:|Sender:) header$/</td></tr>
 <tr><td class="h"><a id="L1126">1126</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if $covered{lc $dom}</td></tr>
 <tr><td class="h"><a id="L1127">1127</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if $seen{&quot;dom:$dom&quot;}++</td></tr>
@@ -91,7 +91,7 @@ https://pjcj.net
 <tr><td class="h"><a id="L1730">1730</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($orig)</td></tr>
 <tr><td class="h"><a id="L1738">1738</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if (@contacts)</td></tr>
 <tr><td class="h"><a id="L1745">1745</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if (my(@form_cs) = $self-&gt;form_contacts)</td></tr>
-<tr><td class="h"><a id="L1751">1751</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if $c-&gt;{&#39;form_domain&#39;}</td></tr>
+<tr><td class="h"><a id="L1751">1751</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $c-&gt;{&#39;form_domain&#39;}</td></tr>
 <tr><td class="h"><a id="L1752">1752</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $c-&gt;{&#39;form_paste&#39;}</td></tr>
 <tr><td class="h"><a id="L1753">1753</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $c-&gt;{&#39;form_upload&#39;}</td></tr>
 <tr><td class="h"><a id="L1861">1861</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless $addr and $addr =~ /\@/</td></tr>
@@ -115,7 +115,7 @@ https://pjcj.net
 <tr><td class="h"><a id="L1991">1991</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($d-&gt;{&#39;ns_abuse&#39;})</td></tr>
 <tr><td class="h"><a id="L2004">2004</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($d-&gt;{&#39;registrar_abuse&#39;})</td></tr>
 <tr><td class="h"><a id="L2011">2011</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">unless ($spoofable_only)</td></tr>
-<tr><td class="h"><a id="L2027">2027</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">$val =~ /&lt;([^&gt;]*)&gt;\s*$/ ? :</td></tr>
+<tr><td class="h"><a id="L2027">2027</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">$val =~ /&lt;([^&gt;]*)&gt;\s*$/ ? :</td></tr>
 <tr><td class="h"><a id="L2029">2029</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless $addr_domain</td></tr>
 <tr><td class="h"><a id="L2032">2032</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $addr_spec =~ /\+SRS[0-9]?=/i</td></tr>
 <tr><td class="h"><a id="L2035">2035</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if ($pa)</td></tr>
