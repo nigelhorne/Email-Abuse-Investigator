@@ -1804,7 +1804,7 @@ note '=== 36. sending_software() and received_trail() ===';
 	is $mailer->{value}, 'PHPMailer 6.0', 'x-mailer value correct';
 
 	# Results are sorted alphabetically by header name (per %sw_notes sort)
-	my @sorted = sort { $a->{header} cmp $b->{header} } @sw;
+	my @sorted = sort { ($a->{header} // '') cmp ($b->{header} // '') } @sw;
 	is_deeply \@sw, \@sorted, 'sending_software() sorted by header name';
 
 	# No software headers -> empty list

@@ -130,7 +130,32 @@ Revision history for Email-Abuse-Investigator
     - abuse_contacts() Route 3 form-only registrar suppressed from email list.
     Total: 186 tests (up from 151).
 
-  - Overall test count: 920 tests across 17 files (up from 885).
+  - Added t/mutant_killers.t: 49 subtests explicitly targeting HIGH and MEDIUM
+    difficulty survivors from xt/mutant_20260612_003229.t.  Covers all six
+    survivor classes with precise boundary and branch engineering:
+    - NUM_BOUNDARY (6 subtests): all three risk score thresholds (SCORE_HIGH=9,
+      SCORE_MEDIUM=5, SCORE_LOW=2) tested at boundary and boundary-1; TZ offset
+      boundaries (+14:00/−12:00) at exact limit and one-minute over; date skew
+      (±8 days flags, ±6 days clean); domain expiry "expires soon" vs "expired"
+      boundary tested with UTC-anchored gmtime dates to prevent timezone drift.
+    - COND_INV (38 subtests): both true and false branches exercised for every
+      conditional in _risk_check_origin (residential rDNS, absent rDNS, low
+      confidence, high-spam-country), _risk_check_auth (SPF/DKIM/DMARC flags),
+      _risk_check_date (missing date, TZ regex, implausible_timezone guard),
+      _risk_check_identity (display-name spoof, free webmail, Reply-To mismatch,
+      undisclosed recipients, encoded subject), _risk_check_urls_and_domains
+      (URL shortener, plain HTTP, recently_registered, domain expiry, lookalike
+      domain), abuse_report_text() flag/IP/contact/form sections, and
+      _compute_abuse_contacts() dedup and all six contact routes.
+    - BOOL_NEGATE (5 subtests): parse_email(), originating_ip(), all_domains(),
+      unresolved_contacts(), and risk_assessment() return exact typed values.
+    - COND_INV_1094_3: unresolved_contacts() unless($dom) domain-extraction path;
+      killed by injecting a contact whose address domain covers a mailto domain
+      (source set to Reply-To: to bypass the spoofable-header skip at line 1125).
+    - BOOL_NEGATE_596_2: new() always returns a distinct blessed object regardless
+      of CHI cache state.
+
+  - Overall test count: 969 tests across 18 files (up from 920).
 
   [Code Quality]
 
