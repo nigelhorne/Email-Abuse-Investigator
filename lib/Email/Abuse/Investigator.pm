@@ -2604,7 +2604,7 @@ sub report {
 #   form valid UTF-8 multi-byte sequences in headers and body text.
 
 sub _sanitise_output :Private {
-	my ($str) = @_;
+	my $str = $_[0];
 	return '' unless defined $str;
 	# Remove C0 controls (except tab) and DEL
 	$str =~ s/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]//g;
@@ -3961,7 +3961,7 @@ sub _provider_abuse_for_ip :Private {
 #   uncommon second-level delegations like ltd.uk or plc.uk.
 
 sub _registrable :Private {
-	my ($host) = @_;
+	my $host = $_[0];
 	return unless $host && $host =~ /\./;
 
 	# Use Domain::PublicSuffix for accurate PSL-based normalisation
@@ -4198,7 +4198,7 @@ sub _parse_date_to_epoch :Private {
 #   Returns epoch integer on success, undef if the string cannot be parsed.
 
 sub _parse_rfc2822_date :Private {
-	my ($str) = @_;
+	my $str = $_[0];
 	return unless $str;
 
 	# Match: DD Mon YYYY HH:MM:SS (timezone offset ignored)
@@ -4227,7 +4227,7 @@ sub _parse_rfc2822_date :Private {
 #   Returns the country name string, or the code itself if not in the table.
 
 sub _country_name :Private {
-	my ($cc) = @_;
+	my $cc = $_[0];
 	my %names = (
 		CN => 'China',       RU => 'Russia',    NG => 'Nigeria',
 		VN => 'Vietnam',     IN => 'India',      PK => 'Pakistan',
