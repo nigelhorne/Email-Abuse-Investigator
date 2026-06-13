@@ -1848,8 +1848,10 @@ if not already cached.
 
 =head3 Notes
 
-The result is not independently cached; each call recomputes the contact
-list from the cached results of the underlying methods.
+The result is cached on the object; subsequent calls return the same list
+without repeating the contact-collection logic.  The underlying per-IP and
+per-domain lookups are themselves cached by C<originating_ip()>,
+C<embedded_urls()>, and C<mailto_domains()>.
 
 =head3 API Specification
 
@@ -4212,19 +4214,59 @@ sub _enrich_ip :Private {
 # Purpose:
 #   Return the value of the first header matching the given lower-cased
 #   header name.
-=head2 header_value
+=head2 header_value( $name )
 
 Returns the value of the first occurrence of a named header field, or
 C<undef> if the header is absent.  The name comparison is case-insensitive.
 
-=head3 API SPECIFICATION
+=head3 Usage
 
-  Input:  name => Str  (required) - header field name, e.g. 'Subject'
-  Output: Str | undef
+    my $subj = $analyser->header_value('Subject');
+    my $from  = $analyser->header_value('From');
+    my $msgid = $analyser->header_value('Message-ID');
 
-=head3 MESSAGES
+=head3 Arguments
 
-  (none - returns undef on missing header, never throws)
+=over 4
+
+=item C<$name> (string, required)
+
+The header field name, e.g. C<'Subject'>, C<'From'>, C<'X-Mailer'>.
+Comparison is case-insensitive.
+
+=back
+
+=head3 Returns
+
+The raw header value string (not decoded), or C<undef> if the named header
+is not present.  When the same header appears more than once, only the value
+of the first occurrence is returned.
+
+=head3 Side Effects
+
+None.  Header data is pre-parsed during C<parse_email()>.
+
+=head3 Notes
+
+Header values are returned verbatim, including any MIME encoded-word sequences
+(C<=?charset?B/Q?...?=>).  Pass the result through C<_decode_mime_words()>
+internally if human-readable output is needed.
+
+=head3 API Specification
+
+=head4 Input
+
+    {
+        name => { type => 'string', required => 1 },
+    }
+
+=head4 Output
+
+    { type => [ 'string', 'undef' ] }
+
+=head3 Messages
+
+None -- returns C<undef> on a missing header, never throws.
 
 =cut
 
@@ -4584,9 +4626,14 @@ The following are optional but strongly recommended:
 
     Net::DNS            -- enables MX, NS, AAAA record lookups
     LWP::UserAgent      -- enables RDAP (faster and richer than raw WHOIS)
-    HTML::LinkExtor     -- enables structural HTML link extraction
+                          and following redirect chains for URL shorteners
+                          and cloud-storage redirect cloakers
+    LWP::ConnCache      -- enables HTTP connection reuse (used with LWP::UserAgent)
+    HTML::LinkExtor     -- enables structural HTML link extraction with entity decoding
     CHI                 -- enables cross-message IP/domain result caching
     IO::Socket::IP      -- enables IPv6 WHOIS connections
+    Domain::PublicSuffix -- enables accurate eTLD+1 domain normalisation
+    AnyEvent::DNS       -- enables parallel DNS resolution for multiple URL hosts
 
 =head1 LIMITATIONS
 
