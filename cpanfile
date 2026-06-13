@@ -31,6 +31,7 @@ on 'test' => sub {
 	requires 'Test::Needs';
 	requires 'Test::Returns';
 	requires 'Test::Which';
+	requires 'Test::Without::Module';
 };
 
 on 'develop' => sub {

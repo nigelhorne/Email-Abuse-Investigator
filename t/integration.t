@@ -128,15 +128,14 @@ sub install_stubs {
 #      second time so $HAS_* flags return to their original compile-time
 #      values for subsequent subtests.
 #
-# If Test::Without::Module is not installed the $code block is silently
-# skipped with a diagnostic; the surrounding subtest will show 0 assertions
-# and succeed vacuously.
+# If Test::Without::Module is not installed each surrounding subtest is
+# declared skip_all so it appears as a proper skip rather than a failure.
 # ---------------------------------------------------------------------------
 sub without_optionals {
 	my ($blocked_ref, $code) = @_;
 
 	unless (eval { require Test::Without::Module; 1 }) {
-		Test::More::diag('Test::Without::Module not installed -- optional-dep degradation test skipped');
+		Test::More::plan(skip_all => 'Test::Without::Module not installed');
 		return;
 	}
 
