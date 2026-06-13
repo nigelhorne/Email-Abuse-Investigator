@@ -14,7 +14,7 @@ use MIME::QuotedPrint qw( decode_qp );
 use MIME::Base64 qw( decode_base64 );
 use Object::Configure;
 use Params::Get;
-use Params::Validate::Strict;
+use Params::Validate::Strict 0.33;
 use Readonly;
 use Readonly::Values::Months;
 use Socket qw( inet_aton inet_ntoa AF_INET );
@@ -1639,6 +1639,7 @@ sub _risk_check_urls_and_domains :Private {
 	for my $u ($self->embedded_urls()) {
 		# Skip trusted infrastructure -- these are not spam indicators
 		my $bare = lc $u->{host};
+		next unless defined($bare);
 		$bare =~ s/^www\.//;
 		next if $self->{trusted_domains}->{$bare};
 		next if $TRUSTED_DOMAINS{$bare};
