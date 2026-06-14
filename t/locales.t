@@ -7,6 +7,7 @@ use strict;
 use warnings;
 
 use Test::More;
+use Test::Mockingbird qw(mock_scoped);
 use POSIX qw( ENOENT EACCES );
 
 use FindBin qw( $Bin );
@@ -31,19 +32,21 @@ Test body.
 END_EMAIL
 }
 
-# Disable all seven network seam methods so no test makes a real network call.
-# Net::DNS::Resolver->search() inside _analyse_domain is NOT a seam, so we
-# cannot stub it here; the sort fix in the module keeps NS selection
-# deterministic across DNS round-robin orderings.
-no warnings 'redefine';
-*Email::Abuse::Investigator::_reverse_dns         = sub { '(no reverse DNS)' };
-*Email::Abuse::Investigator::_resolve_host        = sub { return () };
-*Email::Abuse::Investigator::_whois_ip            = sub { return {} };
-*Email::Abuse::Investigator::_rdap_lookup         = sub { return {} };
-*Email::Abuse::Investigator::_domain_whois        = sub { return undef };
-*Email::Abuse::Investigator::_raw_whois           = sub { return undef };
-*Email::Abuse::Investigator::_follow_redirect_chain = sub { return undef };
-use warnings 'redefine';
+# File-scope guard: keeps all seven network seam stubs active for the entire
+# test run; mock_scoped() auto-restores originals when $NETWORK_STUBS goes out
+# of scope, removing the need for manual 'no warnings redefine' boilerplate.
+# Net::DNS::Resolver->search() inside _analyse_domain is NOT a seam; the sort
+# fix in the module ensures deterministic NS selection despite DNS round-robin.
+my $NETWORK_STUBS = mock_scoped(
+	'Email::Abuse::Investigator',
+	_reverse_dns           => sub { '(no reverse DNS)' },
+	_resolve_host          => sub { return () },
+	_whois_ip              => sub { return {} },
+	_rdap_lookup           => sub { return {} },
+	_domain_whois          => sub { return undef },
+	_raw_whois             => sub { return undef },
+	_follow_redirect_chain => sub { return undef },
+);
 
 # ============================================================================
 # SECTION 1: Geographic / country-code checks

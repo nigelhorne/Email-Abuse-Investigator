@@ -27,6 +27,7 @@ on 'test' => sub {
 	requires 'POSIX';
 	requires 'Scalar::Util';
 	requires 'Test::DescribeMe';
+	requires 'Test::Mockingbird';
 	requires 'Test::Most';
 	requires 'Test::Needs';
 	requires 'Test::Returns';
