@@ -34,7 +34,7 @@ WriteMakefile(
 		'IPC::System::Simple' => 0,
 		'Object::Configure' => 0,
 		'Params::Get' => 0,
-		'Params::Validate::Strict' => 0.33,
+		'Params::Validate::Strict' => 0.34,
 		'Sub::Private' => '0.05',
 		'Sub::Protected' => '0.02',
 		'Readonly::Values::Months' => 0,

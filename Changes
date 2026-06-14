@@ -4,6 +4,42 @@ Revision history for Email-Abuse-Investigator
 
   [Enhancements]
 
+  - abuse_report_text() now includes a REPORTED URLs section listing every
+    embedded HTTP/HTTPS URL with its resolved host, IP, and network org.
+    Previously the ISP-facing report body named the abuse contact but gave no
+    list of the reported URLs, leaving the receiving abuse desk with no
+    actionable detail.
+
+  - abuse_contacts() role summarisation now lists actual URL hostnames when
+    multiple URLs share the same abuse contact.  Previously the summary
+    collapsed all URL-host roles to the unhelpful string "URL host, URL host,
+    URL host, …".  The new format is "N routes: URL host: a.example,
+    b.example, c.example and 2 more", making the role string immediately
+    actionable for both the interactive prompt in submit_abuse_report and the
+    ABUSE CONTACTS line in the emailed report.
+
+  [Documentation]
+
+  - POD: corrected abuse_contacts() Notes section, which incorrectly stated
+    the result is not cached; the implementation caches it in $self->{_contacts}.
+
+  - POD: REQUIRED MODULES optional list now documents LWP::ConnCache (HTTP
+    connection reuse), Domain::PublicSuffix (eTLD+1 normalisation), and
+    AnyEvent::DNS (parallel DNS), which were wired up in the BEGIN block but
+    absent from the module documentation.
+
+  - POD: header_value() expanded from a stub to a full-standard-format entry
+    with Usage, Arguments, Returns, Side Effects, Notes, and API Specification
+    sections, matching the style of all other public methods.
+
+  [Tests]
+
+  - t/integration.t: without_optionals() now calls Test::More::plan(skip_all)
+    when Test::Without::Module is not installed, so OD subtests appear as
+    proper skips in CI rather than failures ("No tests run!").
+
+
+
   - Redirect-cloaker detection: the module now follows HTTP redirect chains for
     URLs whose host is a known cloud object-store or CDN (Google Cloud Storage
     storage.googleapis.com, Azure Blob Storage blob.core.windows.net, Cloudflare
@@ -40,6 +76,11 @@ Revision history for Email-Abuse-Investigator
   - Overall test count: 968 tests across 18 files (unchanged count; Scenario 5b
     adds 1 subtest with 6 assertions, integrated into the existing 49-scenario
     block).
+
+  [Bug Fixes]
+  
+  - Bumped the minimum verion of Params::Validate::Strict, so that fuzz.t works
+    with extreme integers
 
 0.10	Thu Jun 11 21:54:37 EDT 2026
 

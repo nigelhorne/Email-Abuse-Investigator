@@ -14,7 +14,7 @@ use MIME::QuotedPrint qw( decode_qp );
 use MIME::Base64 qw( decode_base64 );
 use Object::Configure;
 use Params::Get;
-use Params::Validate::Strict 0.33;
+use Params::Validate::Strict 0.34;
 use Readonly;
 use Readonly::Values::Months;
 use Socket qw( inet_aton inet_ntoa AF_INET );
@@ -1778,6 +1778,22 @@ sub abuse_report_text {
 			'';
 	}
 
+	# List every reported URL so the receiving abuse desk knows exactly
+	# which resources to investigate or suspend.
+	my @urls = $self->embedded_urls();
+	if (@urls) {
+		push @out, 'REPORTED URLs:';
+		for my $u (@urls) {
+			push @out, '  ' . _sanitise_output($u->{url});
+			my @meta;
+			push @meta, "host: $u->{host}"   if $u->{host};
+			push @meta, "IP: $u->{ip}"       if $u->{ip} && $u->{ip} ne '(unresolved)';
+			push @meta, "org: $u->{org}"     if $u->{org} && $u->{org} ne '(unknown)';
+			push @out, '    (' . join('  ', @meta) . ')' if @meta;
+		}
+		push @out, '';
+	}
+
 	# Email abuse contacts
 	my @contacts = $self->abuse_contacts();
 	if (@contacts) {
@@ -1929,15 +1945,32 @@ sub _compute_abuse_contacts :Private {
 			} @ordered_roles;
 			my $joined = join(' and ', @display);
 
-			# Summarise if the merged string is too long to read
+			# Summarise if the merged string is too long to read.
+			# "URL host: hostname" entries are grouped by listing the actual
+			# hostnames so the summary is actionable (e.g. "URL host: a.example,
+			# b.example" rather than the unhelpful "URL host, URL host").
+			# All other role types fall back to stripping at the first [:(\d]
+			# boundary to produce a compact type label.
 			if (length($joined) > $ROLE_MAX_LEN) {
-				my @short;
-				for (@display) {
-					(my $s = $_) =~ s/[:(\d].*//;
-					$s =~ s/\s+$//;
-					push @short, $s;
+				my (@url_hosts, %seen_short, @short);
+				for my $r (@display) {
+					if ($r =~ /^URL host:\s*(.+)$/) {
+						push @url_hosts, $1;
+					} else {
+						(my $s = $r) =~ s/[:(\d].*//;
+						$s =~ s/\s+$//;
+						push @short, $s unless $seen_short{$s}++;
+					}
 				}
-				$joined = scalar(@display) . ' routes: ' . join(', ', @short);
+				my @parts;
+				if (@url_hosts) {
+					my $extra = @url_hosts > 3
+						? ' and ' . (@url_hosts - 3) . ' more' : '';
+					my @shown = @url_hosts > 3 ? @url_hosts[0..2] : @url_hosts;
+					push @parts, 'URL host: ' . join(', ', @shown) . $extra;
+				}
+				push @parts, @short;
+				$joined = scalar(@display) . ' routes: ' . join(', ', @parts);
 			}
 			$entry->{role} = $joined;
 			return;

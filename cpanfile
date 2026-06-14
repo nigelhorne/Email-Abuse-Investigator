@@ -8,7 +8,7 @@ requires 'MIME::Base64';
 requires 'MIME::QuotedPrint';
 requires 'Object::Configure';
 requires 'Params::Get';
-requires 'Params::Validate::Strict', '0.33';
+requires 'Params::Validate::Strict', '0.34';
 requires 'Readonly::Values::Months';
 requires 'Socket';
 requires 'Sub::Private', '0.05';
