@@ -32,7 +32,25 @@ Revision history for Email-Abuse-Investigator
     with Usage, Arguments, Returns, Side Effects, Notes, and API Specification
     sections, matching the style of all other public methods.
 
+  [Bug Fixes]
+
+  - _analyse_domain() now sorts NS records alphabetically before selecting
+    the first nameserver, making report() output deterministic across DNS
+    round-robin orderings.  Previously two independent object instances
+    querying the same domain could receive NS records in different orders
+    and record different nameservers, causing spurious test failures.
+    Fixes https://github.com/nigelhorne/Email-Abuse-Investigator/issues/1
+
   [Tests]
+
+  - t/locales.t: added stubs for the three previously-missing network seam
+    methods (_domain_whois, _raw_whois, _follow_redirect_chain) so no test
+    in this file makes a real network call.
+
+  - t/locales.t: output_locale_stable subtest now reuses a single object
+    instance and calls parse_email() twice (once per locale) rather than
+    creating two independent objects.  This eliminates cross-instance DNS
+    divergence as an additional guard alongside the NS sort fix above.
 
   - t/integration.t: without_optionals() now calls Test::More::plan(skip_all)
     when Test::Without::Module is not installed, so OD subtests appear as

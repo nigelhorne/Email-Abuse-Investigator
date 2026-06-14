@@ -3605,7 +3605,10 @@ sub _analyse_domain :Private {
 		# --- NS record -> DNS hosting ---
 		my $nsq = $res->search($domain, 'NS');
 		if ($nsq) {
-			my ($first) = grep { $_->type eq 'NS' } $nsq->answer;
+			# Sort alphabetically so DNS round-robin ordering never changes which
+		# nameserver we record -- both runs of the same domain always agree.
+		my ($first) = sort { $a->nsdname cmp $b->nsdname }
+		              grep { $_->type eq 'NS' } $nsq->answer;
 			if ($first) {
 				(my $ns_host = lc $first->nsdname) =~ s/\.$//;
 				$info{ns_host} = $ns_host;
