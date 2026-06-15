@@ -1,6 +1,6 @@
 Revision history for Email-Abuse-Investigator
 
-0.11
+0.11	Sun Jun 14 20:02:44 EDT 2026
 
   [Enhancements]
 
@@ -41,6 +41,9 @@ Revision history for Email-Abuse-Investigator
     and record different nameservers, causing spurious test failures.
     Fixes https://github.com/nigelhorne/Email-Abuse-Investigator/issues/1
 
+  - Bumped the minimum verion of Params::Validate::Strict, so that fuzz.t works
+    with extreme integers
+
   [Tests]
 
   - t/locales.t: added stubs for the three previously-missing network seam
@@ -55,8 +58,6 @@ Revision history for Email-Abuse-Investigator
   - t/integration.t: without_optionals() now calls Test::More::plan(skip_all)
     when Test::Without::Module is not installed, so OD subtests appear as
     proper skips in CI rather than failures ("No tests run!").
-
-
 
   - Redirect-cloaker detection: the module now follows HTTP redirect chains for
     URLs whose host is a known cloud object-store or CDN (Google Cloud Storage
@@ -82,8 +83,6 @@ Revision history for Email-Abuse-Investigator
     abuse contact google-cloud-compliance@google.com and note pointing to
     https://support.google.com/code/go/gce_abuse_report.
 
-  [Tests]
-
   - t/integration.t: added Scenario 5b (cloud-storage redirect cloaker):
     verifies that a GCS URL is followed to its phishing destination, that both
     hosts appear in embedded_urls(), that redirect_cloaker is flagged, and that
@@ -94,11 +93,6 @@ Revision history for Email-Abuse-Investigator
   - Overall test count: 968 tests across 18 files (unchanged count; Scenario 5b
     adds 1 subtest with 6 assertions, integrated into the existing 49-scenario
     block).
-
-  [Bug Fixes]
-  
-  - Bumped the minimum verion of Params::Validate::Strict, so that fuzz.t works
-    with extreme integers
 
 0.10	Thu Jun 11 21:54:37 EDT 2026
 
