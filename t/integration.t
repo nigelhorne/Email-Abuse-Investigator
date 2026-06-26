@@ -30,12 +30,14 @@ use warnings;
 use Test::More;
 use MIME::Base64	  qw( encode_base64 );
 use MIME::QuotedPrint qw( encode_qp );
-use POSIX			 qw( strftime );
+use POSIX	 qw( strftime );
 
 use FindBin qw( $Bin );
 use lib "$Bin/../lib", "$Bin/..";
 
-use_ok('Email::Abuse::Investigator');
+BEGIN {
+	use_ok('Email::Abuse::Investigator');
+}
 
 # ---------------------------------------------------------------------------
 # Network stub infrastructure

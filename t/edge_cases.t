@@ -15,7 +15,9 @@ use Scalar::Util	  qw( blessed );
 
 use FindBin qw( $Bin );
 use lib "$Bin/../lib", "$Bin/..";
-use_ok('Email::Abuse::Investigator');
+BEGIN {
+	use_ok('Email::Abuse::Investigator');
+}
 
 my %_ORIG;
 BEGIN {

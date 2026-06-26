@@ -2483,8 +2483,7 @@ sub report {
 
 	# Originating host section
 	push @out, '[ ORIGINATING HOST ]';
-	my $orig = $self->originating_ip();
-	if ($orig) {
+	if(my $orig = $self->originating_ip()) {
 		push @out, '  IP           : ' . _sanitise_output($orig->{ip});
 		push @out, '  Reverse DNS  : ' . _sanitise_output($orig->{rdns})    if $orig->{rdns};
 		push @out, '  Country      : ' . _sanitise_output($orig->{country}) if $orig->{country};
@@ -3252,7 +3251,6 @@ sub _follow_redirect_chain :Protected {
 			}
 			$final   = $loc;
 			$current = $loc;
-
 		} elsif ($res->is_success()) {
 			# 2xx: inspect body for client-side redirect patterns
 			my $body = $res->decoded_content() // '';
@@ -3272,7 +3270,6 @@ sub _follow_redirect_chain :Protected {
 			last unless defined $dest;
 			$final   = $dest;
 			$current = $dest;
-
 		} else {
 			last;
 		}
@@ -3589,8 +3586,7 @@ sub _analyse_domain :Private {
 		);
 
 		# --- MX record -> mail hosting ---
-		my $mxq = $res->search($domain, 'MX');
-		if ($mxq) {
+		if(my $mxq = $res->search($domain, 'MX')) {
 			my ($best) = sort { $a->preference <=> $b->preference }
 			             grep { $_->type eq 'MX' } $mxq->answer;
 			if ($best) {
@@ -3607,12 +3603,10 @@ sub _analyse_domain :Private {
 		}
 
 		# --- NS record -> DNS hosting ---
-		my $nsq = $res->search($domain, 'NS');
-		if ($nsq) {
+		if(my $nsq = $res->search($domain, 'NS')) {
 			# Sort alphabetically so DNS round-robin ordering never changes which
-		# nameserver we record -- both runs of the same domain always agree.
-		my ($first) = sort { $a->nsdname cmp $b->nsdname }
-		              grep { $_->type eq 'NS' } $nsq->answer;
+			# nameserver we record -- both runs of the same domain always agree.
+			my ($first) = sort { $a->nsdname cmp $b->nsdname } grep { $_->type eq 'NS' } $nsq->answer;
 			if ($first) {
 				(my $ns_host = lc $first->nsdname) =~ s/\.$//;
 				$info{ns_host} = $ns_host;
@@ -3628,8 +3622,7 @@ sub _analyse_domain :Private {
 	}
 
 	# --- Domain WHOIS -> registrar + dates ---
-	my $domain_whois = $self->_domain_whois($domain);
-	if ($domain_whois) {
+	if(my $domain_whois = $self->_domain_whois($domain)) {
 		# Truncate raw WHOIS for storage but parse structured fields from full text
 		$info{whois_raw} = substr($domain_whois, 0, $WHOIS_RAW_MAX);
 
