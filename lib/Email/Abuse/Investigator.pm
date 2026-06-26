@@ -1417,6 +1417,8 @@ sub _risk_check_origin :Private {
 	my $orig = $self->originating_ip();
 	return unless $orig;
 
+	return if(!defined($orig->{ip}));
+
 	# Residential / broadband rDNS patterns suggest a compromised host
 	if ($orig->{rdns} && $orig->{rdns} =~ /
 		\d+[-_.]\d+[-_.]\d+[-_.]\d+   # dotted-quad in rDNS
@@ -1638,6 +1640,7 @@ sub _risk_check_urls_and_domains :Private {
 
 	for my $u ($self->embedded_urls()) {
 		# Skip trusted infrastructure -- these are not spam indicators
+		next unless($u->{host});
 		my $bare = lc $u->{host};
 		next unless defined($bare);
 		$bare =~ s/^www\.//;
@@ -1686,6 +1689,7 @@ sub _risk_check_urls_and_domains :Private {
 
 		# Lookalike domain check (brand name in a non-brand domain)
 		for my $brand (@LOOKALIKE_BRANDS) {
+			next if(!defined($d->{domain}));
 			if ($d->{domain} =~ /\Q$brand\E/i &&
 			    $d->{domain} !~ /^\Q$brand\E\.(?:com|co\.uk|net|org)$/) {
 				$flag->('HIGH', 'lookalike_domain',
