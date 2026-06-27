@@ -113,6 +113,10 @@ sub install_stubs {
 	*Email::Abuse::Investigator::_follow_redirect_chain = ref($ov{follow_redirect}) eq 'CODE'
 		? $ov{follow_redirect}
 		: sub { undef };
+
+	# Suppress the AnyEvent::DNS parallel resolver so no real DNS queries
+	# are fired when multiple URL hostnames appear in an email body.
+	*Email::Abuse::Investigator::_parallel_resolve_hosts = sub {};
 }
 
 # ---------------------------------------------------------------------------

@@ -35,6 +35,7 @@ sub null_net {
 	*Email::Abuse::Investigator::_domain_whois = sub { undef };
 	*Email::Abuse::Investigator::_raw_whois	= sub { undef };
 	*Email::Abuse::Investigator::_rdap_lookup  = sub { {} };
+	*Email::Abuse::Investigator::_parallel_resolve_hosts = sub {};
 }
 sub restore_net {
 	no warnings 'redefine';
@@ -1257,8 +1258,14 @@ subtest '_parallel_resolve_hosts -- empty hashref does not die' => sub {
 };
 
 subtest 'AnyEvent::DNS absent -- embedded_urls works via sequential fallback' => sub {
+	# Stub _parallel_resolve_hosts to a no-op so the test exercises the
+	# sequential fallback path unconditionally, regardless of whether
+	# AnyEvent::DNS happens to be installed in the current environment.
+	# Without this stub, the parallel path fires real DNS queries when the
+	# module is installed, violating the no-network rule.
 	null_net();
 	no warnings 'redefine';
+	local *Email::Abuse::Investigator::_parallel_resolve_hosts = sub {};
 	local *Email::Abuse::Investigator::_resolve_host = sub { '1.2.3.4' };
 	local *Email::Abuse::Investigator::_whois_ip	 = sub { { org=>'T', abuse=>'a@b' } };
 

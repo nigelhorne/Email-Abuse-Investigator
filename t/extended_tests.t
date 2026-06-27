@@ -62,6 +62,7 @@ sub null_net {
 	*Email::Abuse::Investigator::_domain_whois = sub { undef };
 	*Email::Abuse::Investigator::_raw_whois	= sub { undef };
 	*Email::Abuse::Investigator::_rdap_lookup  = sub { {} };
+	*Email::Abuse::Investigator::_parallel_resolve_hosts = sub {};
 }
 sub restore_net {
 	no warnings 'redefine';

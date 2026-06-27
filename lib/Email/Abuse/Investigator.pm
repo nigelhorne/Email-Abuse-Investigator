@@ -3301,16 +3301,23 @@ sub _follow_redirect_chain :Protected {
 
 sub _parallel_resolve_hosts :Private {
 	my ($self, $hostnames_ref, $cache_ref) = @_;
-	return unless $HAS_ANYEVENT_DNS;
+	# Guard both conditions together: an empty hash must never reach condvar
+	# creation because $cv->recv would block forever with $pending == 0.
+	return unless $HAS_ANYEVENT_DNS && %$hostnames_ref;
 
 	# Build an AnyEvent condvar to wait for all lookups to complete
 	my $cv      = AnyEvent->condvar;
 	my $pending = scalar keys %$hostnames_ref;
 
+	# AnyEvent::DNS::resolve is a method, not a standalone function.
+	# Use the global resolver singleton; passing a bare string as the
+	# first arg would make Perl treat the hostname as the invocant.
+	my $resolver = AnyEvent::DNS::resolver();
+
 	for my $host (keys %$hostnames_ref) {
-		# Fire an async A (and AAAA) query for each hostname
-		AnyEvent::DNS::resolve(
-			$host, 'A',
+		# Fire an async A query for each hostname
+		$resolver->resolve(
+			$host, 'a',
 			sub {
 				my @answers = @_;
 				if (@answers) {
