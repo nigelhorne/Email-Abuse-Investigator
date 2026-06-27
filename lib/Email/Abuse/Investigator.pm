@@ -745,8 +745,7 @@ sub parse_email {
 	$text = $$text if ref($text) eq 'SCALAR';
 
 	# Any other reference type is a programming error
-	Carp::croak(__PACKAGE__ . ': parse_email() requires a string or scalar reference')
-		if ref($text);
+	Carp::croak(__PACKAGE__ . ': parse_email() requires a string or scalar reference') if ref($text);
 
 	# Sanitise: strip control characters that could affect terminal output.
 	# Keep \t (tabs in headers), \n (line endings), \r (CRLF mail format).
@@ -4305,8 +4304,21 @@ None -- returns C<undef> on a missing header, never throws.
 =cut
 
 sub header_value {
-	my ($self, $name) = @_;
-	return $self->_header_value($name);
+	my $self = shift;
+
+	my $params = Params::Validate::Strict::validate_strict({
+		args => Params::Get::get_params('name', \@_) || {},
+		schema => {
+			name => {
+				'type'     => 'string',
+				'optional' => 0,
+			}
+		}
+	});
+
+	return if((!defined($params)) || !defined($params->{name}));
+	return if ref($params->{name});
+	return $self->_header_value($params->{name});
 }
 
 #
