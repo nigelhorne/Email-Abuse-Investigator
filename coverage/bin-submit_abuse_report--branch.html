@@ -61,26 +61,26 @@ https://pjcj.net
 <tr><td class="h"><a id="L353">353</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if ($c-&gt;{&#39;form_upload&#39;})</td></tr>
 <tr><td class="h"><a id="L374">374</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">unless (open $tty, &quot;&lt;&quot;, &quot;/dev/tty&quot;)</td></tr>
 <tr><td class="h"><a id="L380">380</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if defined $ans</td></tr>
-<tr><td class="h"><a id="L417">417</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if (my $dump = $ENV{&#39;SUBMIT_ABUSE_DUMP_MIME&#39;})</td></tr>
-<tr><td class="h"><a id="L418">418</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if (open my $fh, &quot;&gt;&quot;, $dump)</td></tr>
-<tr><td class="h"><a id="L433">433</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">unless ($smtp)</td></tr>
-<tr><td class="h"><a id="L440">440</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">unless $smtp-&gt;mail(&quot;&quot;)</td></tr>
-<tr><td class="h"><a id="L441">441</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">unless $smtp-&gt;to($a{&#39;to&#39;})</td></tr>
-<tr><td class="h"><a id="L443">443</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $a{&#39;bcc&#39;}</td></tr>
-<tr><td class="h"><a id="L444">444</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">unless $smtp-&gt;data</td></tr>
-<tr><td class="h"><a id="L445">445</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">unless $smtp-&gt;datasend($mail)</td></tr>
-<tr><td class="h"><a id="L446">446</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">unless $smtp-&gt;dataend</td></tr>
-<tr><td class="h"><a id="L451">451</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">unless ($ok)</td></tr>
-<tr><td class="h"><a id="L493">493</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $orig and $orig-&gt;{&#39;ip&#39;}</td></tr>
-<tr><td class="h"><a id="L501">501</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $mail_from</td></tr>
-<tr><td class="h"><a id="L510">510</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">unless $rcpt_seen{$addr}++</td></tr>
-<tr><td class="h"><a id="L515">515</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $arrival</td></tr>
-<tr><td class="h"><a id="L519">519</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $rdomain</td></tr>
-<tr><td class="h"><a id="L525">525</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">unless $uri_seen{$u-&gt;{&#39;url&#39;}}++</td></tr>
-<tr><td class="h"><a id="L530">530</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if $auth_res</td></tr>
-<tr><td class="h"><a id="L563">563</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if (defined $a{&#39;original&#39;} and length ${$a{&#39;original&#39;};})</td></tr>
-<tr><td class="h"><a id="L581">581</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $a{&#39;bcc&#39;}</td></tr>
-<tr><td class="h"><a id="L635">635</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">$orig ? :</td></tr>
+<tr><td class="h"><a id="L418">418</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if (my $dump = $ENV{&#39;SUBMIT_ABUSE_DUMP_MIME&#39;})</td></tr>
+<tr><td class="h"><a id="L419">419</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if (open my $fh, &quot;&gt;&quot;, $dump)</td></tr>
+<tr><td class="h"><a id="L434">434</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">unless ($smtp)</td></tr>
+<tr><td class="h"><a id="L441">441</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">unless $smtp-&gt;mail(&quot;&quot;)</td></tr>
+<tr><td class="h"><a id="L442">442</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">unless $smtp-&gt;to($a{&#39;to&#39;})</td></tr>
+<tr><td class="h"><a id="L444">444</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $a{&#39;bcc&#39;}</td></tr>
+<tr><td class="h"><a id="L445">445</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">unless $smtp-&gt;data</td></tr>
+<tr><td class="h"><a id="L446">446</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">unless $smtp-&gt;datasend($mail)</td></tr>
+<tr><td class="h"><a id="L447">447</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">unless $smtp-&gt;dataend</td></tr>
+<tr><td class="h"><a id="L452">452</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">unless ($ok)</td></tr>
+<tr><td class="h"><a id="L494">494</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $orig and $orig-&gt;{&#39;ip&#39;}</td></tr>
+<tr><td class="h"><a id="L502">502</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $mail_from</td></tr>
+<tr><td class="h"><a id="L511">511</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">unless $rcpt_seen{$addr}++</td></tr>
+<tr><td class="h"><a id="L516">516</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $arrival</td></tr>
+<tr><td class="h"><a id="L520">520</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $rdomain</td></tr>
+<tr><td class="h"><a id="L526">526</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">unless $uri_seen{$u-&gt;{&#39;url&#39;}}++</td></tr>
+<tr><td class="h"><a id="L531">531</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if $auth_res</td></tr>
+<tr><td class="h"><a id="L564">564</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if (defined $a{&#39;original&#39;} and length ${$a{&#39;original&#39;};})</td></tr>
+<tr><td class="h"><a id="L582">582</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $a{&#39;bcc&#39;}</td></tr>
+<tr><td class="h"><a id="L636">636</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">$orig ? :</td></tr>
 </table>
 </body>
 </html>
