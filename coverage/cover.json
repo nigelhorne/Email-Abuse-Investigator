@@ -4,419 +4,419 @@
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782580019.94202,
+         "finish" : 1782580818.9463,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "-e",
-         "start" : 1782579964.49878,
-         "version" : "0.11"
+         "start" : 1782580762.26582,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782579964.64697,
+         "finish" : 1782580762.42214,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "-e",
-         "start" : 1782579964.64677,
-         "version" : "0.11"
+         "start" : 1782580762.42194,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782579965.06902,
+         "finish" : 1782580762.87532,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "t/00-load.t",
-         "start" : 1782579965.06772,
-         "version" : "0.11"
+         "start" : 1782580762.8738,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782579965.67431,
+         "finish" : 1782580763.49551,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "t/critic.t",
-         "start" : 1782579965.67409,
-         "version" : "0.11"
+         "start" : 1782580763.49522,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782579966.99576,
+         "finish" : 1782580764.79388,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "t/edge_cases.t",
-         "start" : 1782579966.09437,
-         "version" : "0.11"
+         "start" : 1782580763.93577,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782579967.9908,
+         "finish" : 1782580765.83785,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "t/eof.t",
-         "start" : 1782579967.99056,
-         "version" : "0.11"
+         "start" : 1782580765.83752,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782579968.22233,
+         "finish" : 1782580766.08416,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "t/eol.t",
-         "start" : 1782579968.22214,
-         "version" : "0.11"
+         "start" : 1782580766.08385,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782579969.84791,
+         "finish" : 1782580767.70717,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "t/extended_tests.t",
-         "start" : 1782579968.63053,
-         "version" : "0.11"
+         "start" : 1782580766.50514,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782579974.08578,
+         "finish" : 1782580771.77129,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "t/function.t",
-         "start" : 1782579971.42836,
-         "version" : "0.11"
+         "start" : 1782580769.39677,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782579989.49499,
+         "finish" : 1782580788.03659,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "t/fuzz.t",
-         "start" : 1782579975.11003,
-         "version" : "0.11"
+         "start" : 1782580772.84186,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782579985.53328,
+         "finish" : 1782580783.86759,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "/opt/hostedtoolcache/perl/5.40.4/x64/bin/fuzz-harness-generator",
-         "start" : 1782579975.38097,
-         "version" : "0.11"
+         "start" : 1782580773.12585,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782579985.48397,
+         "finish" : 1782580783.81689,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "/opt/hostedtoolcache/perl/5.40.4/x64/bin/prove",
-         "start" : 1782579975.60682,
-         "version" : "0.11"
+         "start" : 1782580773.363,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782579984.55184,
+         "finish" : 1782580782.83825,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
-         "run" : "/tmp/FW_17iFQdY",
-         "start" : 1782579976.03625,
-         "version" : "0.11"
+         "run" : "/tmp/3j9ar5o8Q7",
+         "start" : 1782580773.80442,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782579987.46896,
+         "finish" : 1782580785.89547,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "/opt/hostedtoolcache/perl/5.40.4/x64/bin/fuzz-harness-generator",
-         "start" : 1782579985.9115,
-         "version" : "0.11"
+         "start" : 1782580784.25457,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782579987.41706,
+         "finish" : 1782580785.8432,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "/opt/hostedtoolcache/perl/5.40.4/x64/bin/prove",
-         "start" : 1782579986.13975,
-         "version" : "0.11"
+         "start" : 1782580784.49242,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782579986.59629,
+         "finish" : 1782580784.97383,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
-         "run" : "/tmp/W8eLKVc3Vy",
-         "start" : 1782579986.56939,
-         "version" : "0.11"
+         "run" : "/tmp/_tLvi5zaJE",
+         "start" : 1782580784.9448,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782579989.39069,
+         "finish" : 1782580787.92741,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "/opt/hostedtoolcache/perl/5.40.4/x64/bin/fuzz-harness-generator",
-         "start" : 1782579987.84367,
-         "version" : "0.11"
+         "start" : 1782580786.29039,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782579989.33854,
+         "finish" : 1782580787.87325,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "/opt/hostedtoolcache/perl/5.40.4/x64/bin/prove",
-         "start" : 1782579988.07307,
-         "version" : "0.11"
+         "start" : 1782580786.52717,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782579988.52448,
+         "finish" : 1782580787.00166,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
-         "run" : "/tmp/9FtYHelogY",
-         "start" : 1782579988.49781,
-         "version" : "0.11"
+         "run" : "/tmp/LUB9cXQ8OW",
+         "start" : 1782580786.97257,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782579990.29741,
+         "finish" : 1782580788.90321,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "t/github_2.t",
-         "start" : 1782579989.95803,
-         "version" : "0.11"
+         "start" : 1782580788.51956,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782579994.19134,
+         "finish" : 1782580792.8389,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "t/integration.t",
-         "start" : 1782579992.14945,
-         "version" : "0.11"
+         "start" : 1782580790.85788,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782579998.99706,
+         "finish" : 1782580797.91162,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "t/kwalitee.t",
-         "start" : 1782579998.99687,
-         "version" : "0.11"
+         "start" : 1782580797.91133,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782579999.49375,
+         "finish" : 1782580798.45031,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "t/locales.t",
-         "start" : 1782579999.39625,
-         "version" : "0.11"
+         "start" : 1782580798.34405,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782580000.14062,
+         "finish" : 1782580799.12874,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "t/manifest.t",
-         "start" : 1782580000.14043,
-         "version" : "0.11"
+         "start" : 1782580799.12841,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782580000.76992,
+         "finish" : 1782580799.79564,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "t/mutant_killers.t",
-         "start" : 1782580000.40841,
-         "version" : "0.11"
+         "start" : 1782580799.41607,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782580002.28309,
+         "finish" : 1782580801.43855,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "t/mutation_survivors.t",
-         "start" : 1782580001.97692,
-         "version" : "0.11"
+         "start" : 1782580801.09679,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782580003.07228,
+         "finish" : 1782580802.26468,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "t/pod-coverage.t",
-         "start" : 1782580003.07208,
-         "version" : "0.11"
+         "start" : 1782580802.2644,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782580003.31185,
+         "finish" : 1782580802.5171,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "t/pod.t",
-         "start" : 1782580003.31166,
-         "version" : "0.11"
+         "start" : 1782580802.51677,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782580010.41018,
+         "finish" : 1782580809.59923,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "t/submit_script.t",
-         "start" : 1782580003.56264,
-         "version" : "0.11"
+         "start" : 1782580802.77731,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782580004.18431,
+         "finish" : 1782580803.42478,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator/t/../bin/submit_abuse_report",
-         "start" : 1782580003.93717,
-         "version" : "0.11"
+         "start" : 1782580803.16507,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782580004.14175,
+         "finish" : 1782580803.3772,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "/opt/hostedtoolcache/perl/5.40.4/x64/bin/perldoc",
-         "start" : 1782580004.09146,
-         "version" : "0.11"
+         "start" : 1782580803.3251,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782580005.43101,
+         "finish" : 1782580804.4558,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator/t/../bin/submit_abuse_report",
-         "start" : 1782580005.04253,
-         "version" : "0.11"
+         "start" : 1782580804.31943,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782580006.47293,
+         "finish" : 1782580805.41342,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator/t/../bin/submit_abuse_report",
-         "start" : 1782580006.29338,
-         "version" : "0.11"
+         "start" : 1782580805.35011,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782580007.66687,
+         "finish" : 1782580806.59648,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator/t/../bin/submit_abuse_report",
-         "start" : 1782580007.34021,
-         "version" : "0.11"
+         "start" : 1782580806.30141,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782580008.81763,
+         "finish" : 1782580807.94743,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator/t/../bin/submit_abuse_report",
-         "start" : 1782580008.53219,
-         "version" : "0.11"
+         "start" : 1782580807.49919,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782580009.92756,
+         "finish" : 1782580809.09726,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator/t/../bin/submit_abuse_report",
-         "start" : 1782580009.67859,
-         "version" : "0.11"
+         "start" : 1782580808.83818,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782580009.8838,
+         "finish" : 1782580809.04909,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "/opt/hostedtoolcache/perl/5.40.4/x64/bin/perldoc",
-         "start" : 1782580009.83346,
-         "version" : "0.11"
+         "start" : 1782580808.99788,
+         "version" : "0.12"
       },
       {
          "OS" : "linux",
          "abstract" : "Analyse spam email to identify originating hosts, hosted URLs, and suspicious domains",
          "dir" : "/home/runner/work/Email-Abuse-Investigator/Email-Abuse-Investigator",
-         "finish" : 1782580019.21812,
+         "finish" : 1782580818.20467,
          "name" : "Email-Abuse-Investigator",
          "perl" : "5.40.4",
          "run" : "t/unit.t",
-         "start" : 1782580010.83712,
-         "version" : "0.11"
+         "start" : 1782580810.03974,
+         "version" : "0.12"
       }
    ],
    "summary" : {
@@ -507,7 +507,42 @@
             "uncoverable" : 0
          }
       },
-      "/tmp/9FtYHelogY" : {
+      "/tmp/3j9ar5o8Q7" : {
+         "branch" : {
+            "covered" : 131,
+            "error" : 591,
+            "percentage" : 18.1440443213296,
+            "total" : 722,
+            "uncoverable" : 0
+         },
+         "condition" : {
+            "covered" : 58,
+            "error" : 250,
+            "percentage" : 18.8311688311688,
+            "total" : 308,
+            "uncoverable" : 0
+         },
+         "statement" : {
+            "covered" : 340,
+            "error" : 848,
+            "percentage" : 28.6195286195286,
+            "total" : 1188
+         },
+         "subroutine" : {
+            "covered" : 34,
+            "error" : 26,
+            "percentage" : 56.6666666666667,
+            "total" : 60
+         },
+         "total" : {
+            "covered" : 563,
+            "error" : 1715,
+            "percentage" : 24.7146619841967,
+            "total" : 2278,
+            "uncoverable" : 0
+         }
+      },
+      "/tmp/LUB9cXQ8OW" : {
          "branch" : {
             "covered" : 37,
             "error" : 685,
@@ -542,42 +577,7 @@
             "uncoverable" : 0
          }
       },
-      "/tmp/FW_17iFQdY" : {
-         "branch" : {
-            "covered" : 132,
-            "error" : 590,
-            "percentage" : 18.2825484764543,
-            "total" : 722,
-            "uncoverable" : 0
-         },
-         "condition" : {
-            "covered" : 58,
-            "error" : 250,
-            "percentage" : 18.8311688311688,
-            "total" : 308,
-            "uncoverable" : 0
-         },
-         "statement" : {
-            "covered" : 341,
-            "error" : 847,
-            "percentage" : 28.7037037037037,
-            "total" : 1188
-         },
-         "subroutine" : {
-            "covered" : 34,
-            "error" : 26,
-            "percentage" : 56.6666666666667,
-            "total" : 60
-         },
-         "total" : {
-            "covered" : 565,
-            "error" : 1713,
-            "percentage" : 24.8024582967515,
-            "total" : 2278,
-            "uncoverable" : 0
-         }
-      },
-      "/tmp/W8eLKVc3Vy" : {
+      "/tmp/_tLvi5zaJE" : {
          "branch" : {
             "covered" : 38,
             "error" : 706,
@@ -614,23 +614,23 @@
       },
       "Total" : {
          "branch" : {
-            "covered" : 535,
-            "error" : 2263,
-            "percentage" : 19.120800571837,
+            "covered" : 532,
+            "error" : 2266,
+            "percentage" : 19.0135811293781,
             "total" : 2798,
             "uncoverable" : 0
          },
          "condition" : {
-            "covered" : 267,
-            "error" : 988,
-            "percentage" : 21.2749003984064,
+            "covered" : 257,
+            "error" : 998,
+            "percentage" : 20.4780876494024,
             "total" : 1255,
             "uncoverable" : 0
          },
          "statement" : {
-            "covered" : 3368,
-            "error" : 3173,
-            "percentage" : 51.4905977679254,
+            "covered" : 3367,
+            "error" : 3174,
+            "percentage" : 51.4753095856903,
             "total" : 6541
          },
          "subroutine" : {
@@ -640,9 +640,9 @@
             "total" : 963
          },
          "total" : {
-            "covered" : 5032,
-            "error" : 6525,
-            "percentage" : 43.5407112572467,
+            "covered" : 5018,
+            "error" : 6539,
+            "percentage" : 43.4195725534308,
             "total" : 11557,
             "uncoverable" : 0
          }
@@ -684,16 +684,16 @@
       },
       "blib/lib/Email/Abuse/Investigator.pm" : {
          "branch" : {
-            "covered" : 281,
-            "error" : 129,
-            "percentage" : 68.5365853658537,
+            "covered" : 279,
+            "error" : 131,
+            "percentage" : 68.0487804878049,
             "total" : 410,
             "uncoverable" : 0
          },
          "condition" : {
-            "covered" : 157,
-            "error" : 102,
-            "percentage" : 60.6177606177606,
+            "covered" : 147,
+            "error" : 112,
+            "percentage" : 56.7567567567568,
             "total" : 259,
             "uncoverable" : 0
          },
@@ -709,9 +709,9 @@
             "total" : 744
          },
          "total" : {
-            "covered" : 3586,
-            "error" : 287,
-            "percentage" : 92.5897237283759,
+            "covered" : 3574,
+            "error" : 299,
+            "percentage" : 92.279886392977,
             "total" : 3873,
             "uncoverable" : 0
          }

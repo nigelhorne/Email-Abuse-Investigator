@@ -20,7 +20,7 @@ https://pjcj.net
 <h1>Branch Coverage</h1>
 <table>
 <tr><td class="h" align="right">File:</td><td align="left">blib/lib/Email/Abuse/Investigator.pm</td></tr>
-<tr><td class="h" align="right">Coverage:</td><td align="left" class="c0">68.5%</td></tr>
+<tr><td class="h" align="right">Coverage:</td><td align="left" class="c0">68.0%</td></tr>
 </table>
 <div><br/></div>
 <table>
@@ -35,13 +35,13 @@ https://pjcj.net
 <tr><td class="h"></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if defined $text</td></tr>
 <tr><td class="h"><a id="L769">769</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if defined $text and $text =~ /\S/</td></tr>
 <tr><td class="h"></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if defined $text and $text =~ /\S/</td></tr>
-<tr><td class="h"><a id="L1059">1059</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $dom and not $seen{$dom}++</td></tr>
+<tr><td class="h"><a id="L1059">1059</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $dom and not $seen{$dom}++</td></tr>
 <tr><td class="h"></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $dom and not $seen{$dom}++</td></tr>
 <tr><td class="h"><a id="L1065">1065</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $dom and not $seen{$dom}++</td></tr>
 <tr><td class="h"></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $dom and not $seen{$dom}++</td></tr>
 <tr><td class="h"><a id="L1132">1132</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">unless ($dom)</td></tr>
 <tr><td class="h"></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless ($dom)</td></tr>
-<tr><td class="h"><a id="L1136">1136</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $dom</td></tr>
+<tr><td class="h"><a id="L1136">1136</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $dom</td></tr>
 <tr><td class="h"></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $dom</td></tr>
 <tr><td class="h"><a id="L1142">1142</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $u-&gt;{&#39;abuse&#39;} and $u-&gt;{&#39;abuse&#39;} ne &quot;(unknown)&quot;</td></tr>
 <tr><td class="h"></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $u-&gt;{&#39;abuse&#39;} and $u-&gt;{&#39;abuse&#39;} ne &quot;(unknown)&quot;</td></tr>
@@ -69,7 +69,7 @@ https://pjcj.net
 <tr><td class="h"></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if ($orig)</td></tr>
 <tr><td class="h"><a id="L1787">1787</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if (@urls)</td></tr>
 <tr><td class="h"></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if (@urls)</td></tr>
-<tr><td class="h"><a id="L1792">1792</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $u-&gt;{&#39;host&#39;}</td></tr>
+<tr><td class="h"><a id="L1792">1792</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $u-&gt;{&#39;host&#39;}</td></tr>
 <tr><td class="h"></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $u-&gt;{&#39;host&#39;}</td></tr>
 <tr><td class="h"><a id="L1793">1793</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $u-&gt;{&#39;ip&#39;} and $u-&gt;{&#39;ip&#39;} ne &quot;(unresolved)&quot;</td></tr>
 <tr><td class="h"></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $u-&gt;{&#39;ip&#39;} and $u-&gt;{&#39;ip&#39;} ne &quot;(unresolved)&quot;</td></tr>
@@ -81,13 +81,13 @@ https://pjcj.net
 <tr><td class="h"></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if (@contacts)</td></tr>
 <tr><td class="h"><a id="L1809">1809</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if (my(@form_cs) = $self-&gt;form_contacts)</td></tr>
 <tr><td class="h"></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if (my(@form_cs) = $self-&gt;form_contacts)</td></tr>
-<tr><td class="h"><a id="L1815">1815</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $c-&gt;{&#39;form_domain&#39;}</td></tr>
+<tr><td class="h"><a id="L1815">1815</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $c-&gt;{&#39;form_domain&#39;}</td></tr>
 <tr><td class="h"></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $c-&gt;{&#39;form_domain&#39;}</td></tr>
 <tr><td class="h"><a id="L1816">1816</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $c-&gt;{&#39;form_paste&#39;}</td></tr>
 <tr><td class="h"></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $c-&gt;{&#39;form_paste&#39;}</td></tr>
 <tr><td class="h"><a id="L1817">1817</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $c-&gt;{&#39;form_upload&#39;}</td></tr>
 <tr><td class="h"></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $c-&gt;{&#39;form_upload&#39;}</td></tr>
-<tr><td class="h"><a id="L2259">2259</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">unless $form</td></tr>
+<tr><td class="h"><a id="L2259">2259</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless $form</td></tr>
 <tr><td class="h"></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">unless $form</td></tr>
 <tr><td class="h"><a id="L2260">2260</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $seen{$form}++</td></tr>
 <tr><td class="h"></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $seen{$form}++</td></tr>
@@ -147,7 +147,7 @@ https://pjcj.net
 <tr><td class="h"></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">unless defined $_-&gt;{&#39;id&#39;}</td></tr>
 <tr><td class="h"><a id="L2512">2512</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if (@trail)</td></tr>
 <tr><td class="h"></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if (@trail)</td></tr>
-<tr><td class="h"><a id="L2518">2518</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $hop-&gt;{&#39;for&#39;}</td></tr>
+<tr><td class="h"><a id="L2518">2518</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $hop-&gt;{&#39;for&#39;}</td></tr>
 <tr><td class="h"></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $hop-&gt;{&#39;for&#39;}</td></tr>
 <tr><td class="h"><a id="L2519">2519</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $hop-&gt;{&#39;id&#39;}</td></tr>
 <tr><td class="h"></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $hop-&gt;{&#39;id&#39;}</td></tr>
