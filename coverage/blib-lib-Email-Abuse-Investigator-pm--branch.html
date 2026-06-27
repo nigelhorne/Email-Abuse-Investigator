@@ -20,7 +20,7 @@ https://pjcj.net
 <h1>Branch Coverage</h1>
 <table>
 <tr><td class="h" align="right">File:</td><td align="left">blib/lib/Email/Abuse/Investigator.pm</td></tr>
-<tr><td class="h" align="right">Coverage:</td><td align="left" class="c0">65.1%</td></tr>
+<tr><td class="h" align="right">Coverage:</td><td align="left" class="c0">68.0%</td></tr>
 </table>
 <div><br/></div>
 <table>
@@ -32,7 +32,7 @@ https://pjcj.net
 <tr><td class="h"><a id="L748">748</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ref $text</td></tr>
 <tr><td class="h"></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ref $text</td></tr>
 <tr><td class="h"><a id="L753">753</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if defined $text</td></tr>
-<tr><td class="h"></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if defined $text</td></tr>
+<tr><td class="h"></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if defined $text</td></tr>
 <tr><td class="h"><a id="L770">770</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if defined $text and $text =~ /\S/</td></tr>
 <tr><td class="h"></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if defined $text and $text =~ /\S/</td></tr>
 <tr><td class="h"><a id="L1060">1060</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $dom and not $seen{$dom}++</td></tr>
@@ -41,14 +41,14 @@ https://pjcj.net
 <tr><td class="h"></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $dom and not $seen{$dom}++</td></tr>
 <tr><td class="h"><a id="L1133">1133</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">unless ($dom)</td></tr>
 <tr><td class="h"></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless ($dom)</td></tr>
-<tr><td class="h"><a id="L1137">1137</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $dom</td></tr>
+<tr><td class="h"><a id="L1137">1137</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $dom</td></tr>
 <tr><td class="h"></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $dom</td></tr>
 <tr><td class="h"><a id="L1143">1143</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $u-&gt;{&#39;abuse&#39;} and $u-&gt;{&#39;abuse&#39;} ne &quot;(unknown)&quot;</td></tr>
-<tr><td class="h"></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if $u-&gt;{&#39;abuse&#39;} and $u-&gt;{&#39;abuse&#39;} ne &quot;(unknown)&quot;</td></tr>
+<tr><td class="h"></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $u-&gt;{&#39;abuse&#39;} and $u-&gt;{&#39;abuse&#39;} ne &quot;(unknown)&quot;</td></tr>
 <tr><td class="h"><a id="L1151">1151</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $covered{$bare}</td></tr>
 <tr><td class="h"></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $covered{$bare}</td></tr>
 <tr><td class="h"><a id="L1152">1152</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $seen{&quot;url:$bare&quot;}++</td></tr>
-<tr><td class="h"></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $seen{&quot;url:$bare&quot;}++</td></tr>
+<tr><td class="h"></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $seen{&quot;url:$bare&quot;}++</td></tr>
 <tr><td class="h"><a id="L1164">1164</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $source =~ /^(?:From:|Return-Path:|Sender:) header$/</td></tr>
 <tr><td class="h"></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $source =~ /^(?:From:|Return-Path:|Sender:) header$/</td></tr>
 <tr><td class="h"><a id="L1165">1165</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $covered{lc $dom}</td></tr>
@@ -69,7 +69,7 @@ https://pjcj.net
 <tr><td class="h"></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if ($orig)</td></tr>
 <tr><td class="h"><a id="L1788">1788</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if (@urls)</td></tr>
 <tr><td class="h"></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if (@urls)</td></tr>
-<tr><td class="h"><a id="L1793">1793</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $u-&gt;{&#39;host&#39;}</td></tr>
+<tr><td class="h"><a id="L1793">1793</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $u-&gt;{&#39;host&#39;}</td></tr>
 <tr><td class="h"></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $u-&gt;{&#39;host&#39;}</td></tr>
 <tr><td class="h"><a id="L1794">1794</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $u-&gt;{&#39;ip&#39;} and $u-&gt;{&#39;ip&#39;} ne &quot;(unresolved)&quot;</td></tr>
 <tr><td class="h"></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">if $u-&gt;{&#39;ip&#39;} and $u-&gt;{&#39;ip&#39;} ne &quot;(unresolved)&quot;</td></tr>
@@ -194,7 +194,7 @@ https://pjcj.net
 <tr><td class="h"><a id="L2657">2657</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if $c-&gt;{&#39;form_upload&#39;}</td></tr>
 <tr><td class="h"><a id="L3706">3706</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $host =~ /^\d{1,3}(?:\.\d{1,3}){3}$/</td></tr>
 <tr><td class="h"><a id="L3709">3709</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($_cache)</td></tr>
-<tr><td class="h"><a id="L3711">3711</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if defined $cached_ip</td></tr>
+<tr><td class="h"><a id="L3711">3711</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if defined $cached_ip</td></tr>
 <tr><td class="h"><a id="L3716">3716</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($HAS_NET_DNS) { }</td></tr>
 <tr><td class="h"><a id="L3725">3725</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($query)</td></tr>
 <tr><td class="h"><a id="L3727">3727</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($rr-&gt;type eq &#39;A&#39;) { }</td></tr>
@@ -203,18 +203,18 @@ https://pjcj.net
 <tr><td class="h"><a id="L3741">3741</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">$packed ? :</td></tr>
 <tr><td class="h"><a id="L3745">3745</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($_cache)</td></tr>
 <tr><td class="h"><a id="L3766">3766</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless $ip</td></tr>
-<tr><td class="h"><a id="L3768">3768</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if ($HAS_NET_DNS)</td></tr>
+<tr><td class="h"><a id="L3768">3768</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($HAS_NET_DNS)</td></tr>
 <tr><td class="h"><a id="L3771">3771</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">if ($query)</td></tr>
 <tr><td class="h"><a id="L3773">3773</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $rr-&gt;type eq &quot;PTR&quot;</td></tr>
 <tr><td class="h"><a id="L3804">3804</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($_cache)</td></tr>
-<tr><td class="h"><a id="L3806">3806</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if $cached</td></tr>
+<tr><td class="h"><a id="L3806">3806</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $cached</td></tr>
 <tr><td class="h"><a id="L3809">3809</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">$HAS_LWP ? :</td></tr>
 <tr><td class="h"><a id="L3812">3812</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless ($result-&gt;{&#39;org&#39;})</td></tr>
 <tr><td class="h"><a id="L3814">3814</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($raw)</td></tr>
 <tr><td class="h"><a id="L3816">3816</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">$ref ? :</td></tr>
 <tr><td class="h"><a id="L3817">3817</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $detail</td></tr>
 <tr><td class="h"><a id="L3822">3822</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $_cache and $result</td></tr>
-<tr><td class="h"><a id="L3843">3843</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">unless $server</td></tr>
+<tr><td class="h"><a id="L3843">3843</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless $server</td></tr>
 <tr><td class="h"><a id="L3895">3895</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless $HAS_LWP</td></tr>
 <tr><td class="h"><a id="L3898">3898</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless (defined $ua)</td></tr>
 <tr><td class="h"><a id="L3904">3904</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($HAS_CONN_CACHE)</td></tr>
@@ -222,11 +222,11 @@ https://pjcj.net
 <tr><td class="h"><a id="L3923">3923</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($j =~ /&quot;name&quot;\s*:\s*&quot;([^&quot;]+)&quot;/)</td></tr>
 <tr><td class="h"><a id="L3924">3924</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($j =~ /&quot;handle&quot;\s*:\s*&quot;([^&quot;]+)&quot;/)</td></tr>
 <tr><td class="h"><a id="L3927">3927</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($j =~ /&quot;abuse&quot;.*?&quot;email&quot;\s*:\s*&quot;([^&quot;]+)&quot;/s) { }</td></tr>
-<tr><td class="h"></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">elsif ($j =~ /&quot;email&quot;\s*:\s*&quot;([^\@&quot;]+\@[^&quot;]+)&quot;/) { }</td></tr>
+<tr><td class="h"></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">elsif ($j =~ /&quot;email&quot;\s*:\s*&quot;([^\@&quot;]+\@[^&quot;]+)&quot;/) { }</td></tr>
 <tr><td class="h"><a id="L3934">3934</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($j =~ /&quot;country&quot;\s*:\s*&quot;([A-Z]{2})&quot;/)</td></tr>
 <tr><td class="h"><a id="L3968">3968</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">$HAS_IO_SOCKET_IP ? :</td></tr>
 <tr><td class="h"><a id="L3979">3979</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless $sock</td></tr>
-<tr><td class="h"><a id="L3982">3982</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">unless ($sock-&gt;print(&quot;$query\r\n&quot;))</td></tr>
+<tr><td class="h"><a id="L3982">3982</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless ($sock-&gt;print(&quot;$query\r\n&quot;))</td></tr>
 <tr><td class="h"><a id="L3994">3994</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($@ or not defined $n or $n &lt;= 0)</td></tr>
 <tr><td class="h"><a id="L3995">3995</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $@</td></tr>
 <tr><td class="h"><a id="L3998">3998</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if not defined $n or $n &lt;= 0</td></tr>
