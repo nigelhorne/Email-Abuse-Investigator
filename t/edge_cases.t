@@ -8,6 +8,7 @@ use strict;
 use warnings;
 
 use Test::Most;
+use Test::Needs;
 use MIME::Base64	  qw( encode_base64 );
 use MIME::QuotedPrint qw( encode_qp );
 use POSIX			 qw( strftime );
@@ -2017,8 +2018,7 @@ subtest '_rdap_lookup -- IPv6 zone ID stripped; valid IPv6 proceeds to RDAP call
 	# were NOT stripped the format check would reject the value immediately;
 	# we can distinguish the two outcomes by checking that the fake UA was
 	# called (LWP required) vs returning {} due to validation failure.
-	skip 'LWP::UserAgent not installed', 3
-		unless eval { require LWP::UserAgent; 1 };
+	Test::Needs->import('LWP::UserAgent');
 
 	my $a = Email::Abuse::Investigator->new(timeout => 1);
 
