@@ -152,4 +152,24 @@ subtest '--interactive documented in --help' => sub {
 		'--interactive mentioned in help output';
 };
 
+# ---------------------------------------------------------------------------
+# 6. Path traversal rejected
+# ---------------------------------------------------------------------------
+subtest 'path traversal in filename is rejected' => sub {
+	# Strategy: pass a path containing ../ as the email file argument.
+	# The script must exit non-zero and print an error mentioning traversal.
+	my ($out, $err, $exit) = run_script('--dry-run', '--from=x@x.example',
+		'../../../etc/passwd');
+	my $combined = $out . $err;
+	ok $exit != 0, 'exit status non-zero for traversal path';
+	like $combined, qr/traversal/i,
+		'error message mentions traversal';
+};
+
+# NUL bytes in argv cannot be tested via subprocess: POSIX execve(2) uses
+# NUL-terminated strings, so the OS truncates any argv element at the first
+# NUL before the child process sees it.  The in-script guard against NUL is
+# still valuable when the script is called from Perl (e.g. system() or
+# IPC::Open3 with a tainted string), but it cannot be exercised this way.
+
 done_testing();
