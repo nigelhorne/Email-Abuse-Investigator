@@ -27,11 +27,11 @@ hosted URLs, and suspicious domains
 
 =head1 VERSION
 
-Version 0.12
+Version 0.13
 
 =cut
 
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 =head1 SYNOPSIS
 
@@ -4638,7 +4638,7 @@ messages in the same run (e.g. a sending ISP seen in 500 spam messages).
 
 =head2 WHOIS query sanitization
 
-C<_raw_whois()> strips all ASCII control characters (C<\x00>–C<\x1F> and
+C<_raw_whois()> strips all ASCII control characters (C<\x00>-C<\x1F> and
 C<\x7F>) from C<$query> before writing it to the socket.  This prevents
 WHOIS protocol injection: a maliciously crafted domain name containing
 embedded C<\r\n> would otherwise smuggle a second WHOIS command into the
@@ -4979,11 +4979,15 @@ in via C<new()> (not currently supported) to enable proper isolation.
   header_value : Object × FieldName → Maybe FieldValue
   header_value(o, n) ≜ first { lc(h.name) = lc(n) } o._headers .value
 
+=head1 AUTHOR
+
+Nigel Horne, C<< <njh@nigelhorne.com> >>
+
 =head1 LICENCE AND COPYRIGHT
 
 Copyright 2026 Nigel Horne.
 
-Usage is subject to GPL2 licence terms.
+Usage is subject to the GPL2 licence terms.
 If you use it,
 please let me know.
 

@@ -12,7 +12,6 @@ use warnings;
 use Test::More;
 use File::Temp  qw(tempfile);
 use IPC::Open3  qw(open3);
-use Symbol      qw(gensym);
 use File::Spec;
 use FindBin     qw($Bin);
 
@@ -56,16 +55,24 @@ sub make_eml {
 # ---------------------------------------------------------------------------
 sub run_script {
 	my (@args) = @_;
+	# Route child stderr to a temp file so the only IPC pipe is stdout.
+	# Reading stdout then stderr sequentially from two pipes causes a
+	# classic deadlock on Windows (small ~4 KB pipe buffer): the child
+	# fills the stderr pipe while the parent blocks on stdout, and both
+	# sides stall.  A file has no buffer limit so it never blocks.
+	my ($err_fh, $err_path) = tempfile(SUFFIX => '.err', UNLINK => 1);
 	my ($in, $out);
-	my $err = gensym();
 	# Include the distribution lib/ in @INC for the subprocess
-	my $pid = open3($in, $out, $err,
+	my $pid = open3($in, $out, $err_fh,
 		$PERL, "-I$LIB", $SCRIPT, @args);
 	close $in;
 	my $stdout = do { local $/; <$out> } // '';
-	my $stderr = do { local $/; <$err> } // '';
+	close $out;
 	waitpid $pid, 0;
 	my $exit = $? >> 8;
+	seek $err_fh, 0, 0;
+	my $stderr = do { local $/; <$err_fh> } // '';
+	close $err_fh;
 	return ($stdout, $stderr, $exit);
 }
 

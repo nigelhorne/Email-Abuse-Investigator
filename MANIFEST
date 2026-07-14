@@ -10,6 +10,7 @@ MANIFEST.SKIP
 README.md
 t/00-load.t
 t/abuse_check.t
+t/abuse_check.t
 t/conf/new.yml
 t/conf/originating_ip.yml
 t/conf/risk_assessment.yml
