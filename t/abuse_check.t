@@ -49,13 +49,13 @@ sub run_script {
 	return ($stdout, $stderr, $exit);
 }
 
-# Verify the script compiles and gives a useful error without arguments
+# Verify the script compiles cleanly.  Pass a non-existent file rather than
+# reading from stdin: on Windows, closing the parent's write end of an
+# anonymous pipe does not reliably signal EOF to the child's <STDIN> read,
+# causing the script to block indefinitely.  A missing-file path causes an
+# immediate croak after module load, which is all we need for a compile check.
 {
-	my ($out, $err, $exit) = run_script();
-	if ($exit == 0 && !$out && !$err) {
-		# Empty STDIN returns "No email data supplied" -- that's fine
-	}
-	# Just confirm it doesn't crash with a Perl compile error
+	my ($out, $err, $exit) = run_script('/no/such/file.for.compile.check.eml');
 	unlike $err, qr/syntax error/i, 'script compiles without syntax errors';
 }
 
@@ -83,6 +83,13 @@ sub make_eml {
 # 1. Valid .eml file: script produces a report and exits 0
 # ---------------------------------------------------------------------------
 subtest 'valid .eml file produces a report' => sub {
+	# abuse_check calls report() which runs the full DNS/WHOIS pipeline.
+	# These calls cannot be stubbed from outside the module process, and
+	# IO::Select-based timeouts are unreliable on Windows, so the subtest
+	# is skipped in any environment that prohibits live network calls.
+	plan skip_all => 'NO_NETWORK_TESTING set; script makes real DNS/WHOIS calls'
+		if $ENV{NO_NETWORK_TESTING};
+
 	my $eml = make_eml();
 	my ($out, $err, $exit) = run_script($eml);
 	is $exit, 0, 'exit status 0 for valid email file';
