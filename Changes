@@ -1,6 +1,6 @@
 Revision history for Email-Abuse-Investigator
 
-0.13	Mon Jul 13 20:17:42 EDT 2026
+0.13	Mon Jul 13 20:56:19 EDT 2026
 	[Security]
 	- _raw_whois(): strip all C0/C1 ASCII control characters (\x00-\x1F,
 	  \x7F) from the WHOIS query before writing it to the socket.  This
