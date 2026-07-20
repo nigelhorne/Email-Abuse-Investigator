@@ -14,6 +14,13 @@ Revision history for Email-Abuse-Investigator
 	  now trigger the MEDIUM redirect_cloaker risk flag in risk_assessment().
 
 	[Bug fixes]
+	- t/submit_script.t subtest 5: strip pod2text overstrike-bold sequences
+	  (char + \x08 + char) from the captured --help output before matching
+	  /interactive/i.  On headless CPAN tester environments pod2text renders
+	  bold text using overstrike, turning "interactive" into
+	  "iinntteerraaccttiivvee" and causing a false failure.
+	  Fixes https://www.cpantesters.org/cpan/report/5be8844e-7f4e-11f1-bd91-d4036e8775ea
+
 	- unresolved_contacts(): URL hosts and contact domains that match an
 	  entry in %PROVIDER_ABUSE are now correctly excluded from the
 	  "no abuse contact determined" listing.  Previously only hosts whose

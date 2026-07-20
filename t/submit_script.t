@@ -155,7 +155,11 @@ subtest 'no contacts -- spoofed From: domain not listed' => sub {
 subtest '--interactive documented in --help' => sub {
 	my ($out, $err, $exit) = run_script('--help');
 
-	like $out . $err, qr/interactive/i,
+	# pod2text may emit overstrike-bold sequences (char + backspace + char)
+	# on environments with no real terminal; strip them before matching so
+	# "interactive" is not seen as "iinntteerraaccttiivvee".
+	(my $clean = $out . $err) =~ s/.\x08//g;
+	like $clean, qr/interactive/i,
 		'--interactive mentioned in help output';
 };
 
