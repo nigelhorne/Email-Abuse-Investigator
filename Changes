@@ -1,6 +1,6 @@
 Revision history for Email-Abuse-Investigator
 
-0.14
+0.14	Mon Jul 20 08:32:19 EDT 2026
 	[Enhancements]
 	- %PROVIDER_ABUSE: added gappssmtp.com, translate.goog, and
 	  googleusercontent.com, all pointing to abuse@google.com.  Google
