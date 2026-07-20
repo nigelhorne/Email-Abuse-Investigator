@@ -183,4 +183,31 @@ subtest 'path traversal in filename is rejected' => sub {
 # still valuable when the script is called from Perl (e.g. system() or
 # IPC::Open3 with a tainted string), but it cannot be exercised this way.
 
+# ---------------------------------------------------------------------------
+# 7. Regression: overstrike-bold sequences must be stripped before matching
+#    --help output.  On CPAN tester machines that route pod2usage through
+#    groff/nroff, bold text is rendered as (char + \x08 + char) overstrike,
+#    turning "--interactive" into "--iinntteerraaccttiivvee".  Without stripping,
+#    /interactive/i never matches.
+# ---------------------------------------------------------------------------
+subtest 'overstrike-bold stripping regression (CPAN tester groff rendering)' => sub {
+	# Build the overstrike form that groff -man -Tascii produces for bold text:
+	# each character c becomes "c\x08c".
+	my $plain     = '--interactive';
+	my $overstruck = join '', map { "$_\x08$_" } split //, $plain;
+
+	# Confirm the raw overstruck string does NOT satisfy a naive regex match --
+	# this is exactly the failure seen on CPAN tester 5be8844e.
+	unlike $overstruck, qr/interactive/i,
+		'overstrike-encoded text fails naive /interactive/i match';
+
+	# Apply the same strip used in subtest 5.
+	(my $clean = $overstruck) =~ s/.\x08//g;
+
+	like $clean, qr/interactive/i,
+		'stripped text matches /interactive/i';
+	is $clean, $plain,
+		'stripped text is byte-identical to the original plain string';
+};
+
 done_testing();
