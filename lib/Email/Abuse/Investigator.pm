@@ -404,8 +404,13 @@ my %PROVIDER_ABUSE = (
 	# WordPress.com
 	'wordpress.com'       => { email => 'abuse@wordpress.com',     note => 'WordPress.com hosted blog -- report via https://en.wordpress.com/abuse/' },
 	'wp.com'              => { email => 'abuse@wordpress.com',     note => 'WordPress.com short domain' },
+	# Wix -- wixsite.com is the subdomain used for all user-hosted Wix sites
+	'wix.com'             => { email => 'abuse@wix.com',           note => 'Wix platform abuse -- report via https://support.wix.com/en/article/reporting-abusive-wix-sites' },
+	'wixsite.com'         => { email => 'abuse@wix.com',           note => 'Wix user-hosted site (e.g. exitfed.wixsite.com) -- report the site URL to abuse@wix.com' },
 	# Substack
 	'substack.com'        => { email => 'abuse@substack.com',      note => 'Substack newsletter platform abuse' },
+	# Change.org -- petition platform used by spammers as a redirect destination
+	'change.org'          => { email => 'abuse@change.org',        note => 'Change.org petition platform -- report abuse via https://www.change.org/policies/abuse' },
 	# ActiveCampaign
 	'activecampaign.com'  => { email => 'abuse@activecampaign.com', note => 'ActiveCampaign ESP' },
 	'ac-tinker.com'       => { email => 'abuse@activecampaign.com', note => 'ActiveCampaign tracking infrastructure' },

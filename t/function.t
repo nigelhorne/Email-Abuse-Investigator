@@ -772,6 +772,24 @@ note '=== 22. _provider_abuse_for_host ===';
 
 	$r = $a->_provider_abuse_for_host('120-88-161-249.tpgi.com.au');
 	is $r->{email}, 'abuse@tpg.com.au', 'tpgi.com.au subdomain matched';
+
+	# Wix: wixsite.com is the hosted-site domain; wix.com is corporate.
+	# The stripping loop sees exitfed.wixsite.com -> wixsite.com -> match.
+	$r = $a->_provider_abuse_for_host('wix.com');
+	is $r->{email}, 'abuse@wix.com', 'wix.com exact match';
+
+	$r = $a->_provider_abuse_for_host('wixsite.com');
+	is $r->{email}, 'abuse@wix.com', 'wixsite.com exact match';
+
+	$r = $a->_provider_abuse_for_host('exitfed.wixsite.com');
+	is $r->{email}, 'abuse@wix.com', 'subdomain exitfed.wixsite.com strips to wixsite.com';
+
+	# Change.org: petition platform used as spam redirect destination.
+	$r = $a->_provider_abuse_for_host('change.org');
+	is $r->{email}, 'abuse@change.org', 'change.org exact match';
+
+	$r = $a->_provider_abuse_for_host('www.change.org');
+	is $r->{email}, 'abuse@change.org', 'www.change.org strips to change.org';
 }
 
 # ===========================================================================

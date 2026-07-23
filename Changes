@@ -1,5 +1,13 @@
 Revision history for Email-Abuse-Investigator
 
+0.15
+	[Enhancements]
+	- %PROVIDER_ABUSE: added wix.com and wixsite.com (abuse@wix.com) and
+	  change.org (abuse@change.org).  Wix-hosted spam sites appear under
+	  *.wixsite.com subdomains; without the wixsite.com entry the subdomain
+	  stripping loop exits at "com" without finding a contact.  change.org
+	  is a petition platform used by some campaigns as a redirect destination.
+
 0.14	Mon Jul 20 08:32:19 EDT 2026
 	[Enhancements]
 	- %PROVIDER_ABUSE: added gappssmtp.com, translate.goog, and

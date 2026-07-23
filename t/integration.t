@@ -3205,4 +3205,65 @@ subtest 'OD-8: Without all optional deps — basic email analysis degrades grace
 	});
 };
 
+# ===========================================================================
+# Scenario 19: Wix-hosted spam site and change.org redirect destination
+#
+# Regression for the foo.eml pattern: URLs resolving to *.wixsite.com and
+# www.change.org were listed as unresolved because neither wixsite.com nor
+# change.org were in %PROVIDER_ABUSE.  The subdomain-stripping loop in
+# _provider_abuse_for_host() reaches wixsite.com / change.org on the second
+# iteration but found no entry and exited, leaving both hosts unresolved.
+# ===========================================================================
+subtest 'Scenario 19: wixsite.com and change.org PROVIDER_ABUSE entries' => sub {
+	restore_stubs();
+	install_stubs(
+		rdns    => sub { undef },
+		resolve => {
+			'exitfed.wixsite.com' => '185.230.63.186',
+			'www.change.org'      => '104.18.35.52',
+		},
+		# IP WHOIS returns no abuse address for either host — the only path
+		# to a contact is %PROVIDER_ABUSE.  This is the condition that was
+		# previously broken: unresolved_contacts() did not check PROVIDER_ABUSE.
+		whois_ip => sub { {} },
+		domain_whois => undef,
+	);
+
+	my $a = Email::Abuse::Investigator->new();
+	$a->parse_email(make_raw_email(
+		received => 'from smtp.exitfederal.org (smtp [192.102.6.219]) by mx.test',
+		from     => 'Federal Party <newsletter@exitfederal.org>',
+		body     => 'Visit https://exitfed.wixsite.com/petition and sign '
+		          . 'https://www.change.org/p/stop-the-thing for info.',
+	));
+
+	# --- abuse_contacts() ---
+	my @contacts  = $a->abuse_contacts();
+	my @addresses = map { lc $_->{address} } grep { defined $_->{address} } @contacts;
+
+	diag('abuse contacts: ' . join(', ', @addresses)) if $ENV{TEST_VERBOSE};
+
+	ok scalar(grep { $_ eq 'abuse@wix.com' } @addresses),
+		'abuse@wix.com present via PROVIDER_ABUSE for exitfed.wixsite.com';
+
+	ok scalar(grep { $_ eq 'abuse@change.org' } @addresses),
+		'abuse@change.org present via PROVIDER_ABUSE for www.change.org';
+
+	# --- unresolved_contacts() ---
+	# Neither host should appear as unresolved: PROVIDER_ABUSE supplies a
+	# contact even though IP WHOIS returned nothing.
+	my @unresolved = $a->unresolved_contacts();
+	my @unres_doms = map { $_->{domain} } @unresolved;
+
+	diag('unresolved: ' . join(', ', @unres_doms)) if $ENV{TEST_VERBOSE};
+
+	ok !scalar(grep { lc($_) =~ /wixsite\.com/ } @unres_doms),
+		'wixsite.com host absent from unresolved_contacts() (PROVIDER_ABUSE covers it)';
+
+	ok !scalar(grep { lc($_) =~ /change\.org/ } @unres_doms),
+		'change.org host absent from unresolved_contacts() (PROVIDER_ABUSE covers it)';
+
+	restore_stubs();
+};
+
 done_testing();
