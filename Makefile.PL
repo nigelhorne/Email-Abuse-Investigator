@@ -44,6 +44,7 @@ WriteMakefile(
 		# 'Net::DNS' => 0,
 		# 'LWP::UserAgent' => 0,
 		# 'HTML::LinkExtor' => 0
+		# 'CHI' => 0
 	}, TEST_REQUIRES => {
 		'FindBin' => 0,
 		'IPC::System::Simple' => 0,
