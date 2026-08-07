@@ -4,6 +4,9 @@ use strict;
 use warnings;
 use autodie qw(:all);
 
+# TODO: phishing spam pretending to be from Fidelity Investments, should be
+# forwarded to phishing@fidelity.com
+
 use Carp qw(croak carp);
 use IO::Select;
 use IO::Socket::INET;
